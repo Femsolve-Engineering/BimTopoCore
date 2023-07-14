@@ -48,7 +48,16 @@ def run_build_edges() -> bool:
         e19 = Edge.by_start_vertex_end_vertex(v7, v11)
         e20 = Edge.by_start_vertex_end_vertex(v8, v12)
 
+        # Edges
+        edges = [e1, e2, e3, e4, e5]
+        for edge_count, edge in enumerate(edges):
+            print(f'Edge #{edge_count}')
+            (start_vertex, end_vertex) = edge.vertices()
+            print(f"\tStart Vertex: X={start_vertex.x()}, Y={start_vertex.y()}, Z={start_vertex.z()}")
+            print(f"\tEnd Vertex: X={end_vertex.x()}, Y={end_vertex.y()}, Z={end_vertex.z()}")
 
+        print("Done!")
+            
     except Exception as ex:
         print(f"Exception occured: {ex}")
         return False

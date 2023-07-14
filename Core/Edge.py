@@ -1,4 +1,6 @@
 
+from typing import Tuple
+
 # OCC
 from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Edge
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Edge
@@ -50,6 +52,14 @@ class Edge(Topology):
         else:
             print('One of the vertices is not valid or is null!')
             return None
+        
+    def vertices(self) -> Tuple[Vertex, Vertex]:
+        """Returns a tuple of vertices.
+
+        Returns:
+            Tuple[Vertex, Vertex]: (start_vertex, end_vertex)
+        """
+        return (self.start_vertex(), self.end_vertex())
 
 
     def start_vertex(self) -> Vertex:
