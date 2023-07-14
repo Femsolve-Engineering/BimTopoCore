@@ -1,7 +1,6 @@
 
 # OCC
-from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Shape
-from OCC.Core.Standard import Standard_True
+from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.ShapeFix import ShapeFix_Shape
 
@@ -45,10 +44,11 @@ class Topology:
             TopoDS_Shape: Fixed shape
         """
         shape_fixes = ShapeFix_Shape(init_shape)
-        if shape_fixes.Perform():
+        try: 
+            shape_fixes.Perform()
             return shape_fixes.Shape()
-        else:
-            print(f'WARN: Shape fix failed! Returning initial shape')
+        except Exception as ex:
+            print(f'WARN: Shape fix failed! (Exception: {ex}) Returning initial shape!')
             return init_shape
         
     def is_null_shape(self) -> bool:

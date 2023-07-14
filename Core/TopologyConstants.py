@@ -41,7 +41,7 @@ class TopologyTypes(enum.Enum):
         Returns:
             str: Constant GUID for the given shape
         """
-        return TopologyTypes.TOPOLOGY_TO_GUID[shape_type]
+        return TopologyTypes.TOPOLOGY_TO_GUID.value[shape_type.value]
     
     @staticmethod
     def get_dimensionality_for_type(shape_type: "TopologyTypes") -> int:
@@ -55,7 +55,7 @@ class TopologyTypes(enum.Enum):
         Returns:
             int: Dimensionality 
         """
-        return TopologyTypes.TOPOLOGY_TO_DIMENSIONALITY[shape_type]
+        return TopologyTypes.TOPOLOGY_TO_DIMENSIONALITY.value[shape_type.value]
     
 
 class EdgeEnd(enum.Enum):

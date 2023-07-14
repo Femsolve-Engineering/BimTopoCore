@@ -1,8 +1,7 @@
 # OCC
 from OCC.Core.TopoDS import TopoDS_Vertex, topods_Vertex
-from OCC.Core.Standard import Standard_True
 from OCC.Core.Geom import Geom_CartesianPoint
-from OCC.Core.BRepTools import BRep_Tool
+from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.gp import gp_Pnt
 
@@ -22,7 +21,7 @@ class Vertex(Topology):
             occt_vertex (TopoDS_Vertex): base_shape
             guid (str, optional): Shape specific guid. Defaults to "".
         """
-        super().__init__(self, occt_vertex, TopologyTypes.VERTEX)
+        super().__init__(occt_vertex, TopologyTypes.VERTEX)
         self.base_shape_vertex = occt_vertex
 
     def x(self) -> float:
@@ -75,8 +74,9 @@ class Vertex(Topology):
             Vertex: new Vertex topology object
         """
         occt_pnt = gp_Pnt(kx,ky,kz)
-        occt_vertex = BRepBuilderAPI_MakeVertex(occt_pnt)
-        occt_fixed_vertex = Vertex(Topology.fix_shape(occt_vertex))
+        occt_vertex_builder = BRepBuilderAPI_MakeVertex(occt_pnt)
+        occt_vertex = occt_vertex_builder.Vertex()
+        occt_fixed_vertex = Topology.fix_shape(occt_vertex)
         new_vertex = Vertex(occt_fixed_vertex)
         return new_vertex
         

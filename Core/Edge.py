@@ -24,7 +24,7 @@ class Edge(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(self, occt_edge, TopologyTypes.EDGE)
+        super().__init__(occt_edge, TopologyTypes.EDGE)
         self.base_shape_edge = occt_edge
 
     @staticmethod
@@ -47,7 +47,7 @@ class Edge(Topology):
                 start_vertex.base_shape_vertex,
                 end_vertex.base_shape_vertex)
             
-            new_edge = Edge(occt_edge)
+            new_edge = Edge(occt_edge.Shape())
             return new_edge
         else:
             print('One of the vertices is not valid or is null!')
