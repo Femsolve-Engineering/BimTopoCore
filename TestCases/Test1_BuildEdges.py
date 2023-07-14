@@ -57,6 +57,7 @@ def run_build_edges() -> bool:
             print(f"\tEnd Vertex: X={end_vertex.x()}, Y={end_vertex.y()}, Z={end_vertex.z()}")
 
         print("Done!")
+        return True
             
     except Exception as ex:
         print(f"Exception occured: {ex}")
