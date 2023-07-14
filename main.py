@@ -1,10 +1,7 @@
-from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
-from OCC.Display.SimpleGui import init_display
+from TestCases.Test1_BuildEdges import run_build_edges
 
-display, start_display, add_menu, add_function_to_menu = init_display()
-
-my_box = BRepPrimAPI_MakeBox(10., 20., 30.).Shape()
-
-display.DisplayShape(my_box, update=True)
-
-start_display()
+was_success = run_build_edges()
+if was_success:
+    print('Test case was success!')
+else:
+    print('Test case failed!')
