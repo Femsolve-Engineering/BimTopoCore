@@ -50,6 +50,81 @@ class Vertex(Topology):
         """
         geom_cartesian_point = self.__get_point()
         return geom_cartesian_point.Z()
+    
+    def is_manifold(self, host_topology: Topology):
+        """
+        For now, in the context of an Edge, a Vertex is considered always manifold.
+        TODO: Vertex is considered manifold if it is the start or end vertex.
+        """
+
+        if host_topology.get_shape_type() == TopologyTypes.EDGE:
+            return True
+
+        # In the context of a Wire, a Vertex is non-manifold if it connects more than two edges.
+        if host_topology.get_shape_type() == TopologyTypes.WIRE:
+            edges = []
+            self.Edges(host_topology, edges)
+            if len(edges) > 2:
+                return False
+
+        # In the context of a Face, a Vertex is non-manifold if it connects more than two edges.
+        if host_topology.get_shape_type() == TopologyTypes.FACE:
+            edges = []
+            self.Edges(host_topology, edges)
+            if len(edges) > 2:
+                return False
+
+        # In the context of a Shell, a Vertex is non-manifold if it connects more than two Faces.
+        if host_topology.get_shape_type() == TopologyTypes.SHELL:
+            faces = []
+            self.Faces(host_topology, faces)
+            if len(faces) > 2:
+                return False
+
+        # In the context of a Cell, a Vertex is non-manifold if it connects more than two Faces.
+        if host_topology.get_shape_type() == TopologyTypes.CELL:
+            faces = []
+            self.Faces(host_topology, faces)
+            if len(faces) > 2:
+                return False
+
+        # In the context of a CellComplex, a Vertex is non-manifold if it connects more than one Cell.
+        if host_topology.get_shape_type() == TopologyTypes.CELLCOMPLEX:
+            cells = []
+            self.Cells(host_topology, cells)
+            if len(cells) > 1:
+                return False
+
+        # In the context of a Cluster, Check all the SubTopologies
+        if host_topology.get_shape_type() == TopologyTypes.TOPOLOGY_CLUSTER:
+            cellComplexes = []
+            host_topology.CellComplexes(None, cellComplexes)
+            for kpCellComplex in cellComplexes:
+                if not self.IsManifold(kpCellComplex):
+                    return False
+
+            cells = []
+            for kpCell in cells:
+                if not self.IsManifold(kpCell):
+                    return False
+
+            shells = []
+            for kpShell in shells:
+                if not self.IsManifold(kpShell):
+                    return False
+
+            faces = []
+            for kpFace in faces:
+                if not self.IsManifold(kpFace):
+                    return False
+
+            wires = []
+            for kpWire in wires:
+                if not self.IsManifold(kpWire):
+                    return False
+
+        return True
+
 
     def __get_point(self) -> Geom_CartesianPoint:
         """Gets OCC's Geom_Point object.
