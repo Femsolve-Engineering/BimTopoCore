@@ -1,6 +1,12 @@
+# Base
+from typing import List
+
 # OCC
-from OCC.Core.TopoDS import TopoDS_Vertex, topods_Vertex
-from OCC.Core.Geom import Geom_CartesianPoint
+from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Shape
+from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
+from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.Geom import Geom_CartesianPoint, Geom_Point
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.gp import gp_Pnt
@@ -23,6 +29,47 @@ class Vertex(Topology):
         """
         super().__init__(occt_vertex, TopologyTypes.VERTEX)
         self.base_shape_vertex = occt_vertex
+
+    def adjacent_vertices(self, host_topology: Topology) ->  'List[Vertex]':
+        """
+        Returns:
+            List[Vertex]: the Vertices adjacent to the Vertex.
+        """
+
+        # Find the constituent edges
+        occt_adjacent_vertices = TopTools_MapOfShape()
+        edges = []
+
+        if host_topology:
+            explorer = TopExp_Explorer(host_topology.GetOcctShape(), TopAbs_EDGE)
+            while explorer.More():
+                edge_shape = explorer.Current()
+                edges.append(TopoDS_Shape(edge_shape))
+                explorer.Next()
+        else:
+            raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
+
+        for edge in edges:
+            vertices = []
+            kpEdge = TopoDS_Shape(edge)
+            explorer = TopExp_Explorer(kpEdge, TopAbs_VERTEX)
+            while explorer.More():
+                vertex_shape = explorer.Current()
+                vertices.append(TopoDS_Vertex(vertex_shape))
+                explorer.Next()
+
+            for vertex in vertices:
+                if not self.is_same(vertex):  # Assuming IsSame is defined elsewhere
+                    occt_adjacent_vertices.Add(vertex)
+
+        r_adjacent_vertices = []
+        occt_adjacent_vertex_iterator = TopTools_MapIteratorOfMapOfShape(occt_adjacent_vertices)
+        while occt_adjacent_vertex_iterator.More():
+            vertex_shape = occt_adjacent_vertex_iterator.Value()
+            r_adjacent_vertices.append(TopoDS_Vertex(vertex_shape))
+            occt_adjacent_vertex_iterator.Next()
+
+        return r_adjacent_vertices
 
     def x(self) -> float:
         """Getter of X-coordinate for the vertex.
@@ -154,6 +201,18 @@ class Vertex(Topology):
         occt_fixed_vertex = Topology.fix_shape(occt_vertex)
         new_vertex = Vertex(occt_fixed_vertex)
         return new_vertex
+    
+    @staticmethod
+    def by_point(occt_geom_point: Geom_Point) -> 'Vertex':
+        """
+        Returns:
+            A vertex constructed using an Occt geom point.
+        """
+        occt_vertex = BRepBuilderAPI_MakeVertex(occt_geom_point.Pnt()).Vertex()
+        occt_fixed_vertex = Topology.fix_shape(occt_vertex)
+        new_vertex = Vertex(occt_fixed_vertex)
+        return new_vertex
+
         
 
 

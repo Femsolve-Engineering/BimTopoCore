@@ -36,6 +36,21 @@ class Topology:
 
         Topology.topologic_entity_count += 1
 
+    def is_same(self, test_topology: 'Topology') -> bool:
+        """
+        Returns:
+            bool: True if the test_topology is identical to this topology.
+        """
+        is_same = self.get_occt_shape().IsSame(test_topology.get_occt_shape())
+        return is_same
+    
+    def get_occt_shape(self) -> TopoDS_Shape:
+        """
+        Returns:
+            TopoDS_Shape: Underlying OCC shape.
+        """
+        return self.base_shape
+
     @staticmethod
     def fix_shape(init_shape: TopoDS_Shape) -> TopoDS_Shape:
         """Uses OCC's ShapeFix_Shape to perform a shape fix.
