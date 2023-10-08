@@ -1,12 +1,14 @@
 # Base
-from typing import List
+from typing import List, Tuple
 
 # OCC
+from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Shape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
 from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX
 from OCC.Core.TopExp import TopExp_Explorer
-from OCC.Core.Geom import Geom_CartesianPoint, Geom_Point
+from OCC.Core.Geom import Geom_CartesianPoint, Geom_Point, Geom_Geometry
+from OCC.Core.BRepTools import BRep_Tool_Pnt
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.gp import gp_Pnt
@@ -70,6 +72,15 @@ class Vertex(Topology):
             occt_adjacent_vertex_iterator.Next()
 
         return r_adjacent_vertices
+    
+    def geometry(self) -> List[Geom_Geometry]:
+        """
+        Virtual method.
+        Returns:
+            List of geometric entities.
+        """
+        occt_geometries = [self.__get_point()]
+        return occt_geometries
 
     def x(self) -> float:
         """Getter of X-coordinate for the vertex.
@@ -143,7 +154,7 @@ class Vertex(Topology):
                 return False
 
         # In the context of a Cluster, Check all the SubTopologies
-        if host_topology.get_shape_type() == TopologyTypes.TOPOLOGY_CLUSTER:
+        if host_topology.get_shape_type() == TopologyTypes.CLUSTER:
             cellComplexes = []
             host_topology.CellComplexes(None, cellComplexes)
             for kpCellComplex in cellComplexes:
@@ -171,7 +182,66 @@ class Vertex(Topology):
                     return False
 
         return True
+    
+    def center_of_mass(self) -> 'Vertex':
+        """
+        TODO: Need to implement TopologyFactory first
 
+        Returns:
+            Fixed vertex point center of mass
+        """
+        occt_vertex = Vertex.center_of_mass(self.get_occt_vertex())
+        # new_vertex = Topology.by_occt_shape(occt_vertex)
+        # return new_vertex
+        raise Exception('ToDO')
+    
+    def coordinates(self) -> Tuple[float, float, float]:
+        """
+        Returns:
+            Tuple (triplet) of x,y,z coordinates.
+        """
+        geom_point = self.__get_point()
+        return (geom_point.X(), geom_point.Y(), geom_point.Z())
+    
+    def get_occt_shape(self) -> TopoDS_Shape:
+        """
+        Virtual method.
+        Returns:
+            TopoDS_Shape of vertex.
+        """
+        return self.get_occt_vertex()
+    
+    def set_occt_shape(self, new_shape: TopoDS_Shape) -> None:
+        """
+        Sets the TopoDS_Shape representing the vertex.
+        """
+        try:
+            self.set_occt_vertex(TopoDS_Vertex(new_shape))
+        except Exception as ex:
+            raise RuntimeError(ex.args)
+
+    def get_occt_vertex(self) -> TopoDS_Vertex:
+        """
+        Returns:
+            Underlying OCCT vertex object.
+        """
+
+        if self.base_shape_vertex.IsNull():
+            raise RuntimeError('A null Vertex is encountered!')
+        else: return self.base_shape_vertex
+
+    def set_occt_vertex(self, occt_vertex: TopoDS_Vertex) -> None:
+        """
+        Sets the underlying TopoDS_Vertex.
+        """
+        self.base_shape_vertex = occt_vertex
+
+    def get_type_name(self) -> str:
+        """
+        Returns:
+            Type name as string
+        """
+        return 'Vertex'
 
     def __get_point(self) -> Geom_CartesianPoint:
         """Gets OCC's Geom_Point object.
@@ -181,6 +251,18 @@ class Vertex(Topology):
         """
         geometric_point = BRep_Tool.Pnt(self.base_shape_vertex)
         return Geom_CartesianPoint(geometric_point)
+    
+    @staticmethod
+    def center_of_mass(rkOcctVertex: TopoDS_Vertex) -> TopoDS_Vertex:
+        """
+        Static method to get center of mass for OCCT point.
+        Returns:
+            Fixed vertex point center of mass.
+        """
+        pnt = BRep_Tool_Pnt(rkOcctVertex)
+        occt_center_of_mass = BRepBuilderAPI_MakeVertex(pnt).Vertex()
+        occt_fixed_center_of_mass = TopoDS_Vertex(Topology.fix_shape(occt_center_of_mass))
+        return occt_fixed_center_of_mass
 
     @staticmethod
     def by_coordinates(kx: float, ky: float, kz: float) -> "Vertex":
