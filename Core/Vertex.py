@@ -19,13 +19,14 @@ from Core.Edge import Edge
 # BimTopoCore
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
+from Core.Factories.AllFactories import VertexFactory
 
 class Vertex(Topology):
     """
     Represents a 1D vertex object. Serves as a wrapper around 
     TopoDS_VERTEX entity of OCC.
     """
-    def __init__(self, occt_vertex: TopoDS_Vertex):
+    def __init__(self, occt_vertex: TopoDS_Vertex, guid: str):
         """Constructor saves shape and processes GUID.
 
         Args:
@@ -34,6 +35,7 @@ class Vertex(Topology):
         """
         super().__init__(occt_vertex, TopologyTypes.VERTEX)
         self.base_shape_vertex = occt_vertex
+        self.register_factory(self.get_class_guid(), VertexFactory())
 
     @staticmethod
     def by_point(occt_geom_point: Geom_Point) -> 'Vertex':
@@ -107,50 +109,50 @@ class Vertex(Topology):
         # In the context of a Shell, a Vertex is non-manifold if it connects more than two Faces.
         if host_topology.get_shape_type() == TopologyTypes.SHELL:
             faces = []
-            self.Faces(host_topology, faces)
+            self.faces(host_topology, faces)
             if len(faces) > 2:
                 return False
 
         # In the context of a Cell, a Vertex is non-manifold if it connects more than two Faces.
         if host_topology.get_shape_type() == TopologyTypes.CELL:
             faces = []
-            self.Faces(host_topology, faces)
+            self.faces(host_topology, faces)
             if len(faces) > 2:
                 return False
 
         # In the context of a CellComplex, a Vertex is non-manifold if it connects more than one Cell.
         if host_topology.get_shape_type() == TopologyTypes.CELLCOMPLEX:
             cells = []
-            self.Cells(host_topology, cells)
+            self.cells(host_topology, cells)
             if len(cells) > 1:
                 return False
 
         # In the context of a Cluster, Check all the SubTopologies
         if host_topology.get_shape_type() == TopologyTypes.CLUSTER:
             cellComplexes = []
-            host_topology.CellComplexes(None, cellComplexes)
+            host_topology.cell_complexes(None, cellComplexes)
             for kpCellComplex in cellComplexes:
-                if not self.IsManifold(kpCellComplex):
+                if not self.is_manifold(kpCellComplex):
                     return False
 
             cells = []
             for kpCell in cells:
-                if not self.IsManifold(kpCell):
+                if not self.is_manifold(kpCell):
                     return False
 
             shells = []
             for kpShell in shells:
-                if not self.IsManifold(kpShell):
+                if not self.is_manifold(kpShell):
                     return False
 
             faces = []
             for kpFace in faces:
-                if not self.IsManifold(kpFace):
+                if not self.is_manifold(kpFace):
                     return False
 
             wires = []
             for kpWire in wires:
-                if not self.IsManifold(kpWire):
+                if not self.is_manifold(kpWire):
                     return False
 
         return True
@@ -196,6 +198,15 @@ class Vertex(Topology):
 
         return r_adjacent_vertices
     
+    def center_of_mass(self) -> 'Vertex':
+        """
+        Returns:
+            Fixed vertex point center of mass
+        """
+        occt_vertex = Vertex.center_of_mass(self.get_occt_vertex())
+        new_vertex = Topology.by_occt_shape(occt_vertex)
+        return new_vertex
+    
     def geometry(self) -> List[Geom_Geometry]:
         """
         Virtual method.
@@ -204,6 +215,39 @@ class Vertex(Topology):
         """
         occt_geometries = [self.__get_point()]
         return occt_geometries
+    
+    def get_occt_shape(self) -> TopoDS_Shape:
+        """
+        Virtual method.
+        Returns:
+            TopoDS_Shape of vertex.
+        """
+        return self.get_occt_vertex()
+    
+    def set_occt_shape(self, new_shape: TopoDS_Shape) -> None:
+        """
+        Sets the TopoDS_Shape representing the vertex.
+        """
+        try:
+            self.set_occt_vertex(TopoDS_Vertex(new_shape))
+        except Exception as ex:
+            raise RuntimeError(ex.args)
+        
+    def get_occt_vertex(self) -> TopoDS_Vertex:
+        """
+        Returns:
+            Underlying OCCT vertex object.
+        """
+
+        if self.base_shape_vertex.IsNull():
+            raise RuntimeError('A null Vertex is encountered!')
+        else: return self.base_shape_vertex
+
+    def set_occt_vertex(self, occt_vertex: TopoDS_Vertex) -> None:
+        """
+        Sets the underlying TopoDS_Vertex.
+        """
+        self.base_shape_vertex = occt_vertex
 
     def x(self) -> float:
         """Getter of X-coordinate for the vertex.
@@ -232,18 +276,6 @@ class Vertex(Topology):
         geom_cartesian_point = self.__get_point()
         return geom_cartesian_point.Z()
     
-    def center_of_mass(self) -> 'Vertex':
-        """
-        TODO: Need to implement TopologyFactory first
-
-        Returns:
-            Fixed vertex point center of mass
-        """
-        occt_vertex = Vertex.center_of_mass(self.get_occt_vertex())
-        # new_vertex = Topology.by_occt_shape(occt_vertex)
-        # return new_vertex
-        raise Exception('ToDO')
-    
     def coordinates(self) -> Tuple[float, float, float]:
         """
         Returns:
@@ -251,46 +283,6 @@ class Vertex(Topology):
         """
         geom_point = self.__get_point()
         return (geom_point.X(), geom_point.Y(), geom_point.Z())
-    
-    def get_occt_shape(self) -> TopoDS_Shape:
-        """
-        Virtual method.
-        Returns:
-            TopoDS_Shape of vertex.
-        """
-        return self.get_occt_vertex()
-    
-    def set_occt_shape(self, new_shape: TopoDS_Shape) -> None:
-        """
-        Sets the TopoDS_Shape representing the vertex.
-        """
-        try:
-            self.set_occt_vertex(TopoDS_Vertex(new_shape))
-        except Exception as ex:
-            raise RuntimeError(ex.args)
-
-    def get_occt_vertex(self) -> TopoDS_Vertex:
-        """
-        Returns:
-            Underlying OCCT vertex object.
-        """
-
-        if self.base_shape_vertex.IsNull():
-            raise RuntimeError('A null Vertex is encountered!')
-        else: return self.base_shape_vertex
-
-    def set_occt_vertex(self, occt_vertex: TopoDS_Vertex) -> None:
-        """
-        Sets the underlying TopoDS_Vertex.
-        """
-        self.base_shape_vertex = occt_vertex
-
-    def get_type_name(self) -> str:
-        """
-        Returns:
-            Type name as string
-        """
-        return 'Vertex'
 
     def __get_point(self) -> Geom_CartesianPoint:
         """Gets OCC's Geom_Point object.
@@ -312,9 +304,10 @@ class Vertex(Topology):
         occt_center_of_mass = BRepBuilderAPI_MakeVertex(pnt).Vertex()
         occt_fixed_center_of_mass = TopoDS_Vertex(Topology.fix_shape(occt_center_of_mass))
         return occt_fixed_center_of_mass
-
-        
-
-
-
-
+    
+    def get_type_name(self) -> str:
+        """
+        Returns:
+            Type name as string
+        """
+        return 'Vertex'

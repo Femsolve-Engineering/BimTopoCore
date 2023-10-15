@@ -7,9 +7,12 @@ from OCC.Core.ShapeFix import ShapeFix_Shape
 from OCC.Core.TopAbs import TopAbs_ShapeEnum
 from OCC.Core.TopExp import TopExp, TopExp_Explorer
 from OCC.Core.TopAbs import TopAbs_SHAPE
-from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape, TopTools_MapOfShape, TopTools_ListOfShape
+from OCC.Core.TopTools import TopTools_ListIteratorOfListOfShape
+from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
+from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 
 from Core.TopologyConstants import TopologyTypes
+from Core.InstanceGUIDManager import InstanceGUIDManager
 from Factories.TopologyFactory import TopologyFactory
 from Factories.TopologyFactoryManager import TopologyFactoryManager
 
@@ -43,6 +46,12 @@ class Topology:
 
         Topology.topologic_entity_count += 1
 
+    def register_factory(guid: str, topology_factory: TopologyFactory) -> None:
+        """
+        Registers topological factory if it does not exist yet.
+        """
+        TopologyFactoryManager.get_instance().add(guid, topology_factory)
+
     def is_same(self, test_topology: 'Topology') -> bool:
         """
         Returns:
@@ -58,6 +67,23 @@ class Topology:
         """
         return self.base_shape
     
+    def navigate(self, host_topology: 'Topology') -> 'List[Topology]':
+        """
+        TODO: Review logic!
+        Either navigates upward or downward based on the current type.   
+        """
+
+        is_current_type_higher_order = host_topology.get_shape_type() > self.get_shape_type()
+        if is_current_type_higher_order:
+            return self.downward_navigation()
+        elif not is_current_type_higher_order:
+            if not host_topology.is_null_shape():
+                return self.upward_navigation()
+            else:
+                raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
+        else:
+            return [Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())]
+        
     def upward_navigation(self, host_topology: TopoDS_Shape) -> 'List[Topology]':
         """
         Returns:
@@ -68,6 +94,7 @@ class Topology:
         
         ret_ancestor: List[Topology] = []
         occt_shape_type = self.get_shape_type()
+        occt_ancestor_map: TopTools_MapOfShape = None
         occt_shape_map = TopTools_IndexedDataMapOfShapeListOfShape()
         TopExp.MapShapesAndUniqueAncestors(
             host_topology,
@@ -75,22 +102,80 @@ class Topology:
             occt_shape_type,
             occt_shape_map)
         
-        occt_ancestors = TopTools_MapOfShape()
         occt_ancestors: TopTools_ListOfShape = None
         is_in_shape = occt_shape_map.FindFromKey(self.get_occt_shape(), occt_ancestors)
         if not is_in_shape: return
-        
-        for occtAncestorIterator in TopExp_Explorer(occt_ancestors, TopAbs_SHAPE):
-            occt_ancestor = occtAncestorIterator.Current()
-            is_ancestor_added = occt_ancestors.Contains(occt_ancestor)
+
+        shape_iterator = TopTools_ListIteratorOfListOfShape(occt_ancestors)
+        current_ancestor_iter = shape_iterator.Begin()
+        while shape_iterator.More():
+            occt_ancestor = current_ancestor_iter.Value()
+            is_ancestor_added = occt_ancestor_map.Contains(occt_ancestor)
 
             if occt_ancestor.ShapeType() == occt_shape_type and not is_ancestor_added:
-                occt_ancestors.Add(occt_ancestor)
-                found_topology = Topology.by_occt_shape(occt_ancestor, "")
-                
-                # ToDo! : Check if this is correct, it is probably redundant
-                if isinstance(found_topology, type(self)):
-                    ret_ancestor.append(found_topology)
+                occt_ancestor_map.Add(occt_ancestor)
+
+                p_topology = Topology.by_occt_shape(occt_ancestor, "")
+                ret_ancestor.append(p_topology)
+
+            shape_iterator.Next()
+
+    def downward_navigation(self, members: 'List[Topology]') -> None:
+        """
+        Appends collection of topology members that belong to current shape.
+        """
+        occt_shape_enum: TopAbs_ShapeEnum = self.get_shape_type()
+        occt_shapes: TopTools_MapOfShape = []
+        occt_explorer = TopExp_Explorer(self.get_occt_shape(), occt_shape_enum)
+
+        while occt_explorer.More():
+            occt_current_shape = occt_explorer.Current()
+            if not occt_shapes.Contains(occt_current_shape):
+                occt_shapes.Add(occt_current_shape)
+                child_topology = Topology.by_occt_shape(occt_current_shape, "")
+                members.append(child_topology)
+
+    def shells(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+    
+    def edges(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+
+    def faces(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+    
+    def vertices(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+    
+    def wires(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+    
+    def cells(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+    
+    def cell_complexes(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
 
     @staticmethod
     def fix_shape(init_shape: TopoDS_Shape) -> TopoDS_Shape:
@@ -129,6 +214,21 @@ class Topology:
         p_topology = p_topology_factory.create(occt_shape)
 
         return p_topology
+    
+    def get_instance_guid(self) -> str:
+        """
+        Instance-bound method to call static GUID getter.
+        """
+        return Topology.s_get_instance_guid(self.get_occt_shape())
+
+    @staticmethod
+    def s_get_instance_guid(search_shape: TopoDS_Shape) -> str:
+        """
+        Looks up if the shape already exists, if so, its GUID will be returned.
+        """
+        instance_guid_manager = InstanceGUIDManager.get_instance_manager()
+        found_guid: str = instance_guid_manager.find(search_shape)
+        return found_guid
 
     def is_null_shape(self) -> bool:
         """
