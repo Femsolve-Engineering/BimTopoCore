@@ -4,8 +4,10 @@ from typing import List
 from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.ShapeFix import ShapeFix_Shape
+from OCC.Core.TopTools import TopTools_MapOfShape
 from OCC.Core.TopAbs import TopAbs_ShapeEnum
 from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopExp import topexp
 from OCC.Core.TopTools import TopTools_ListIteratorOfListOfShape
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
@@ -95,7 +97,7 @@ class Topology:
         occt_shape_type = self.get_shape_type()
         occt_ancestor_map: TopTools_MapOfShape = None
         occt_shape_map = TopTools_IndexedDataMapOfShapeListOfShape()
-        TopExp.MapShapesAndUniqueAncestors(
+        topexp.MapShapesAndUniqueAncestors(
             host_topology,
             self.get_occt_shape().ShapeType(),
             occt_shape_type,
@@ -118,6 +120,30 @@ class Topology:
                 ret_ancestor.append(p_topology)
 
             shape_iterator.Next()
+
+    @staticmethod
+    def downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_MapOfShape:
+        """
+        Navigates downward through the sub-shapes of a given shape and retrieves
+        the ones of a specified type.
+
+        Parameters:
+            occt_shape (TopoDS_Shape): The parent shape.
+            shape_enum (TopAbs_ShapeEnum): The type of sub-shapes to be retrieved.
+
+        Returns:
+            TopTools_MapOfShape: Map containing the retrieved sub-shapes.
+        """
+        occt_members = TopTools_MapOfShape()
+
+        occt_explorer = TopExp_Explorer(occt_shape, shape_enum)
+        while occt_explorer.More():
+            occt_current = occt_explorer.Current()
+            if not occt_members.Contains(occt_current):
+                occt_members.Add(occt_current)
+            occt_explorer.Next()
+
+        return occt_members
 
     def downward_navigation(self, members: 'List[Topology]') -> None:
         """
@@ -200,7 +226,6 @@ class Topology:
         if occt_shape.IsNull():
             return None
         
-        topolgy_factory: TopologyFactory = None
         topology_factory_manager = TopologyFactoryManager.get_instance()
         p_topology_factory = None
 

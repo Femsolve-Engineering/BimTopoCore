@@ -300,12 +300,12 @@ class Vertex(Topology):
         Returns:
             Fixed vertex point center of mass.
         """
-        pnt = BRep_Tool_Pnt(rkOcctVertex)
+        pnt = BRep_Tool.Pnt(rkOcctVertex)
         occt_center_of_mass = BRepBuilderAPI_MakeVertex(pnt).Vertex()
         occt_fixed_center_of_mass = TopoDS_Vertex(Topology.fix_shape(occt_center_of_mass))
         return occt_fixed_center_of_mass
     
-    def get_type_name(self) -> str:
+    def get_type_as_string(self) -> str:
         """
         Returns:
             Type name as string
