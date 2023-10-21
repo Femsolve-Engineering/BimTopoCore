@@ -1,18 +1,17 @@
 
 from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Edge
-from OCC.Core.TopoDS import TopoDS, TopoDS_Shape
+from OCC.Core.TopoDS import TopoDS_Shape
 
-from Core.Factories import TopologyFactory
-from Core.Topology import Topology
-from Core.Vertex import Vertex
-from Core.Edge import Edge
+from Core.Factories.TopologyFactory import TopologyFactory
 
 class VertexFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
+        from Core.Vertex import Vertex
         return Vertex(TopoDS_Vertex(occt_shape))
     
 class EdgeFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
+        from Core.Edge import Edge
         return Edge(TopoDS_Edge(occt_shape))
 
 # ToDo

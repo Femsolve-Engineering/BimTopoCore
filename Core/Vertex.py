@@ -3,15 +3,13 @@ from typing import List, Tuple
 
 # OCC
 from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Shape
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
+from OCC.Core.TopTools import TopTools_MapOfShape
 from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX
-from OCC.Core.TopExp import TopExp, TopExp_Explorer
+from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.Geom import Geom_CartesianPoint, Geom_Point, Geom_Geometry
-from OCC.Core.BRepTools import BRep_Tool_Pnt
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.TopoDS import TopoDS_Shape
-from OCC.Core.TopAbs import TopAbs_SHAPE
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape, TopTools_ListOfShape
 from OCC.Core.gp import gp_Pnt
 from Core.Edge import Edge
@@ -26,13 +24,14 @@ class Vertex(Topology):
     Represents a 1D vertex object. Serves as a wrapper around 
     TopoDS_VERTEX entity of OCC.
     """
-    def __init__(self, occt_vertex: TopoDS_Vertex, guid: str):
+    def __init__(self, occt_vertex: TopoDS_Vertex, guid: str = ""):
         """Constructor saves shape and processes GUID.
 
         Args:
             occt_vertex (TopoDS_Vertex): base_shape
             guid (str, optional): Shape specific guid. Defaults to "".
         """
+        # ctor_guid = self.get_class_guid() if guid == "" else guid
         super().__init__(occt_vertex, TopologyTypes.VERTEX)
         self.base_shape_vertex = occt_vertex
         self.register_factory(self.get_class_guid(), VertexFactory())
@@ -189,14 +188,15 @@ class Vertex(Topology):
                 if not self.is_same(vertex):  # Assuming IsSame is defined elsewhere
                     occt_adjacent_vertices.Add(vertex)
 
-        r_adjacent_vertices = []
-        occt_adjacent_vertex_iterator = TopTools_MapIteratorOfMapOfShape(occt_adjacent_vertices)
-        while occt_adjacent_vertex_iterator.More():
-            vertex_shape = occt_adjacent_vertex_iterator.Value()
-            r_adjacent_vertices.append(TopoDS_Vertex(vertex_shape))
-            occt_adjacent_vertex_iterator.Next()
+        adjacent_vertices = []
+        current_iterator = occt_adjacent_vertices.cbegin()
+        end_iterator = occt_adjacent_vertices.cend()
+        while current_iterator != end_iterator:
+            vertex_shape = current_iterator.Value()
+            adjacent_vertices.append(TopoDS_Vertex(vertex_shape))
+            current_iterator.Next()
 
-        return r_adjacent_vertices
+        return adjacent_vertices
     
     def center_of_mass(self) -> 'Vertex':
         """

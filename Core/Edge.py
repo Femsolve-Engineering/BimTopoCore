@@ -9,7 +9,6 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
 # BimTopoCore
 from Core.Topology import Topology
 from Core.TopologyConstants import EdgeEnd, TopologyTypes
-from Core.Vertex import Vertex
 
 class Edge(Topology):
     """
@@ -28,7 +27,7 @@ class Edge(Topology):
         self.base_shape_edge = occt_edge
 
     @staticmethod
-    def by_start_vertex_end_vertex(start_vertex: Vertex, end_vertex: Vertex) -> "Edge":
+    def by_start_vertex_end_vertex(start_vertex: 'Vertex', end_vertex: 'Vertex') -> "Edge":
         """Construct a new edge by start and end vertex.
 
         Args:
@@ -53,7 +52,7 @@ class Edge(Topology):
             print('One of the vertices is not valid or is null!')
             return None
         
-    def vertices(self) -> Tuple[Vertex, Vertex]:
+    def vertices(self) -> 'Tuple[Vertex, Vertex]':
         """Returns a tuple of vertices.
 
         Returns:
@@ -62,21 +61,23 @@ class Edge(Topology):
         return (self.start_vertex(), self.end_vertex())
 
 
-    def start_vertex(self) -> Vertex:
+    def start_vertex(self) -> 'Vertex':
         """Getter for start vertex.
 
         Returns:
             Vertex: new Vertex object
         """
+        from Core.Vertex import Vertex
         occt_vertex = self.__get_vertex_at_end(self.base_shape_edge, EdgeEnd.START)
         return Vertex(occt_vertex)
     
-    def end_vertex(self) -> Vertex:
+    def end_vertex(self) -> 'Vertex':
         """Getter for end vertex.
 
         Returns:
             Vertex: new Vertex object
         """
+        from Core.Vertex import Vertex
         occt_vertex = self.__get_vertex_at_end(self.base_shape_edge, EdgeEnd.END)
         return Vertex(occt_vertex)
     

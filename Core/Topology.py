@@ -5,16 +5,15 @@ from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.ShapeFix import ShapeFix_Shape
 from OCC.Core.TopAbs import TopAbs_ShapeEnum
-from OCC.Core.TopExp import TopExp, TopExp_Explorer
-from OCC.Core.TopAbs import TopAbs_SHAPE
+from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopTools import TopTools_ListIteratorOfListOfShape
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 
 from Core.TopologyConstants import TopologyTypes
 from Core.InstanceGUIDManager import InstanceGUIDManager
-from Factories.TopologyFactory import TopologyFactory
-from Factories.TopologyFactoryManager import TopologyFactoryManager
+from Core.Factories.TopologyFactory import TopologyFactory
+from Core.Factories.TopologyFactoryManager import TopologyFactoryManager
 
 class Topology:
     """Placeholder class for all logic that is shared between
@@ -46,7 +45,7 @@ class Topology:
 
         Topology.topologic_entity_count += 1
 
-    def register_factory(guid: str, topology_factory: TopologyFactory) -> None:
+    def register_factory(self, guid: str, topology_factory: TopologyFactory) -> None:
         """
         Registers topological factory if it does not exist yet.
         """

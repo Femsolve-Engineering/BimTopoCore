@@ -1,6 +1,5 @@
 
 from OCC.Core.TopoDS import TopoDS_Shape
-from OCC.Extend.DataExchange import TopologyDataMap
 
 class InstanceGUIDManager:
 
