@@ -1,5 +1,5 @@
 
-from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Edge
+from OCC.Core.TopoDS import topods, TopoDS_Vertex, TopoDS_Edge
 from OCC.Core.TopoDS import TopoDS_Shape
 
 from Core.Factories.TopologyFactory import TopologyFactory
@@ -7,12 +7,12 @@ from Core.Factories.TopologyFactory import TopologyFactory
 class VertexFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
         from Core.Vertex import Vertex
-        return Vertex(TopoDS_Vertex(occt_shape))
+        return Vertex(topods.Vertex(occt_shape))
     
 class EdgeFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
         from Core.Edge import Edge
-        return Edge(TopoDS_Edge(occt_shape))
+        return Edge(topods.Edge(occt_shape))
 
 # ToDo
 class WireFactory(TopologyFactory):

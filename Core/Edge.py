@@ -4,7 +4,7 @@ from typing import List
 
 # OCC
 from OCC.Core.Standard import Standard_Failure
-from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Vertex, TopoDS_Edge
+from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex, TopoDS_Edge
 from OCC.Core.TopAbs import TopAbs_VERTEX
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopTools import TopTools_MapOfShape
@@ -63,7 +63,7 @@ class Edge(Topology):
             
             for edge in edges:
                 if not self.is_same(edge) and edge not in collected_adjacent_edges:
-                    new_constructed_edge = TopoDS_Edge(edge.get_occt_shape())
+                    new_constructed_edge = topods.Edge(edge.get_occt_shape())
                     collected_adjacent_edges.append(new_constructed_edge)
 
     @staticmethod
@@ -221,7 +221,7 @@ class Edge(Topology):
             while occt_vertex_iterator2.More():
 
                 if occt_vertex_iterator1.Value().IsSame(occt_vertex_iterator2.Value()):
-                    shared_vertex = Vertex(TopoDS_Vertex(occt_vertex_iterator1.Value()))
+                    shared_vertex = Vertex(topods(occt_vertex_iterator1.Value()))
                     shared_vertices.append(shared_vertex)
 
                 occt_vertex_iterator2.Next()
@@ -324,7 +324,7 @@ class Edge(Topology):
         Generic setter for underlying OCCT shape.
         """
         try:
-            self.set_occt_edge(TopoDS_Edge(occt_shape))
+            self.set_occt_edge(topods.Edge(occt_shape))
         except Exception as ex:
             raise RuntimeError(str(ex.args))
 
@@ -342,6 +342,7 @@ class Edge(Topology):
         Setter for underlying OCCT edge.
         """
         self.base_shape_edge = occt_edge
+        self.base_shape = occt_edge
 
     @staticmethod
     def normalize_parameter(
@@ -394,7 +395,7 @@ class Edge(Topology):
         """
         edge_fix = ShapeFix_Shape(input_edge)
         edge_fix.Perform()
-        return TopoDS_Edge(edge_fix.Shape())
+        return topods.Edge(edge_fix.Shape())
         
     def center_of_mass(self):
         """
@@ -459,6 +460,7 @@ class Edge(Topology):
             raise ValueError("Two identical points were given to define a line (construction of an edge without curve).")
         
     def get_type_as_string(self) -> str:
-        """Returns the name of the type.
+        """
+        Returns the name of the type.
         """
         return 'Edge'

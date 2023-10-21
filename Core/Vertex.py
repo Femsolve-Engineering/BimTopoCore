@@ -2,7 +2,7 @@
 from typing import List, Tuple
 
 # OCC
-from OCC.Core.TopoDS import TopoDS_Vertex, TopoDS_Shape
+from OCC.Core.TopoDS import topods, TopoDS_Vertex, TopoDS_Shape
 from OCC.Core.TopTools import TopTools_MapOfShape
 from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX
 from OCC.Core.TopExp import TopExp_Explorer
@@ -181,7 +181,7 @@ class Vertex(Topology):
             explorer = TopExp_Explorer(kpEdge, TopAbs_VERTEX)
             while explorer.More():
                 vertex_shape = explorer.Current()
-                vertices.append(TopoDS_Vertex(vertex_shape))
+                vertices.append(topods.Vertex(vertex_shape))
                 explorer.Next()
 
             for vertex in vertices:
@@ -193,7 +193,7 @@ class Vertex(Topology):
         end_iterator = occt_adjacent_vertices.cend()
         while current_iterator != end_iterator:
             vertex_shape = current_iterator.Value()
-            adjacent_vertices.append(TopoDS_Vertex(vertex_shape))
+            adjacent_vertices.append(topods.Vertex(vertex_shape))
             current_iterator.Next()
 
         return adjacent_vertices
@@ -229,7 +229,7 @@ class Vertex(Topology):
         Sets the TopoDS_Shape representing the vertex.
         """
         try:
-            self.set_occt_vertex(TopoDS_Vertex(new_shape))
+            self.set_occt_vertex(topods.Vertex(new_shape))
         except Exception as ex:
             raise RuntimeError(ex.args)
         
@@ -248,6 +248,7 @@ class Vertex(Topology):
         Sets the underlying TopoDS_Vertex.
         """
         self.base_shape_vertex = occt_vertex
+        self.base_shape = self.base_shape_vertex
 
     def x(self) -> float:
         """Getter of X-coordinate for the vertex.
@@ -302,7 +303,7 @@ class Vertex(Topology):
         """
         pnt = BRep_Tool.Pnt(rkOcctVertex)
         occt_center_of_mass = BRepBuilderAPI_MakeVertex(pnt).Vertex()
-        occt_fixed_center_of_mass = TopoDS_Vertex(Topology.fix_shape(occt_center_of_mass))
+        occt_fixed_center_of_mass = topods.Vertex(Topology.fix_shape(occt_center_of_mass))
         return occt_fixed_center_of_mass
     
     def get_type_as_string(self) -> str:

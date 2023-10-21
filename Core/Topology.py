@@ -8,9 +8,11 @@ from OCC.Core.TopTools import TopTools_MapOfShape
 from OCC.Core.TopAbs import TopAbs_ShapeEnum
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopExp import topexp
-from OCC.Core.TopTools import TopTools_ListIteratorOfListOfShape
+from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape
+from OCC.Core.TopoDS import TopoDS_Shape
 
 from Core.TopologyConstants import TopologyTypes
 from Core.InstanceGUIDManager import InstanceGUIDManager
@@ -46,6 +48,42 @@ class Topology:
         self.guid = self.get_class_guid()
 
         Topology.topologic_entity_count += 1
+
+    @staticmethod
+    def transfer_make_shape_contents(occt_make_shape: BRepBuilderAPI_MakeShape, 
+                                     occt_shapes: TopTools_ListOfShape) -> None:
+        """
+        Transfers the contents of each shapes to newly created shapes.
+
+        Args:
+            occt_make_shape (BRepBuilderAPI_MakeShape): _description_
+            occt_shapes (TopTools_ListOfShape): _description_
+        """
+        # 1. For each shape in occt_shapes, find the generated shapes in occt_make_shape
+        shape_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+        while shape_iterator.More():
+            occt_original_shape = shape_iterator.Value()
+            original_shape = Topology.by_occt_shape(occt_original_shape, "")  # Assuming this method exists and has a similar signature
+            occt_generated_shapes = occt_make_shape.Modified(occt_original_shape)
+
+            # 2. Transfer the contents from the original shape to the generated shapes
+            # ToDo: Implement this when working on ContentManager
+            # contents = original_shape.contents()
+
+            generated_shape_iterator = TopTools_ListIteratorOfListOfShape(occt_generated_shapes)
+
+            while generated_shape_iterator.More():
+                occt_generated_shape = generated_shape_iterator.Value()
+                generated_shape = Topology.by_occt_shape(occt_generated_shape, "")
+
+                # ToDo: Implement this when working on ContentManager
+                # for content in contents:
+                #     generated_shape.add_content(content)
+
+                generated_shape_iterator.Next()
+
+            shape_iterator.Next()
 
     def register_factory(self, guid: str, topology_factory: TopologyFactory) -> None:
         """
@@ -85,6 +123,21 @@ class Topology:
         else:
             return [Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())]
         
+    def deep_copy(self) -> 'Topology':
+        """
+        TODO!!
+        """
+        return None
+    
+    def upward_navigation(self, host_topology: TopoDS_Shape, shape_type: int) -> 'List[Topology]':
+        """
+        TODO
+        Returns all upward ancestors.
+        """
+        # ToDo!!!
+        return self.upward_navigation(host_topology)
+
+        
     def upward_navigation(self, host_topology: TopoDS_Shape) -> 'List[Topology]':
         """
         Returns:
@@ -93,7 +146,7 @@ class Topology:
         if host_topology.IsNull():
             raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
         
-        ret_ancestor: List[Topology] = []
+        ret_ancestors: List[Topology] = []
         occt_shape_type = self.get_shape_type()
         occt_ancestor_map: TopTools_MapOfShape = None
         occt_shape_map = TopTools_IndexedDataMapOfShapeListOfShape()
@@ -105,7 +158,7 @@ class Topology:
         
         occt_ancestors: TopTools_ListOfShape = None
         is_in_shape = occt_shape_map.FindFromKey(self.get_occt_shape(), occt_ancestors)
-        if not is_in_shape: return
+        if not is_in_shape: return []
 
         shape_iterator = TopTools_ListIteratorOfListOfShape(occt_ancestors)
         current_ancestor_iter = shape_iterator.Begin()
@@ -117,9 +170,11 @@ class Topology:
                 occt_ancestor_map.Add(occt_ancestor)
 
                 p_topology = Topology.by_occt_shape(occt_ancestor, "")
-                ret_ancestor.append(p_topology)
+                ret_ancestors.append(p_topology)
 
             shape_iterator.Next()
+
+        return ret_ancestors
 
     @staticmethod
     def downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_MapOfShape:
@@ -145,10 +200,11 @@ class Topology:
 
         return occt_members
 
-    def downward_navigation(self, members: 'List[Topology]') -> None:
+    def downward_navigation(self) -> List['Topology']:
         """
         Appends collection of topology members that belong to current shape.
         """
+        ret_members: List['Topology'] = []
         occt_shape_enum: TopAbs_ShapeEnum = self.get_shape_type()
         occt_shapes: TopTools_MapOfShape = []
         occt_explorer = TopExp_Explorer(self.get_occt_shape(), occt_shape_enum)
@@ -158,7 +214,9 @@ class Topology:
             if not occt_shapes.Contains(occt_current_shape):
                 occt_shapes.Add(occt_current_shape)
                 child_topology = Topology.by_occt_shape(occt_current_shape, "")
-                members.append(child_topology)
+                ret_members.append(child_topology)
+
+        return ret_members
 
     def shells(self, host_topology: 'Topology') -> List['Topology']:
         """
