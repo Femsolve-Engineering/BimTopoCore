@@ -270,7 +270,7 @@ class Face(Topology):
         try:
             make_face = BRepBuilderAPI_MakeFace(occt_surface, precision.Confusion())
         except Exception as ex:
-            if ex.isinstance(Standard_Failure):
+            if isinstance(ex, Standard_Failure):
                 Face.throw(make_face)
             else:
                 print(f'Unknown error occured when creating face.\n{ex}')
