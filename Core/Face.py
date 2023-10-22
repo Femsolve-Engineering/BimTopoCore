@@ -36,7 +36,7 @@ from Core.Utilities.TopologicUtilities import FaceUtility
 
 class Face(Topology):
     """
-    Represents a face in the 3D space. 
+    Represents a 2D face object. 
     Serves as a wrapper around TopoDS_Face entity of OCC.
     """
     def __init__(self, occt_face: TopoDS_Face, guid=""):
@@ -552,6 +552,19 @@ class Face(Topology):
             raise RuntimeError("Curve projection failed.")
         elif occt_make_face.Error() == BRepBuilderAPI_ParametersOutOfRange:
             raise RuntimeError("The parameters given to limit the surface are out of its bounds.")
+
+    def is_container_type(self) -> bool:
+        """
+        Determines if this topology is container type.
+        """
+        return False
+    
+    def get_type(self) -> TopologyTypes:
+        """
+        Returns:
+            TopologyTypes: Internal definition for types.
+        """
+        return TopologyTypes.FACE
 
     def get_type_as_string(self) -> str:
         """

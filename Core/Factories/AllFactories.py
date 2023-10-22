@@ -39,3 +39,7 @@ class CellComplexFactory(TopologyFactory):
 class ClusterFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
         raise NotImplementedError("ClusterFactory create")
+    
+class ApertureFactory(TopologyFactory):
+    def create(self, occt_shape: TopoDS_Shape):
+        raise NotImplementedError("ApertureFactory create")

@@ -459,6 +459,20 @@ class Edge(Topology):
         else: # BRepBuilderAPI.BRepBuilderAPI_LineThroughIdenticPoints:
             raise ValueError("Two identical points were given to define a line (construction of an edge without curve).")
         
+    def is_container_type(self) -> bool:
+        """
+        Determines if this topology is container type.
+        Container type = stores multiple subshapes.
+        """
+        return False
+    
+    def get_type(self) -> TopologyTypes:
+        """
+        Returns:
+            TopologyTypes: Internal definition for types.
+        """
+        return TopologyTypes.EDGE
+    
     def get_type_as_string(self) -> str:
         """
         Returns the name of the type.

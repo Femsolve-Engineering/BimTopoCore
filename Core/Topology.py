@@ -1,4 +1,6 @@
 
+import sys
+
 # OCC
 from typing import List
 from OCC.Core.TopoDS import TopoDS_Shape
@@ -12,12 +14,28 @@ from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListO
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape
-from OCC.Core.TopoDS import TopoDS_Shape
+from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex
+from OCC.Core.TopAbs import (
+    TopAbs_VERTEX,
+    TopAbs_EDGE,
+    TopAbs_WIRE,
+    TopAbs_FACE,
+    TopAbs_SHELL,
+    TopAbs_SOLID,
+    TopAbs_COMPOUND,
+    TopAbs_COMPSOLID
+)
+from OCC.Core.Geom import Geom_Geometry
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+from OCC.Core.Precision import precision
 
+# BimTopoCore
 from Core.TopologyConstants import TopologyTypes
 from Core.InstanceGUIDManager import InstanceGUIDManager
 from Core.Factories.TopologyFactory import TopologyFactory
 from Core.Factories.TopologyFactoryManager import TopologyFactoryManager
+from Core.Context import Context
 
 class Topology:
     """Placeholder class for all logic that is shared between
@@ -48,6 +66,71 @@ class Topology:
         self.guid = self.get_class_guid()
 
         Topology.topologic_entity_count += 1
+
+    def closest_simplest_subshape(self, topology: 'Topology') -> 'Topology':
+        """
+        Returns the closest simplest subshape that is part of the passed in topology.
+        """
+        closest_subshape = TopoDS_Shape()
+        min_distance = sys.float_info.max
+        this_shape = self.get_occt_shape()
+        query_shape = topology.get_occt_shape()
+        
+        shape_types = [TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID]
+        for shape_type in shape_types:
+            topexp_explorer = TopExp_Explorer(this_shape, shape_type)
+            while topexp_explorer.More():
+                current_child_shape = topexp_explorer.Current()
+
+                check_distance_shape = current_child_shape
+                # ... (the commented part about solid fixing) ...
+
+                distance_calculation = BRepExtrema_DistShapeShape(
+                    check_distance_shape, 
+                    query_shape)
+                is_done = distance_calculation.Perform()
+                
+                if is_done:
+                    distance = distance_calculation.Value()
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_subshape = current_child_shape
+                    # larger value = lower dimension
+                    elif min_distance <= distance <= min_distance + precision.Confusion() \
+                        and current_child_shape.ShapeType() > closest_subshape.ShapeType():
+                        min_distance = distance
+                        closest_subshape = current_child_shape
+
+                topexp_explorer.Next()
+
+        if closest_subshape.IsNull():
+            return None
+
+        return Topology.by_occt_shape(closest_subshape)
+    
+    @staticmethod
+    def center_of_mass(occt_shape: TopoDS_Shape) -> TopoDS_Vertex:
+        """
+        TODO: Implement for all types.
+        """
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Wire import Wire
+        from Core.Face import Face
+        # ToDo: Implement for other topology types too
+
+        shape_type = occt_shape.ShapeType()
+
+        if shape_type == TopAbs_VERTEX:
+            return Vertex.center_of_mass(topods.Vertex(occt_shape))
+        elif shape_type == TopAbs_EDGE:
+            return Edge.center_of_mass(topods.Edge(occt_shape))
+        elif shape_type == TopAbs_WIRE:
+            return Wire.center_of_mass(topods.Wire(occt_shape))
+        elif shape_type == TopAbs_FACE:
+            return Face.center_of_mass(topods.Face(occt_shape))
+        else:
+            raise NotImplementedError(f"Missing implementation for shape type {shape_type}!")
 
     @staticmethod
     def transfer_make_shape_contents(occt_make_shape: BRepBuilderAPI_MakeShape, 
@@ -217,6 +300,24 @@ class Topology:
                 ret_members.append(child_topology)
 
         return ret_members
+    
+    def geometry(self) -> Geom_Geometry:
+        """
+        Pure virtual method for geometry getting.
+        """
+        raise NotImplementedError("Topology is missing geometry getter!")
+    
+    def center_of_mass(self) -> 'Vertex':
+        """
+        Pure virtual method for center of mass getting.
+        """
+        raise NotImplementedError("Topology is missing center of mass getter!")
+    
+    def is_manifold(self) -> bool:
+        """
+        Pure virtual method for manifold querying.
+        """
+        raise NotImplementedError("Topology is missing manifold query method!")
 
     def shells(self, host_topology: 'Topology') -> List['Topology']:
         """
@@ -259,6 +360,33 @@ class Topology:
         TODO - M3
         """
         return self.navigate(host_topology)
+    
+    def is_container_type(self, occt_shape: TopoDS_Shape) -> bool:
+        """
+        Virtual method to be overridden by all descendant classes.
+        TODO: What is container type?
+        """
+        shape_type = occt_shape.ShapeType()
+        if shape_type == TopAbs_WIRE \
+        or shape_type == TopAbs_SHELL \
+        or shape_type == TopAbs_COMPSOLID \
+        or shape_type == TopAbs_COMPOUND:
+            return True
+        else:
+            return False
+    
+    def add_context(self, context: Context) -> None:
+        """
+        TODO
+        """
+        return
+        # ToDo: Register to ContextManager
+        # ContextManager::GetInstance().Add(GetOcctShape(), rkContext);
+
+        # ToDo: Register to ContentManager
+		# ContentManager::GetInstance().Add(
+		# 	rkContext->Topology()->GetOcctShape(), 
+		# 	Topology::ByOcctShape(GetOcctShape(), GetInstanceGUID()));
 
     @staticmethod
     def fix_shape(init_shape: TopoDS_Shape) -> TopoDS_Shape:

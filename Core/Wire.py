@@ -325,6 +325,18 @@ class Wire(Topology):
         occt_fixed_center_of_mass = Topology.fix_shape(occt_center_of_mass)
         return occt_fixed_center_of_mass
 
+    def is_container_type(self) -> bool:
+        """
+        Determines if this topology is container type.
+        """
+        return True
+    
+    def get_type(self) -> TopologyTypes:
+        """
+        Returns:
+            TopologyTypes: Internal definition for types.
+        """
+        return TopologyTypes.WIRE
 
     def get_type_as_string(self) -> str:
         """

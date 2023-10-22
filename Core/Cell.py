@@ -42,3 +42,16 @@ class Cell(Topology):
         super().__init__(occt_solid, TopologyTypes.CELL)
         self.base_shape_solid = occt_solid
         self.register_factory(self.get_class_guid(), CellFactory())
+
+    def is_container_type(self) -> bool:
+        """
+        Determines if this topology is container type.
+        """
+        return False
+    
+    def get_type(self) -> TopologyTypes:
+        """
+        Returns:
+            TopologyTypes: Internal definition for types.
+        """
+        return TopologyTypes.CELL

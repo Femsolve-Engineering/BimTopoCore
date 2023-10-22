@@ -306,6 +306,19 @@ class Vertex(Topology):
         occt_fixed_center_of_mass = topods.Vertex(Topology.fix_shape(occt_center_of_mass))
         return occt_fixed_center_of_mass
     
+    def is_container_type(self) -> bool:
+        """
+        Determines if this topology is container type.
+        """
+        return False
+    
+    def get_type(self) -> TopologyTypes:
+        """
+        Returns:
+            TopologyTypes: Internal definition for types.
+        """
+        return TopologyTypes.VERTEX
+    
     def get_type_as_string(self) -> str:
         """
         Returns:

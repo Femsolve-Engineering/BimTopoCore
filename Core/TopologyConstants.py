@@ -32,7 +32,8 @@ class TopologyTypes(enum.Enum):
         VERTEX : 0,
         EDGE : 1,
         WIRE : 1,
-        FACE : 2
+        FACE : 2,
+        APERTURE : -1
     }
 
     @staticmethod
