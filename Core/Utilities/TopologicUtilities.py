@@ -1,6 +1,11 @@
 
 from typing import List
 
+# OCC
+from OCC.Core.GProp import GProp_GProps
+from OCC.Core.BRepGProp import brepgprop
+
+# BimTopoCore
 from Core.Topology import Topology
 from Core.Vertex import Vertex
 from Core.Edge import Edge
@@ -29,6 +34,15 @@ class VertexUtility:
         return core_adjacent_edges
     
 class FaceUtility:
+
+    @staticmethod
+    def area(face: 'Face') -> float:
+        """
+        Calculates and returns the area of a face.
+        """
+        occt_shape_properties = GProp_GProps()
+        brepgprop.SurfaceProperties(face.get_occt_face(), occt_shape_properties)
+        return occt_shape_properties.Mass()
 
     @staticmethod
     def adjacent_cells(face: 'Face', parent_topology: 'Topology') -> List['Cell']:

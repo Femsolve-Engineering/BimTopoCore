@@ -276,7 +276,7 @@ class Topology:
             return init_shape
         
     @staticmethod
-    def by_occt_shape(occt_shape: TopoDS_Shape, instance_guid: str) -> 'Topology':
+    def by_occt_shape(occt_shape: TopoDS_Shape, instance_guid: str="") -> 'Topology':
         """
         Searches for the topology inside the TopologyFactor to find the instac
         """
