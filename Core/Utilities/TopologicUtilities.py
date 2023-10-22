@@ -4,6 +4,7 @@ from typing import List
 # OCC
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepGProp import brepgprop
+from OCC.Core.TopoDS import TopoDS_Face
 
 # BimTopoCore
 from Core.Topology import Topology
@@ -36,12 +37,12 @@ class VertexUtility:
 class FaceUtility:
 
     @staticmethod
-    def area(face: 'Face') -> float:
+    def area(face: TopoDS_Face) -> float:
         """
         Calculates and returns the area of a face.
         """
         occt_shape_properties = GProp_GProps()
-        brepgprop.SurfaceProperties(face.get_occt_face(), occt_shape_properties)
+        brepgprop.SurfaceProperties(face, occt_shape_properties)
         return occt_shape_properties.Mass()
 
     @staticmethod

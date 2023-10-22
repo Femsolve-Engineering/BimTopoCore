@@ -180,12 +180,16 @@ class Wire(Topology):
         """
         TODO!!!! Will need to implement deep copy.
         """
+        from Core.Edge import Edge
+
         if not edges:
             return None
+        
+        edges: List[Edge] = edges
 
         occt_edges = TopTools_ListOfShape()
         for edge in edges:
-            occt_edges.Append(edge.occt_shape)
+            occt_edges.Append(edge.get_occt_shape())
 
         occt_wire = Wire.by_occt_edges(occt_edges)
         wire = Wire(occt_wire)
@@ -217,8 +221,8 @@ class Wire(Topology):
 
         try:
             Topology.transfer_make_shape_contents(occt_make_wire, occt_edges)
-            occt_wire = topods.Wire(Topology.fix_shape(occt_make_wire))
-            return occt_make_wire
+            occt_wire = topods.Wire(Topology.fix_shape(occt_make_wire.Shape()))
+            return occt_make_wire.Shape()
         except Exception as ex:
             print(f"Failed to construct Wire from edges: {ex.args}")
             Wire.throw(occt_make_wire)

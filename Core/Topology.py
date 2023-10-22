@@ -13,7 +13,7 @@ from OCC.Core.TopExp import topexp
 from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape, BRepBuilderAPI_Copy
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex
 from OCC.Core.TopAbs import (
     TopAbs_VERTEX,
@@ -206,11 +206,13 @@ class Topology:
         else:
             return [Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())]
         
-    def deep_copy(self) -> 'Topology':
+    def deep_copy_shape(self) -> 'TopoDS_Shape':
         """
         TODO!!
         """
-        return None
+        copy_shape = BRepBuilderAPI_Copy()
+        copy_shape.Perform(self.get_occt_shape())
+        return copy_shape.Shape()
     
     def upward_navigation(self, host_topology: TopoDS_Shape, shape_type: int) -> 'List[Topology]':
         """

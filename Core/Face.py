@@ -4,7 +4,7 @@ from typing import List
 
 # OCC
 from OCC.Core.Precision import precision
-from OCC.Core.StdFail import Standard_Failure
+# from OCC.Core.StdFail import Standard_Failure
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Wire, TopoDS_Edge, TopoDS_Iterator, TopoDS_Face, TopoDS_Vertex
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_SOLID, TopAbs_SHELL, TopAbs_FACE, TopAbs_WIRE, TopAbs_EDGE, TopAbs_REVERSED
 from OCC.Core.BRep import BRep_Tool
@@ -32,7 +32,6 @@ from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_IndexedDataMapOfShap
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import FaceFactory
-from Core.Utilities.TopologicUtilities import FaceUtility
 
 class Face(Topology):
     """
@@ -171,6 +170,7 @@ class Face(Topology):
         Using an external and internal boundary wire, a face is constructed.
         """
         from Core.Wire import Wire
+        from Core.Utilities.TopologicUtilities import FaceUtility
         # Just type checking specs
         external_boundary: Wire = external_boundary
         internal_boundaries: List[Wire] = internal_boundaries
@@ -210,7 +210,7 @@ class Face(Topology):
 
         occt_fixed_face = Face.occt_shape_fix(occt_make_face.Face())
         face = Face(occt_fixed_face)
-        copy_face: Face = face.deep_copy()
+        copy_face: Face = Face(face.deep_copy_shape())
 
         wires_as_topologies = []
         if copy_attributes:
@@ -270,10 +270,8 @@ class Face(Topology):
         try:
             make_face = BRepBuilderAPI_MakeFace(occt_surface, precision.Confusion())
         except Exception as ex:
-            if isinstance(ex, Standard_Failure):
-                Face.throw(make_face)
-            else:
-                print(f'Unknown error occured when creating face.\n{ex}')
+            print(f'Exception occured when creating face.\n{ex}')
+            Face.throw(make_face)
 
         shape_fix = ShapeFix_Face(make_face)
         shape_fix.Perform()
@@ -462,13 +460,13 @@ class Face(Topology):
 
 
     @staticmethod
-    def occt_shape_fix(occt_face) -> TopoDS_Face:
+    def occt_shape_fix(occt_face: TopoDS_Shape) -> TopoDS_Face:
         """
         Performs OCC shape fix.
         """
         occt_face_fix = ShapeFix_Face(occt_face)
         _ = occt_face_fix.Perform()
-        return topods.Face(occt_face_fix)
+        return topods.Face(occt_face_fix.Result())
 
     def is_manifold(self, host_topology: Topology) -> bool:
         """

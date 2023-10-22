@@ -25,9 +25,8 @@ from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
 
 # BimTopoCore
 from Core.Topology import Topology
-from Core.TopologyConstants import EdgeEnd, TopologyTypes
+from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import CellFactory
-from Core.Utilities.TopologicUtilities import VertexUtility
 
 class Cell(Topology):
     

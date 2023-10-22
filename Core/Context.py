@@ -1,11 +1,9 @@
 
-from Core.Topology import Topology
-
 class Context:
 
     def __init__(
             self, 
-            topology: Topology,
+            topology: 'Topology',
             param_u: float,
             param_v: float,
             param_w: float) -> None:
@@ -18,9 +16,10 @@ class Context:
         self.v = param_v
         self.w = param_w 
 
-    def topology(self) -> Topology:
+    def topology(self) -> 'Topology':
         """
         Getter for Topology object.
         """
+        from Core.Topology import Topology
         return Topology.by_occt_shape(self.base_shape, "")
 
