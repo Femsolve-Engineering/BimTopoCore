@@ -14,14 +14,15 @@ class EdgeFactory(TopologyFactory):
         from Core.Edge import Edge
         return Edge(topods.Edge(occt_shape))
 
-# ToDo
 class WireFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("WireFactory create")
+        from Core.Wire import Wire
+        return Wire(topods.Wire(occt_shape))
     
 class FaceFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("FaceFactory create")
+        from Core.Face import Face
+        return Face(topods.Face(occt_shape))
 
 class ShellFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):

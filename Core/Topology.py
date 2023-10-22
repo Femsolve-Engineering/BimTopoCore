@@ -297,6 +297,13 @@ class Topology:
 
         return p_topology
     
+    def set_instance_guid(self, shape: TopoDS_Shape, guid: str) -> None:
+        """
+        For a new shape saves the shape and its guid.
+        """
+        instance_guid_manage = InstanceGUIDManager.get_instance_manager()
+        instance_guid_manage.add(shape, guid)
+    
     def get_instance_guid(self) -> str:
         """
         Instance-bound method to call static GUID getter.
