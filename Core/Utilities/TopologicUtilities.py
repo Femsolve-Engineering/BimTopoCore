@@ -5,6 +5,7 @@ from typing import List
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.TopoDS import TopoDS_Face
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 
 # BimTopoCore
 from Core.Topology import Topology
@@ -33,6 +34,21 @@ class VertexUtility:
             core_adjacent_edges.append(Edge(adjacent_topology.get_occt_shape()))
 
         return core_adjacent_edges
+    
+    @staticmethod
+    def distance(
+        vertex: 'Vertex',
+        topology: 'Topology') -> float:
+        """
+        Measures the distance from a vertex to any topology.
+        ToDo?: We are using BRepExtrema here, in the legacy code this had 
+        a specific implementation for any two different types.
+        """
+
+        # ToDo: Need to consider multiple distances.
+        brep_extrema = BRepExtrema_DistShapeShape(vertex.get_occt_shape(),topology.get_occt_shape())
+        return brep_extrema.Value()
+    
     
 class FaceUtility:
 

@@ -1,26 +1,34 @@
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+
+# Wrapper 
+from Wrapper.Topology import Topology
+from Wrapper.Vertex import Vertex
+from Wrapper.Edge import Edge
+from Wrapper.Face import Face
+from Wrapper.Cell import Cell
+from Wrapper.Cluster import Cluster
+from Wrapper.CellComplex import CellComplex
 
 def test_01vertex() -> bool:
     try:
         # Object for test case
-        f = Face.rec()
-
+        f = Face.Rectangle()
 
         # Case 1 - ByCoordinates
         # test 1
         v0 = Vertex.ByCoordinates(0, 0, 0)          # create vertex
-        assert isinstance(v0, topologic.Vertex), "Vertex.ByCoordinates. Should be topologic.Vertex"
+        assert isinstance(v0, coreVertex), "Vertex.ByCoordinates. Should be topologic.Vertex"
 
         # If the above passes, we can create the rest of the vertices
-        v1 = Vertex.by_coordinates(0, 10, 1)         # create vertex
-        v2 = Vertex.by_coordinates(10, 10, 1)        # create vertex
-        v3 = Vertex.by_coordinates(10, 0, 1)         # create vertex
-        v4 = Vertex.by_coordinates(0, 0, -1)         # create vertex
-        v5 = Vertex.by_coordinates(0, 10, -1)        # create vertex
-        v6 = Vertex.by_coordinates(10, 10, -1)       # create vertex
+        v1 = Vertex.ByCoordinates(0, 10, 1)         # create vertex
+        v2 = Vertex.ByCoordinates(10, 10, 1)        # create vertex
+        v3 = Vertex.ByCoordinates(10, 0, 1)         # create vertex
+        v4 = Vertex.ByCoordinates(0, 0, -1)         # create vertex
+        v5 = Vertex.ByCoordinates(0, 10, -1)        # create vertex
+        v6 = Vertex.ByCoordinates(10, 10, -1)       # create vertex
 
         v_list1 = [v1, v2, v3, v4, v5, v6]
         v_list2 = [v1, v2, v3]

@@ -1,11 +1,16 @@
 
+# Core
 from Core.Topology import Topology as coreTopology
 from Core.Vertex import Vertex as coreVertex
 from Core.Edge import Edge as coreEdge
-from Core.Face import Face as coreFace
 from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cell import Cell as coreCell
 from Core.Cluster import Cluster as coreCluster
+from Core.Utilities.TopologicUtilities import VertexUtility
 
+# Wrapper
 from Wrapper.Face import Face
 from Wrapper.Topology import Topology
 import collections
@@ -271,7 +276,7 @@ class Vertex(Topology):
         """
         if not isinstance(vertex, coreVertex) or not isinstance(topology, coreTopology):
             return None
-        return round(coreVertexUtility.Distance(vertex, topology), mantissa)
+        return round(VertexUtility.distance(vertex, topology), mantissa)
     
     @staticmethod
     def EnclosingCell(vertex: coreVertex, topology: coreTopology, exclusive: bool = True, tolerance: float = 0.0001) -> list:
@@ -295,7 +300,6 @@ class Vertex(Topology):
             The list of enclosing cells.
 
         """
-
         from Core.Cell import Cell as coreCell
         from Core.CellComplex import CellComplex as coreCellComplex
         
@@ -512,14 +516,14 @@ class Vertex(Topology):
             return None
 
         if isinstance(topology, coreVertex):
-            return coreVertexUtility.Distance(vertex, topology) < tolerance
-        elif isinstance(topology, Core.Edge):
+            return VertexUtility.distance(vertex, topology) < tolerance
+        elif isinstance(topology, coreEdge):
             try:
                 parameter = Core.EdgeUtility.ParameterAtPoint(topology, vertex)
             except:
                 parameter = 400 #aribtrary large number greater than 1
             return 0 <= parameter <= 1
-        elif isinstance(topology, Core.Wire):
+        elif isinstance(topology, coreWire):
             edges = Wire.Edges(topology)
             for edge in edges:
                 if Vertex.IsInside(vertex, edge, tolerance):
@@ -527,13 +531,13 @@ class Vertex(Topology):
             return False
         elif isinstance(topology, coreFace):
             return coreFaceUtility.IsInside(topology, vertex, tolerance)
-        elif isinstance(topology, Core.Shell):
+        elif isinstance(topology, coreShell):
             faces = Shell.Faces(topology)
             for face in faces:
                 if Vertex.IsInside(vertex, face, tolerance):
                     return True
             return False
-        elif isinstance(topology, Core.Cell):
+        elif isinstance(topology, ):
             return Core.CellUtility.Contains(topology, vertex, tolerance) == 0
         elif isinstance(topology, Core.CellComplex):
             cells = CellComplex.Cells(topology)
@@ -754,15 +758,15 @@ class Vertex(Topology):
             direction = Vector.Reverse(Face.NormalAtParameters(face, 0.5, 0.5, "XYZ", mantissa))
         if coreFaceUtility. IsInside(face, vertex, tolerance):
             return vertex
-        d = coreVertexUtility.Distance(vertex, face)*10
+        d = VertexUtility.distance(vertex, face)*10
         far_vertex = Core.TopologyUtility.Translate(vertex, direction[0]*d, direction[1]*d, direction[2]*d)
-        if coreVertexUtility.Distance(vertex, far_vertex) > tolerance:
-            e = Core.Edge.ByStartVertexEndVertex(vertex, far_vertex)
+        if VertexUtility.distance(vertex, far_vertex) > tolerance:
+            e = coreEdge.by_start_vertex_end_vertex(vertex, far_vertex)
             pv = face.Intersect(e, False)
             if not pv:
                 far_vertex = Core.TopologyUtility.Translate(vertex, -direction[0]*d, -direction[1]*d, -direction[2]*d)
-                if coreVertexUtility.Distance(vertex, far_vertex) > tolerance:
-                    e = Core.Edge.ByStartVertexEndVertex(vertex, far_vertex)
+                if VertexUtility.distance(vertex, far_vertex) > tolerance:
+                    e = coreEdge.by_start_vertex_end_vertex(vertex, far_vertex)
                     pv = face.Intersect(e, False)
             return pv
         else:
