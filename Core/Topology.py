@@ -496,6 +496,12 @@ class Topology:
             int: Found dimensionality to shape.
         """
         return TopologyTypes.get_dimensionality_for_type(self.shape_type)
+    
+    def get_type_as_string(self) -> str:
+        """
+        Pure virtual method that returns the name of the class.
+        """
+        raise NotImplementedError(f"Missing implementation for type name getter!")
 
     def __del__(self):
         """Deconstructor decrements counter.

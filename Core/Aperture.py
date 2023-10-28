@@ -4,7 +4,6 @@ from typing import List
 
 # OCC
 from OCC.Core.Precision import precision
-from OCC.Core.StdFail import Standard_Failure
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Wire, TopoDS_Edge, TopoDS_Iterator, TopoDS_Face, TopoDS_Vertex
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_SOLID, TopAbs_SHELL, TopAbs_FACE, TopAbs_WIRE, TopAbs_EDGE, TopAbs_REVERSED
 from OCC.Core.BRep import BRep_Tool
