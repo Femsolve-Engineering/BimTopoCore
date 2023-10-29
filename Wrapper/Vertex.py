@@ -162,7 +162,7 @@ class Vertex(Topology):
         """
         vertex = None
         try:
-            vertex = coreVertex.ByCoordinates(x, y, z)
+            vertex = coreVertex.by_coordinates(x, y, z)
         except:
             vertex = None
         return vertex

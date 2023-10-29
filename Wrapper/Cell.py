@@ -102,7 +102,7 @@ class Cell(Topology):
             The created cell.
 
         """
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Topology import Topology
         if not isinstance(faces, list):
@@ -242,7 +242,7 @@ class Cell(Topology):
 
         """
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
@@ -315,7 +315,7 @@ class Cell(Topology):
         
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
@@ -519,7 +519,7 @@ class Cell(Topology):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
@@ -1423,7 +1423,7 @@ class Cell(Topology):
         from topologicpy import Polyskel
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cell import Cell

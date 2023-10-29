@@ -102,7 +102,7 @@ class Shell(Topology):
             The creates shell.
         """
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         if not isinstance(wires, list):
             return None
@@ -255,7 +255,7 @@ class Shell(Topology):
         """
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
         from Wrapper.Topology import Topology
@@ -468,7 +468,7 @@ class Shell(Topology):
 
         """
 
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
 
         if not isinstance(shell, coreShell):
             return None
@@ -1000,7 +1000,7 @@ class Shell(Topology):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
@@ -1064,7 +1064,7 @@ class Shell(Topology):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cell import Cell
@@ -1170,7 +1170,7 @@ class Shell(Topology):
             The created face.
 
         """
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Topology import Topology
@@ -1241,7 +1241,7 @@ class Shell(Topology):
             The created straight skeleton.
 
         """
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Topology import Topology
         import topologic
@@ -1311,7 +1311,7 @@ class Shell(Topology):
         """
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
         from Wrapper.Topology import Topology

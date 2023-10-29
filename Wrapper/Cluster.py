@@ -307,7 +307,7 @@ class Cluster(coreCluster):
             The list of free edges.
 
         """
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
@@ -616,7 +616,7 @@ class Cluster(coreCluster):
         import topologicpy
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Cluster import Cluster
         from itertools import combinations
 

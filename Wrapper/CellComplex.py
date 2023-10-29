@@ -663,7 +663,7 @@ class CellComplex(coreCellComplex):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Wire import Wire
+        from Wrapper.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Cell import Cell
         from Wrapper.Cluster import Cluster

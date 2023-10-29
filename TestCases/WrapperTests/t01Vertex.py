@@ -15,7 +15,14 @@ from Wrapper.CellComplex import CellComplex
 def test_01vertex() -> bool:
     try:
         # Object for test case
-        f = Face.Rectangle()
+        # f = Face.Rectangle()
+        print("TestToDo: Originally created face with 'Face.Rectangle()' but that uses 'Topologic.SelfMerge' method which is not yet available.")
+        base_edge1 = coreEdge.by_start_vertex_end_vertex(coreVertex.by_coordinates(0,0,0), coreVertex.by_coordinates(0,1,0))
+        base_edge2 = coreEdge.by_start_vertex_end_vertex(coreVertex.by_coordinates(0,1,0), coreVertex.by_coordinates(1,1,0))
+        base_edge3 = coreEdge.by_start_vertex_end_vertex(coreVertex.by_coordinates(1,1,0), coreVertex.by_coordinates(1,0,0))
+        base_edge4 = coreEdge.by_start_vertex_end_vertex(coreVertex.by_coordinates(1,0,0), coreVertex.by_coordinates(0,0,0))
+        base_wire = coreWire.by_edges([base_edge1, base_edge2, base_edge3, base_edge4])
+        f = Face.ByWire(base_wire)
 
         # Case 1 - ByCoordinates
         # test 1

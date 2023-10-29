@@ -436,7 +436,7 @@ class Wire(coreWire):
             v1 = vertexList[i]
             v2 = vertexList[i+1]
             try:
-                e = coreEdge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.by_start_vertex_end_vertex(v1, v2)
                 if e:
                     edges.append(e)
             except:
@@ -445,7 +445,7 @@ class Wire(coreWire):
             v1 = vertexList[-1]
             v2 = vertexList[0]
             try:
-                e = coreEdge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.by_start_vertex_end_vertex(v1, v2)
                 if e:
                     edges.append(e)
             except:
@@ -855,8 +855,7 @@ class Wire(coreWire):
         """
         if not isinstance(wire, coreWire):
             return None
-        edges = []
-        _ = wire.Edges(None, edges)
+        edges = wire.edges()
         return edges
 
     @staticmethod
@@ -1797,18 +1796,18 @@ class Wire(coreWire):
             xOffset = -width*0.5
             yOffset = -length*0.5
 
-        vb1 = Vertex.ByCoordinates(origin.X()-width*0.5+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb2 = Vertex.ByCoordinates(origin.X()+width*0.5+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb3 = Vertex.ByCoordinates(origin.X()+width*0.5+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
-        vb4 = Vertex.ByCoordinates(origin.X()-width*0.5+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
+        vb1 = Vertex.ByCoordinates(origin.x()-width*0.5+xOffset,origin.y()-length*0.5+yOffset,origin.z())
+        vb2 = Vertex.ByCoordinates(origin.x()+width*0.5+xOffset,origin.y()-length*0.5+yOffset,origin.z())
+        vb3 = Vertex.ByCoordinates(origin.x()+width*0.5+xOffset,origin.y()+length*0.5+yOffset,origin.z())
+        vb4 = Vertex.ByCoordinates(origin.x()-width*0.5+xOffset,origin.y()+length*0.5+yOffset,origin.z())
 
         baseWire = Wire.ByVertices([vb1, vb2, vb3, vb4], True)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    

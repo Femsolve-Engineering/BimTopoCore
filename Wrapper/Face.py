@@ -490,7 +490,7 @@ class Face(coreFace):
         wire = Topology.SelfMerge(Cluster.ByTopologies(edges))
         vertices = Wire.Vertices(wire)
         try:
-            fList = coreFace.ByExternalBoundary(wire)
+            fList = coreFace.external_boundary(wire)
         except:
             if len(vertices) > 3:
                 fList = triangulateWire(wire)
@@ -506,7 +506,7 @@ class Face(coreFace):
                 wire = Face.ExternalBoundary(f)
                 wire = Wire.Invert(wire)
                 try:
-                    f = coreFace.ByExternalBoundary(wire)
+                    f = coreFace.external_boundary(wire)
                     returnList.append(f)
                 except:
                     pass
