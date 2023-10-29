@@ -1,8 +1,24 @@
-import topologicpy
-import topologic
-from topologicpy.Wire import Wire
-from Wrapper.Topology import Topology
 import math
+
+# Core
+from Core.Topology import Topology as coreTopology
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cluster import Cluster as coreCluster
+from Core.Cell import Cell as coreCell
+from Core.Aperture import Aperture as coreAperture
+from Core.Context import Context as coreContext
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+
+# Wrapper
+from Wrapper.Vertex import Vertex
+from Wrapper.Vector import Vector
+from Wrapper.Topology import Topology
 
 class Cell(Topology):
     @staticmethod
@@ -260,7 +276,7 @@ class Cell(Topology):
 
         Parameters
         ----------
-        wires : topologic.Wire
+        wires : coreWire
             The input list of wires.
         close : bool , optional
             If set to True, the last wire in the list of input wires will be connected to the first wire in the list of input wires. The default is False.
@@ -1149,7 +1165,7 @@ class Cell(Topology):
             return None
    
     @staticmethod
-    def Pipe(edge: coreEdge, profile: topologic.Wire = None, radius: float = 0.5, sides: int = 16, startOffset: float = 0, endOffset: float = 0, endcapA: coreTopology = None, endcapB: coreTopology = None) -> dict:
+    def Pipe(edge: coreEdge, profile: coreWire = None, radius: float = 0.5, sides: int = 16, startOffset: float = 0, endOffset: float = 0, endcapA: coreTopology = None, endcapB: coreTopology = None) -> dict:
         """
         Description
         ----------
@@ -1159,7 +1175,7 @@ class Cell(Topology):
         ----------
         edge : coreEdge
             The centerline of the pipe.
-        profile : topologic.Wire , optional
+        profile : coreWire , optional
             The profile of the pipe. It is assumed that the profile is in the XY plane. If set to None, a circle of radius 0.5 will be used. The default is None.
         radius : float , optional
             The radius of the pipe. The default is 0.5.
@@ -1211,7 +1227,7 @@ class Cell(Topology):
         baseV = []
         topV = []
 
-        if isinstance(profile, topologic.Wire):
+        if isinstance(profile, coreWire):
             baseWire = Topology.Translate(profile, 0 , 0, sv.Z())
             topWire = Topology.Translate(profile, 0 , 0, sv.Z()+dist)
         else:

@@ -1,5 +1,23 @@
-import topologicpy
-import topologic
+# Core
+from Core.Topology import Topology as coreTopology
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cluster import Cluster as coreCluster
+from Core.Cell import Cell as coreCell
+from Core.CellComplex import CellComplex as coreCellComplex
+from Core.Aperture import Aperture as coreAperture
+from Core.Context import Context as coreContext
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+
+# Wrapper
+from Wrapper.Vector import Vector
+from Wrapper.Topology import Topology
+
 class Cluster(coreCluster):
     @staticmethod
     def ByTopologies(topologies: list) -> coreCluster:
@@ -266,7 +284,7 @@ class Cluster(coreCluster):
             return allWires
         facesCluster = Cluster.ByTopologies(facesWires)
         resultingCluster = Topology.Boolean(allWiresCluster, facesCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Wire):
+        if isinstance(resultingCluster, coreWire):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="wire")
         if not result:
@@ -387,7 +405,7 @@ class Cluster(coreCluster):
             return coreFace.Type()
         wires = Cluster.Wires(cluster)
         if len(wires) > 0:
-            return topologic.Wire.Type()
+            return coreWire.Type()
         edges = Cluster.Edges(cluster)
         if len(edges) > 0:
             return coreEdge.Type()
@@ -566,13 +584,13 @@ class Cluster(coreCluster):
         return t_clusters
 
     @staticmethod
-    def MysticRose(wire: topologic.Wire = None, origin: coreVertex = None, radius: float = 0.5, sides: int = 16, perimeter: bool = True, direction: list = [0,0,1], placement:str = "center", tolerance: float = 0.0001) -> coreCluster:
+    def MysticRose(wire: coreWire = None, origin: coreVertex = None, radius: float = 0.5, sides: int = 16, perimeter: bool = True, direction: list = [0,0,1], placement:str = "center", tolerance: float = 0.0001) -> coreCluster:
         """
         Creates a mystic rose.
 
         Parameters
         ----------
-        wire : topologic.Wire , optional
+        wire : coreWire , optional
             The input Wire. if set to None, a circle with the input parameters is created. Otherwise, the input parameters are ignored.
         origin : coreVertex , optional
             The location of the origin of the circle. The default is None which results in the circle being placed at (0,0,0).

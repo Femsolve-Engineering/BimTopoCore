@@ -1,8 +1,25 @@
-#from types import NoneType
-import topologicpy
-import topologic
-from Wrapper.Topology import Topology
 import math
+
+# Core
+from Core.Topology import Topology as coreTopology
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cluster import Cluster as coreCluster
+from Core.Cell import Cell as coreCell
+from Core.CellComplex import CellComplex as coreCellComplex
+from Core.Aperture import Aperture as coreAperture
+from Core.Context import Context as coreContext
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+
+# Wrapper
+from Wrapper.Vertex import Vertex
+from Wrapper.Vector import Vector
+from Wrapper.Topology import Topology
 
 class Shell(Topology):
     @staticmethod
@@ -89,7 +106,7 @@ class Shell(Topology):
         from Wrapper.Face import Face
         if not isinstance(wires, list):
             return None
-        wireList = [x for x in wires if isinstance(x, topologic.Wire)]
+        wireList = [x for x in wires if isinstance(x, coreWire)]
         faces = []
         for i in range(len(wireList)-1):
             wire1 = wireList[i]
@@ -150,13 +167,13 @@ class Shell(Topology):
                             pass
                     if e3 and e4:
                         try:
-                            faces.append(Face.ByWire(topologic.Wire.ByEdges([e1, e4, e2, e3])))
+                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e4, e2, e3])))
                         except:
-                            faces.append(Face.ByWire(topologic.Wire.ByEdges([e1, e3, e2, e4])))
+                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e3, e2, e4])))
                     elif e3:
-                            faces.append(Face.ByWire(topologic.Wire.ByEdges([e1, e3, e2])))
+                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e3, e2])))
                     elif e4:
-                            faces.append(Face.ByWire(topologic.Wire.ByEdges([e1, e4, e2])))
+                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e4, e2])))
         return Shell.ByFaces(faces, tolerance)
 
     @staticmethod
@@ -343,7 +360,7 @@ class Shell(Topology):
         return edges
 
     @staticmethod
-    def ExternalBoundary(shell: coreShell) -> topologic.Wire:
+    def ExternalBoundary(shell: coreShell) -> coreWire:
         """
         Returns the external boundary (closed wire) of the input shell.
 
@@ -354,7 +371,7 @@ class Shell(Topology):
 
         Returns
         -------
-        topologic.Wire
+        coreWire
             The external boundary (closed wire) of the input shell.
 
         """
@@ -370,7 +387,7 @@ class Shell(Topology):
                 obEdges.append(anEdge)
         returnTopology = None
         try:
-            returnTopology = topologic.Wire.ByEdges(obEdges)
+            returnTopology = coreWire.ByEdges(obEdges)
         except:
             returnTopology = coreCluster.ByTopologies(obEdges)
             returnTopology = returnTopology.SelfMerge()
@@ -1166,7 +1183,7 @@ class Shell(Topology):
         if not isinstance(shell, coreShell):
             return None
         ext_boundary = Shell.ExternalBoundary(shell)
-        if isinstance(ext_boundary, topologic.Wire):
+        if isinstance(ext_boundary, coreWire):
             try:
                 return coreFace.ByExternalBoundary(Topology.RemoveCollinearEdges(ext_boundary, angTolerance))
             except:

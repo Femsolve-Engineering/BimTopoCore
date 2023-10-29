@@ -1,6 +1,26 @@
-import topologic
 import warnings
 import math
+
+# Core
+from Core.Topology import Topology as coreTopology
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cluster import Cluster as coreCluster
+from Core.Cell import Cell as coreCell
+from Core.CellComplex import CellComplex as coreCellComplex
+from Core.Aperture import Aperture as coreAperture
+from Core.Context import Context as coreContext
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+
+# Wrapper
+from Wrapper.Vertex import Vertex
+from Wrapper.Vector import Vector
+from Wrapper.Topology import Topology
 
 class CellComplex(coreCellComplex):
     @staticmethod
@@ -249,7 +269,7 @@ class CellComplex(coreCellComplex):
                 except:
                     try:
                         e4 = coreEdge.ByStartVertexEndVertex(e1.EndVertex(), e2.EndVertex())
-                        f = coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e4]))
+                        f = coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e2, e4]))
                         if triangulate == True:
                             if len(Topology.Vertices(face)) > 3:
                                 triangles = Face.Triangulate(face)
@@ -265,7 +285,7 @@ class CellComplex(coreCellComplex):
                 except:
                     try:
                         e3 = coreEdge.ByStartVertexEndVertex(e1.StartVertex(), e2.StartVertex())
-                        f = coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e3]))
+                        f = coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e2, e3]))
                         if triangulate == True:
                             if len(Topology.Vertices(face)) > 3:
                                 triangles = Face.Triangulate(face)
@@ -279,17 +299,17 @@ class CellComplex(coreCellComplex):
                 if e3 and e4:
                     if triangulate == True:
                         e5 = coreEdge.ByStartVertexEndVertex(e1.StartVertex(), e2.EndVertex())
-                        faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e5, e4])))
-                        faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e2, e5, e3])))
+                        faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e5, e4])))
+                        faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e2, e5, e3])))
                     else:
                         try:
-                            faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2, e3])))
+                            faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e4, e2, e3])))
                         except:
-                            faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2, e4])))
+                            faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e3, e2, e4])))
                 elif e3:
-                    faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2])))
+                    faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e3, e2])))
                 elif e4:
-                    faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2])))
+                    faces.append(coreFace.ByExternalBoundary(coreWire.ByEdges([e1, e4, e2])))
         return CellComplex.ByFaces(faces, tolerance)
 
     @staticmethod
