@@ -3,11 +3,27 @@ from typing import Dict, List, Union, Tuple, Any
 
 class Attribute:
     def __init__(self):
+        self.attribute_value = None
         pass
 
     def value(self) -> Any:
-        raise NotImplementedError
+        return self.attribute_value
+    
+class IntAttribute(Attribute):
+    def __init__(self, integer: int):
+        self.attribute_value = integer
 
+class DoubleAttribute(Attribute):
+    def __init__(self, float: float):
+        self.attribute_value = float
+
+class StringAttribute(Attribute):
+    def __init__(self, string: str):
+        self.attribute_value
+
+class ListAttribute(Attribute):
+    def __init__(self, list_attributes: Attribute):
+        self.attribute_value = list_attributes
 
 class Dictionary:
     """

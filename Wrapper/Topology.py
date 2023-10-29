@@ -4120,7 +4120,7 @@ class Topology():
         return returnTopology
 
     @staticmethod
-    def Place(topology, originA=None, originB=None):
+    def Place(topology, originA=None, originB=None) -> coreTopology:
         """
         Places the input topology at the specified location.
 

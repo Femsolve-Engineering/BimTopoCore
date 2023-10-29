@@ -1,7 +1,7 @@
 import topologicpy
 import topologic
 from topologicpy.Wire import Wire
-from topologicpy.Topology import Topology
+from Wrapper.Topology import Topology
 import math
 
 class Cell(Topology):
@@ -88,7 +88,7 @@ class Cell(Topology):
         """
         from topologicpy.Wire import Wire
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(faces, list):
             return None
         faceList = [x for x in faces if isinstance(x, coreFace)]
@@ -137,7 +137,7 @@ class Cell(Topology):
             The created cell.
 
         """
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(shell, coreShell):
             return None
         faces = Topology.SubTopologies(shell, subTopologyType="face")
@@ -173,7 +173,7 @@ class Cell(Topology):
         from Wrapper.Edge import Edge
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(face, coreFace):
             return None
@@ -230,7 +230,7 @@ class Cell(Topology):
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(shell, coreShell):
             return None
         if reverse == True and bothSides == False:
@@ -303,7 +303,7 @@ class Cell(Topology):
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
 
         faces = [Face.ByWire(wires[0]), Face.ByWire(wires[-1])]
@@ -507,7 +507,7 @@ class Cell(Topology):
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         def createCone(baseWire, topWire, baseVertex, topVertex, tolerance):
             if baseWire == None and topWire == None:
                 raise Exception("Cell.Cone - Error: Both radii of the cone cannot be zero at the same time")
@@ -677,7 +677,7 @@ class Cell(Topology):
         from Wrapper.Face import Face
         from Wrapper.CellComplex import CellComplex
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
         if not isinstance(origin, coreVertex):
@@ -758,7 +758,7 @@ class Cell(Topology):
         from Wrapper.Face import Face
         from Wrapper.Vector import Vector
         from topologicpy.Aperture import Aperture
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from numpy import arctan, pi, signbit, arctan2, rad2deg
 
         def angleCode(f, up, tiltAngle):
@@ -964,7 +964,7 @@ class Cell(Topology):
         
         from Wrapper.Vertex import Vertex
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
@@ -1149,7 +1149,7 @@ class Cell(Topology):
             return None
    
     @staticmethod
-    def Pipe(edge: coreEdge, profile: topologic.Wire = None, radius: float = 0.5, sides: int = 16, startOffset: float = 0, endOffset: float = 0, endcapA: topologic.Topology = None, endcapB: topologic.Topology = None) -> dict:
+    def Pipe(edge: coreEdge, profile: topologic.Wire = None, radius: float = 0.5, sides: int = 16, startOffset: float = 0, endOffset: float = 0, endcapA: coreTopology = None, endcapB: coreTopology = None) -> dict:
         """
         Description
         ----------
@@ -1169,9 +1169,9 @@ class Cell(Topology):
             The offset distance from the start vertex of the centerline edge. The default is 0.
         endOffset : float , optional
             The offset distance from the end vertex of the centerline edge. The default is 0.
-        endcapA : topologic.Topology, optional
+        endcapA : coreTopology, optional
             The topology to place at the start vertex of the centerline edge. The positive Z direction of the end cap will be oriented in the direction of the centerline edge.
-        endcapB : topologic.Topology, optional
+        endcapB : coreTopology, optional
             The topology to place at the end vertex of the centerline edge. The positive Z direction of the end cap will be oriented in the inverse direction of the centerline edge.
 
         Returns
@@ -1186,7 +1186,7 @@ class Cell(Topology):
 
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not edge:
             return None
@@ -1337,7 +1337,7 @@ class Cell(Topology):
         
         from Wrapper.Vertex import Vertex
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
@@ -1412,7 +1412,7 @@ class Cell(Topology):
         from Wrapper.Shell import Shell
         from Wrapper.Cell import Cell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         from Wrapper.Helper import Helper
         import topologic
@@ -1597,7 +1597,7 @@ class Cell(Topology):
         """
 
         from Wrapper.Vertex import Vertex
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
@@ -1684,7 +1684,7 @@ class Cell(Topology):
         """
         
         from Wrapper.Vertex import Vertex
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)

@@ -1,5 +1,16 @@
-import topologicpy
-import topologic
+# Core
+from Core.Topology import Topology as coreTopology
+from Core.Vertex import Vertex as coreVertex
+from Core.Edge import Edge as coreEdge
+from Core.Wire import Wire as coreWire
+from Core.Face import Face as coreFace
+from Core.Shell import Shell as coreShell
+from Core.Cluster import Cluster as coreCluster
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+
+# Wrapper
 from Wrapper.Vertex import Vertex
 from Wrapper.Vector import Vector
 
@@ -69,24 +80,24 @@ class Edge():
             return None
         if Edge.Length(edgeA) < tolerance or Edge.Length(edgeB) < tolerance:
             return None
-        from topologicpy.Topology import Topology
-        v1 = Edge.VertexByDistance(edgeA, -1, edgeA.EndVertex(), tolerance=0.0001)
-        newEdgeA = Edge.ByVertices([v1, edgeA.EndVertex()])
-        v1 = Edge.VertexByDistance(edgeB, 1, edgeB.StartVertex(), tolerance=0.0001)
-        newEdgeB = Edge.ByVertices([edgeB.StartVertex(), v1])
-        newEdgeB = Topology.Place(newEdgeB, newEdgeB.StartVertex(), newEdgeA.StartVertex())
-        bisectingEdge = Edge.ByVertices([newEdgeA.EndVertex(), newEdgeB.EndVertex()])
+        from Wrapper.Topology import Topology
+        v1 = Edge.VertexByDistance(edgeA, -1, edgeA.end_vertex(), tolerance=0.0001)
+        newEdgeA = Edge.ByVertices([v1, edgeA.end_vertex()])
+        v1 = Edge.VertexByDistance(edgeB, 1, edgeB.start_vertex(), tolerance=0.0001)
+        newEdgeB = Edge.ByVertices([edgeB.start_vertex(), v1])
+        newEdgeB: coreEdge = Topology.Place(newEdgeB, newEdgeB.start_vertex(), newEdgeA.start_vertex())
+        bisectingEdge = Edge.ByVertices([newEdgeA.end_vertex(), newEdgeB.end_vertex()])
         bEdgeLength = Edge.Length(bisectingEdge)
-        bisectingEdge = Topology.Scale(bisectingEdge, bisectingEdge.StartVertex(), 1/bEdgeLength, 1/bEdgeLength, 1/bEdgeLength)
+        bisectingEdge: coreEdge = Topology.Scale(bisectingEdge, bisectingEdge.start_vertex(), 1/bEdgeLength, 1/bEdgeLength, 1/bEdgeLength)
         if length != 1.0 and length > tolerance:
-            bisectingEdge = Topology.Scale(bisectingEdge, bisectingEdge.StartVertex(), length, length, length)
-        newLocation = edgeA.EndVertex()
+            bisectingEdge = Topology.Scale(bisectingEdge, bisectingEdge.start_vertex(), length, length, length)
+        newLocation = edgeA.end_vertex()
         if placement == 2:
-            oldLocation = bisectingEdge.EndVertex()
+            oldLocation = bisectingEdge.end_vertex()
         elif placement == 1:
-            oldLocation = bisectingEdge.StartVertex()
+            oldLocation = bisectingEdge.start_vertex()
         else:
-            oldLocation = bisectingEdge.Centroid()
+            oldLocation = bisectingEdge.center_of_mass()
         bisectingEdge = Topology.Place(bisectingEdge, oldLocation, newLocation)
         return bisectingEdge
 
@@ -112,7 +123,7 @@ class Edge():
         """
         from Wrapper.Vertex import Vertex
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         edge = None
         if not isinstance(face, coreFace):
             return None
@@ -121,7 +132,7 @@ class Edge():
         
         n = Face.Normal(face)
         v2 = Topology.Translate(origin, n[0], n[1], n[2])
-        edge = coreEdge.ByStartVertexEndVertex(origin, v2)
+        edge = coreEdge.by_start_vertex_end_vertex(origin, v2)
         edge = Edge.SetLength(edge, length, bothSides=False)
         return edge
 
@@ -145,7 +156,7 @@ class Edge():
             An edge offset from the input edge.
 
         """
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         n = Edge.Normal2D(edge)
         n = Vector.Normalize(n)
         n = Vector.Multiply(n, offset, tolerance)
@@ -178,12 +189,12 @@ class Edge():
             return None
         if not isinstance(vertexB, coreVertex):
             return None
-        if topologic.Topology.IsSame(vertexA, vertexB):
+        if coreTopology.is_same(vertexA, vertexB):
             return None
-        if coreVertexUtility.Distance(vertexA, vertexB) < tolerance:
+        if VertexUtility.distance(vertexA, vertexB) < tolerance:
             return None
         try:
-            edge = coreEdge.ByStartVertexEndVertex(vertexA, vertexB)
+            edge = coreEdge.by_start_vertex_end_vertex(vertexA, vertexB)
         except:
             edge = None
         return edge
@@ -359,7 +370,7 @@ class Edge():
             The extended edge.
 
         """
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(edgeA, coreEdge):
             return None
         if not isinstance(edgeB, coreEdge):
@@ -399,7 +410,7 @@ class Edge():
             The index of the input edge in the input list of edges.
 
         """
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(edge, coreEdge):
             return None
         if not isinstance(edges, list):
@@ -566,7 +577,7 @@ class Edge():
             return None
         length = None
         try:
-            length = round(coreEdgeUtility.Length(edge), mantissa)
+            length = round(EdgeUtility.length(edge), mantissa)
         except:
             length = None
         return length
@@ -677,7 +688,7 @@ class Edge():
         """
         if not isinstance(edge, coreEdge):
             return None
-        return Edge.ByVertices([edge.EndVertex(), edge.StartVertex()])
+        return Edge.ByVertices([edge.end_vertex(), edge.start_vertex()])
     
     @staticmethod
     def SetLength(edge: coreEdge , length: float = 1.0, bothSides: bool = True, reverse: bool = False, tolerance: float = 0.0001) -> coreEdge:
@@ -795,7 +806,7 @@ class Edge():
             The trimmed edge.
 
         """
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(edgeA, coreEdge):
             return None
         if not isinstance(edgeB, coreEdge):
@@ -836,17 +847,17 @@ class Edge():
         if not isinstance(edge, coreEdge):
             return None
         if not origin:
-            origin = edge.StartVertex()
+            origin = edge.start_vertex()
         if not isinstance(origin, coreVertex):
             return None
-        sv = edge.StartVertex()
-        ev = edge.EndVertex()
-        vx = ev.X() - sv.X()
-        vy = ev.Y() - sv.Y()
-        vz = ev.Z() - sv.Z()
+        sv: coreVertex = edge.start_vertex()
+        ev: coreVertex = edge.end_vertex()
+        vx = ev.x() - sv.x()
+        vy = ev.y() - sv.y()
+        vz = ev.z() - sv.z()
         vector = Vector.Normalize([vx, vy, vz])
         vector = Vector.Multiply(vector, distance, tolerance)
-        return coreVertex.ByCoordinates(origin.X()+vector[0], origin.Y()+vector[1], origin.Z()+vector[2])
+        return coreVertex.by_coordinates(origin.x()+vector[0], origin.y()+vector[1], origin.z()+vector[2])
     
     @staticmethod
     def VertexByParameter(edge: coreVertex, parameter: float = 0.0) -> coreVertex:
@@ -870,9 +881,9 @@ class Edge():
             return None
         vertex = None
         if parameter == 0:
-            vertex = edge.StartVertex()
+            vertex = edge.start_vertex()
         elif parameter == 1:
-            vertex = edge.EndVertex()
+            vertex = edge.end_vertex()
         else:
             try:
                 vertex = coreEdgeUtility.PointAtParameter(edge, parameter)
@@ -898,6 +909,5 @@ class Edge():
         """
         if not isinstance(edge, coreEdge):
             return None
-        vertices = []
-        _ = edge.Vertices(None, vertices)
+        vertices = edge.vertices(None)
         return vertices

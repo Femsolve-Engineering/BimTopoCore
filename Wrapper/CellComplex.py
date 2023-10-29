@@ -210,7 +210,7 @@ class CellComplex(coreCellComplex):
         """
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         faces = [coreFace.ByExternalBoundary(wires[0]), coreFace.ByExternalBoundary(wires[-1])]
         if triangulate == True:
@@ -379,7 +379,7 @@ class CellComplex(coreCellComplex):
         from Wrapper.Face import Face
         from Wrapper.Vector import Vector
         from topologicpy.Aperture import Aperture
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from numpy import arctan, pi, signbit, arctan2, rad2deg
 
         def angleCode(f, up, tiltAngle):
@@ -647,7 +647,7 @@ class CellComplex(coreCellComplex):
         from Wrapper.Face import Face
         from Wrapper.Cell import Cell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         
         if not isinstance(origin, coreVertex):
             origin = Vertex.ByCoordinates(0,0,0)

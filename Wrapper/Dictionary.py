@@ -1,5 +1,14 @@
-import topologic
-from topologic import IntAttribute, DoubleAttribute, StringAttribute, ListAttribute
+
+from typing import List
+
+from Core.Dictionary import Dictionary as coreDictionary
+from Core.Dictionary import (
+    Attribute,
+    IntAttribute,
+    DoubleAttribute,
+    StringAttribute,
+    ListAttribute
+)
 
 class Dictionary(coreDictionary):
     '''
@@ -88,46 +97,46 @@ class Dictionary(coreDictionary):
                 value = values[i]
             if isinstance(value, bool):
                 if value == False:
-                    stl_values.append(topologic.IntAttribute(0))
+                    stl_values.append(IntAttribute(0))
                 else:
-                    stl_values.append(topologic.IntAttribute(1))
+                    stl_values.append(IntAttribute(1))
             elif isinstance(value, int):
-                stl_values.append(topologic.IntAttribute(value))
+                stl_values.append(IntAttribute(value))
             elif isinstance(value, float):
-                stl_values.append(topologic.DoubleAttribute(value))
+                stl_values.append(DoubleAttribute(value))
             elif isinstance(value, str):
-                stl_values.append(topologic.StringAttribute(value))
+                stl_values.append(StringAttribute(value))
             elif isinstance(value, tuple):
                 value = list(value)
                 l = []
                 for v in value:
                     if isinstance(v, bool):
-                        l.append(topologic.IntAttribute(v))
+                        l.append(IntAttribute(v))
                     elif isinstance(v, int):
-                        l.append(topologic.IntAttribute(v))
+                        l.append(IntAttribute(v))
                     elif isinstance(v, float):
-                        l.append(topologic.DoubleAttribute(v))
+                        l.append(DoubleAttribute(v))
                     elif isinstance(v, str):
-                        l.append(topologic.StringAttribute(v))
-                stl_values.append(topologic.ListAttribute(l))
+                        l.append(StringAttribute(v))
+                stl_values.append(ListAttribute(l))
             elif isinstance(value, list):
                 l = []
                 for v in value:
                     if isinstance(v, bool):
-                        l.append(topologic.IntAttribute(v))
+                        l.append(IntAttribute(v))
                     elif isinstance(v, int):
-                        l.append(topologic.IntAttribute(v))
+                        l.append(IntAttribute(v))
                     elif isinstance(v, float):
-                        l.append(topologic.DoubleAttribute(v))
+                        l.append(DoubleAttribute(v))
                     elif isinstance(v, str):
-                        l.append(topologic.StringAttribute(v))
-                stl_values.append(topologic.ListAttribute(l))
+                        l.append(StringAttribute(v))
+                stl_values.append(ListAttribute(l))
             else:
                 return None
         return coreDictionary.ByKeysValues(stl_keys, stl_values)
     
     @staticmethod
-    def ByMergedDictionaries(dictionaries):
+    def ByMergedDictionaries(dictionaries: List[coreDictionary]):
         """
         Creates a dictionary by merging the list of input dictionaries.
 
@@ -146,17 +155,17 @@ class Dictionary(coreDictionary):
         sinkValues = []
         d = dictionaries[0]
         if d != None:
-            stlKeys = d.Keys()
+            stlKeys = d.keys()
             if len(stlKeys) > 0:
-                sinkKeys = d.Keys()
+                sinkKeys = d.keys()
                 sinkValues = Dictionary.Values(d)
             for i in range(1,len(dictionaries)):
                 d = dictionaries[i]
                 if d == None:
                     continue
-                stlKeys = d.Keys()
+                stlKeys = d.keys()
                 if len(stlKeys) > 0:
-                    sourceKeys = d.Keys()
+                    sourceKeys = d.keys()
                     for aSourceKey in sourceKeys:
                         if aSourceKey not in sinkKeys:
                             sinkKeys.append(aSourceKey)
@@ -255,7 +264,7 @@ class Dictionary(coreDictionary):
     '''
 
     @staticmethod
-    def ByPythonDictionary(pythonDictionary):
+    def ByPythonDictionary(pythonDictionary: dict):
         """
         Creates a dictionary equivalent to the input python dictionary.
 
@@ -279,7 +288,7 @@ class Dictionary(coreDictionary):
         return Dictionary.ByKeysValues(keys, values)
 
     @staticmethod
-    def Keys(dictionary):
+    def Keys(dictionary: coreDictionary):
         """
         Returns the keys of the input dictionary.
 
@@ -297,12 +306,12 @@ class Dictionary(coreDictionary):
         if isinstance(dictionary, dict):
             return list(dictionary.keys())
         elif isinstance(dictionary, coreDictionary):
-            return dictionary.Keys()
+            return dictionary.keys()
         else:
             return None
 
     @staticmethod
-    def ListAttributeValues(listAttribute):
+    def ListAttributeValues(listAttribute: ListAttribute):
         """
         Returns the list of values embedded in the input listAttribute.
 
@@ -317,21 +326,21 @@ class Dictionary(coreDictionary):
             The list of values found in the input list attribute
 
         """
-        listAttributes = listAttribute.ListValue()
+        listAttributes = listAttribute.value()
         returnList = []
         for attr in listAttributes:
             if isinstance(attr, IntAttribute):
-                returnList.append(attr.IntValue())
+                returnList.append(attr.value())
             elif isinstance(attr, DoubleAttribute):
-                returnList.append(attr.DoubleValue())
+                returnList.append(attr.value())
             elif isinstance(attr, StringAttribute):
-                returnList.append(attr.StringValue())
+                returnList.append(attr.value())
             elif isinstance(attr, float) or isinstance(attr, int) or isinstance(attr, str) or isinstance(attr, dict):
                 returnList.append(attr)
         return returnList    
        
     @staticmethod
-    def PythonDictionary(dictionary):
+    def PythonDictionary(dictionary: coreDictionary):
         """
         Returns the input dictionary as a python dictionary
 
@@ -348,27 +357,27 @@ class Dictionary(coreDictionary):
         """
         if not isinstance(dictionary, coreDictionary):
             return None
-        keys = dictionary.Keys()
+        keys = dictionary.keys()
         pythonDict = {}
         for key in keys:
             try:
-                attr = dictionary.ValueAtKey(key)
+                attr = dictionary.value_at_key(key)
             except:
                 raise Exception("Dictionary.Values - Error: Could not retrieve a Value at the specified key ("+key+")")
-            if isinstance(attr, topologic.IntAttribute):
-                pythonDict[key] = (attr.IntValue())
-            elif isinstance(attr, topologic.DoubleAttribute):
-                pythonDict[key] = (attr.DoubleValue())
-            elif isinstance(attr, topologic.StringAttribute):
-                pythonDict[key] = (attr.StringValue())
-            elif isinstance(attr, topologic.ListAttribute):
+            if isinstance(attr, IntAttribute):
+                pythonDict[key] = (attr.value())
+            elif isinstance(attr, DoubleAttribute):
+                pythonDict[key] = (attr.value())
+            elif isinstance(attr, StringAttribute):
+                pythonDict[key] = (attr.value())
+            elif isinstance(attr, ListAttribute):
                 pythonDict[key] = (Dictionary.ListAttributeValues(attr))
             else:
                 pythonDict[key]=("")
         return pythonDict
 
     @staticmethod
-    def SetValueAtKey(dictionary, key, value):
+    def SetValueAtKey(dictionary: coreDictionary, key, value):
         """
         Creates a key/value pair in the input dictionary.
 
@@ -387,12 +396,12 @@ class Dictionary(coreDictionary):
             The input dictionary with the key/value pair added to it.
 
         """
-        def processPythonDictionary (dictionary, key, value):
+        def processPythonDictionary (dictionary: coreDictionary, key, value):
             dictionary[key] = value
             return dictionary
 
-        def processTopologicDictionary(dictionary, key, value):
-            keys = dictionary.Keys()
+        def processTopologicDictionary(dictionary: coreDictionary, key, value):
+            keys = dictionary.keys()
             if not key in keys:
                 keys.append(key)
             values = []
@@ -411,7 +420,7 @@ class Dictionary(coreDictionary):
             return None
  
     @staticmethod
-    def ValueAtKey(dictionary, key):
+    def ValueAtKey(dictionary: coreDictionary, key):
         """
         Returns the value of the input key in the input dictionary.
 
@@ -431,16 +440,16 @@ class Dictionary(coreDictionary):
         if isinstance(dictionary, dict):
             attr = dictionary[key]
         elif isinstance(dictionary, coreDictionary):
-            attr = dictionary.ValueAtKey(key)
+            attr = dictionary.value_at_key(key)
         else:
             return None
         
         if isinstance(attr, IntAttribute):
-            return (attr.IntValue())
+            return (attr.value())
         elif isinstance(attr, DoubleAttribute):
-            return (attr.DoubleValue())
+            return (attr.value())
         elif isinstance(attr, StringAttribute):
-            return (attr.StringValue())
+            return (attr.value())
         elif isinstance(attr, ListAttribute):
             return (Dictionary.ListAttributeValues(attr))
         elif isinstance(attr, float) or isinstance(attr, int) or isinstance(attr, str):
@@ -453,7 +462,7 @@ class Dictionary(coreDictionary):
             return None
         
     @staticmethod
-    def Values(dictionary):
+    def Values(dictionary: coreDictionary):
         """
         Returns the list of values in the input dictionary.
 
@@ -481,18 +490,18 @@ class Dictionary(coreDictionary):
                 if isinstance(dictionary, dict):
                     attr = dictionary[key]
                 elif isinstance(dictionary, coreDictionary):
-                    attr = dictionary.ValueAtKey(key)
+                    attr = dictionary.value_at_key(key)
                 else:
                     attr = None
             except:
                 return None
-            if isinstance(attr, topologic.IntAttribute):
-                returnList.append(attr.IntValue())
-            elif isinstance(attr, topologic.DoubleAttribute):
-                returnList.append(attr.DoubleValue())
-            elif isinstance(attr, topologic.StringAttribute):
-                returnList.append(attr.StringValue())
-            elif isinstance(attr, topologic.ListAttribute):
+            if isinstance(attr, IntAttribute):
+                returnList.append(attr.value())
+            elif isinstance(attr, DoubleAttribute):
+                returnList.append(attr.value())
+            elif isinstance(attr, StringAttribute):
+                returnList.append(attr.value())
+            elif isinstance(attr, ListAttribute):
                 returnList.append(Dictionary.ListAttributeValues(attr))
             elif isinstance(attr, float) or isinstance(attr, int) or isinstance(attr, str):
                 returnList.append(attr)

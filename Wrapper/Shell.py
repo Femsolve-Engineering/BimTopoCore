@@ -1,7 +1,7 @@
 #from types import NoneType
 import topologicpy
 import topologic
-from topologicpy.Topology import Topology
+from Wrapper.Topology import Topology
 import math
 
 class Shell(Topology):
@@ -241,7 +241,7 @@ class Shell(Topology):
         from topologicpy.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         from random import sample
         import sys
@@ -523,7 +523,7 @@ class Shell(Topology):
         from Wrapper.Vertex import Vertex
         from Wrapper.Edge import Edge
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(origin, coreVertex):
             origin = Vertex.ByCoordinates(0,0,0)
         if not isinstance(llVertex, coreVertex):
@@ -763,13 +763,13 @@ class Shell(Topology):
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
         zeroOrigin = coreVertex.ByCoordinates(0,0,0)
-        returnTopology = topologic.TopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 1, 0, theta)
-        returnTopology = topologic.TopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 0, 1, phi)
-        returnTopology = topologic.TopologyUtility.Translate(returnTopology, origin.X()+xOffset, origin.Y()+yOffset, origin.Z()+zOffset)
+        returnTopology = coreTopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 1, 0, theta)
+        returnTopology = coreTopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 0, 1, phi)
+        returnTopology = coreTopologyUtility.Translate(returnTopology, origin.X()+xOffset, origin.Y()+yOffset, origin.Z()+zOffset)
         return returnTopology
     
     @staticmethod
-    def InternalBoundaries(shell: coreShell) -> topologic.Topology:
+    def InternalBoundaries(shell: coreShell) -> coreTopology:
         """
         Returns the internal boundaries (closed wires) of the input shell. Internal boundaries are considered holes.
 
@@ -780,7 +780,7 @@ class Shell(Topology):
 
         Returns
         -------
-        topologic.Topology
+        coreTopology
             The wire if a single hole or a cluster of wires if more than one hole.
 
         """
@@ -849,7 +849,7 @@ class Shell(Topology):
         """
         from Wrapper.Vertex import Vertex
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not origin:
             origin = Vertex.ByCoordinates(0,0,0)
         if not isinstance(origin, coreVertex):
@@ -1052,7 +1052,7 @@ class Shell(Topology):
         from Wrapper.Shell import Shell
         from Wrapper.Cell import Cell
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         import topologic
         import math
@@ -1156,7 +1156,7 @@ class Shell(Topology):
         from topologicpy.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Shell import Shell
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         
         def planarizeList(wireList):
             returnList = []
@@ -1226,7 +1226,7 @@ class Shell(Topology):
         """
         from topologicpy.Wire import Wire
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         import topologic
         import math
 
@@ -1297,7 +1297,7 @@ class Shell(Topology):
         from topologicpy.Wire import Wire
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         import sys
         import subprocess

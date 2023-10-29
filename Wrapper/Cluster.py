@@ -18,7 +18,7 @@ class Cluster(coreCluster):
 
         """
         assert isinstance(topologies, list), "Cluster.ByTopologies - Error: Input is not a list"
-        topologyList = [x for x in topologies if isinstance(x, topologic.Topology)]
+        topologyList = [x for x in topologies if isinstance(x, coreTopology)]
         return coreCluster.ByTopologies(topologyList, False)
 
     @staticmethod
@@ -126,7 +126,7 @@ class Cluster(coreCluster):
 
         """
         from Wrapper.CellComplex import CellComplex
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
             return None
@@ -168,7 +168,7 @@ class Cluster(coreCluster):
 
         """
         from Wrapper.Cell import Cell
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
             return None
@@ -209,7 +209,7 @@ class Cluster(coreCluster):
 
         """
         from Wrapper.Shell import Shell
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
         if not isinstance(cluster, coreCluster):
             return None
         allFaces = []
@@ -249,7 +249,7 @@ class Cluster(coreCluster):
 
         """
         from Wrapper.Face import Face
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
             return None
@@ -290,7 +290,7 @@ class Cluster(coreCluster):
 
         """
         from topologicpy.Wire import Wire
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
             return None
@@ -331,7 +331,7 @@ class Cluster(coreCluster):
 
         """
         from Wrapper.Edge import Edge
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
         if not isinstance(cluster, coreCluster):
             return None
@@ -426,7 +426,7 @@ class Cluster(coreCluster):
         from Wrapper.Helper import Helper
         from Wrapper.Vertex import Vertex
         from Wrapper.Dictionary import Dictionary
-        from topologicpy.Topology import Topology
+        from Wrapper.Topology import Topology
 
 
         def k_means(data, vertices, k=4, maxIterations=100):
@@ -468,7 +468,7 @@ class Cluster(coreCluster):
 
         if topologies == None:
             return None
-        topologies = [t for t in topologies if isinstance(t, topologic.Topology)]
+        topologies = [t for t in topologies if isinstance(t, coreTopology)]
         if len(topologies) == 0:
             return None
         if selectors != None:
@@ -650,7 +650,7 @@ class Cluster(coreCluster):
 
         Returns
         -------
-        topologic.Topology or list
+        coreTopology or list
             The simplification of the cluster.
 
         """
