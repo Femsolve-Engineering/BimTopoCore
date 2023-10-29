@@ -1,3 +1,5 @@
+
+# Core
 from Core.Vertex import Vertex as coreVertex
 from Core.Edge import Edge as coreEdge
 from Core.Wire import Wire as coreWire
