@@ -49,6 +49,17 @@ class VertexUtility:
         brep_extrema = BRepExtrema_DistShapeShape(vertex.get_occt_shape(),topology.get_occt_shape())
         return brep_extrema.Value()
     
+
+class EdgeUtility:
+
+    @staticmethod
+    def length(edge: 'Edge') -> float:
+        """
+        Returns the length of an edge.
+        """
+        occt_shape_properties = GProp_GProps()
+        brepgprop.LinearProperties(edge.get_occt_shape(), occt_shape_properties)
+        return occt_shape_properties.Mass()
     
 class FaceUtility:
 

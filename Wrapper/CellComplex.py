@@ -2,16 +2,16 @@ import topologic
 import warnings
 import math
 
-class CellComplex(topologic.CellComplex):
+class CellComplex(coreCellComplex):
     @staticmethod
-    def Box(origin: topologic.Vertex = None, width: float = 1.0, length: float = 1.0, height: float = 1.0, uSides: int = 2, vSides: int = 2, wSides: int = 2,
-                         direction: list = [0,0,1], placement: str = "center") -> topologic.CellComplex:
+    def Box(origin: coreVertex = None, width: float = 1.0, length: float = 1.0, height: float = 1.0, uSides: int = 2, vSides: int = 2, wSides: int = 2,
+                         direction: list = [0,0,1], placement: str = "center") -> coreCellComplex:
         """
         Creates a box with internal cells.
 
         Parameters
         ----------
-        origin : topologic.Vertex , optional
+        origin : coreVertex , optional
             The origin location of the box. The default is None which results in the box being placed at (0,0,0).
         width : float , optional
             The width of the box. The default is 1.
@@ -32,7 +32,7 @@ class CellComplex(topologic.CellComplex):
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created box.
 
         """
@@ -40,7 +40,7 @@ class CellComplex(topologic.CellComplex):
                          direction=direction, placement=placement)
     
     @staticmethod
-    def ByCells(cells: list, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByCells(cells: list, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by merging the input cells.
 
@@ -53,7 +53,7 @@ class CellComplex(topologic.CellComplex):
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
@@ -61,15 +61,15 @@ class CellComplex(topologic.CellComplex):
             return None
         if not isinstance(cells, list):
             return None
-        cells = [x for x in cells if isinstance(x, topologic.Cell)]
+        cells = [x for x in cells if isinstance(x, coreCell)]
         if len(cells) < 1:
             return None
-        cellComplex = topologic.CellComplex.ByCells(cells, tolerance)
+        cellComplex = coreCellComplex.ByCells(cells, tolerance)
         if not cellComplex:
             warnings.warn("Warning: Default CellComplex.ByCells method failed. Attempting to Merge the Cells.", UserWarning)
             result = cells[0]
             remainder = cells[1:]
-            cluster = topologic.Cluster.ByTopologies(remainder, False)
+            cluster = coreCluster.ByTopologies(remainder, False)
             result = result.Merge(cluster, False)
             if result.Type() != 64: #64 is the type of a CellComplex
                 warnings.warn("Warning: Input Cells do not form a CellComplex", UserWarning)
@@ -83,46 +83,46 @@ class CellComplex(topologic.CellComplex):
             return cellComplex
     
     @staticmethod
-    def ByCellsCluster(cluster: topologic.Cluster, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByCellsCluster(cluster: coreCluster, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by merging the cells within the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster of cells.
         tolerance : float , optional
             The desired tolerance. The default is 0.0001.
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
         if not cluster:
             return None
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         cells = []
         _ = cluster.Cells(None, cells)
         return CellComplex.ByCells(cells, tolerance)
 
     @staticmethod
-    def ByFaces(faces: list, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByFaces(faces: list, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by merging the input faces.
 
         Parameters
         ----------
-        faces : topologic.Face
+        faces : coreFace
             The input faces.
         tolerance : float , optional
             The desired tolerance. The default is 0.0001.
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
@@ -130,11 +130,11 @@ class CellComplex(topologic.CellComplex):
             return None
         if not isinstance(faces, list):
             return None
-        faces = [x for x in faces if isinstance(x, topologic.Face)]
+        faces = [x for x in faces if isinstance(x, coreFace)]
         if len(faces) < 1:
             return None
         try:
-            cellComplex = topologic.CellComplex.ByFaces(faces, tolerance, False)
+            cellComplex = coreCellComplex.ByFaces(faces, tolerance, False)
         except:
             cellComplex = None
         if not cellComplex:
@@ -163,33 +163,33 @@ class CellComplex(topologic.CellComplex):
             return cellComplex
     
     @staticmethod
-    def ByFacesCluster(cluster: topologic.Cluster, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByFacesCluster(cluster: coreCluster, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by merging the faces within the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster of faces.
         tolerance : float , optional
             The desired tolerance. The default is 0.0001.
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
         if not cluster:
             return None
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         faces = []
         _ = cluster.Faces(None, faces)
         return CellComplex.ByFaces(faces, tolerance)
 
     @staticmethod
-    def ByWires(wires: list, triangulate: bool = True, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByWires(wires: list, triangulate: bool = True, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by lofting through the input wires.
 
@@ -204,15 +204,15 @@ class CellComplex(topologic.CellComplex):
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
-        from topologicpy.Face import Face
-        from topologicpy.Cluster import Cluster
+        from Wrapper.Face import Face
+        from Wrapper.Cluster import Cluster
         from topologicpy.Topology import Topology
 
-        faces = [topologic.Face.ByExternalBoundary(wires[0]), topologic.Face.ByExternalBoundary(wires[-1])]
+        faces = [coreFace.ByExternalBoundary(wires[0]), coreFace.ByExternalBoundary(wires[-1])]
         if triangulate == True:
             triangles = []
             for face in faces:
@@ -224,7 +224,7 @@ class CellComplex(topologic.CellComplex):
         for i in range(len(wires)-1):
             wire1 = wires[i]
             wire2 = wires[i+1]
-            f = topologic.Face.ByExternalBoundary(wire2)
+            f = coreFace.ByExternalBoundary(wire2)
             if triangulate == True:
                 if len(Topology.Vertices(face)) > 3:
                     triangles = Face.Triangulate(face)
@@ -245,11 +245,11 @@ class CellComplex(topologic.CellComplex):
                 e3 = None
                 e4 = None
                 try:
-                    e3 = topologic.Edge.ByStartVertexEndVertex(e1.StartVertex(), e2.StartVertex())
+                    e3 = coreEdge.ByStartVertexEndVertex(e1.StartVertex(), e2.StartVertex())
                 except:
                     try:
-                        e4 = topologic.Edge.ByStartVertexEndVertex(e1.EndVertex(), e2.EndVertex())
-                        f = topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e4]))
+                        e4 = coreEdge.ByStartVertexEndVertex(e1.EndVertex(), e2.EndVertex())
+                        f = coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e4]))
                         if triangulate == True:
                             if len(Topology.Vertices(face)) > 3:
                                 triangles = Face.Triangulate(face)
@@ -261,11 +261,11 @@ class CellComplex(topologic.CellComplex):
                     except:
                         pass
                 try:
-                    e4 = topologic.Edge.ByStartVertexEndVertex(e1.EndVertex(), e2.EndVertex())
+                    e4 = coreEdge.ByStartVertexEndVertex(e1.EndVertex(), e2.EndVertex())
                 except:
                     try:
-                        e3 = topologic.Edge.ByStartVertexEndVertex(e1.StartVertex(), e2.StartVertex())
-                        f = topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e3]))
+                        e3 = coreEdge.ByStartVertexEndVertex(e1.StartVertex(), e2.StartVertex())
+                        f = coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e2, e3]))
                         if triangulate == True:
                             if len(Topology.Vertices(face)) > 3:
                                 triangles = Face.Triangulate(face)
@@ -278,28 +278,28 @@ class CellComplex(topologic.CellComplex):
                         pass
                 if e3 and e4:
                     if triangulate == True:
-                        e5 = topologic.Edge.ByStartVertexEndVertex(e1.StartVertex(), e2.EndVertex())
-                        faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e5, e4])))
-                        faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e2, e5, e3])))
+                        e5 = coreEdge.ByStartVertexEndVertex(e1.StartVertex(), e2.EndVertex())
+                        faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e5, e4])))
+                        faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e2, e5, e3])))
                     else:
                         try:
-                            faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2, e3])))
+                            faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2, e3])))
                         except:
-                            faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2, e4])))
+                            faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2, e4])))
                 elif e3:
-                    faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2])))
+                    faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e3, e2])))
                 elif e4:
-                    faces.append(topologic.Face.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2])))
+                    faces.append(coreFace.ByExternalBoundary(topologic.Wire.ByEdges([e1, e4, e2])))
         return CellComplex.ByFaces(faces, tolerance)
 
     @staticmethod
-    def ByWiresCluster(cluster: topologic.Cluster, triangulate: bool = True, tolerance: float = 0.0001) -> topologic.CellComplex:
+    def ByWiresCluster(cluster: coreCluster, triangulate: bool = True, tolerance: float = 0.0001) -> coreCellComplex:
         """
         Creates a cellcomplex by lofting through the wires in the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster of wires.
         triangulate : bool , optional
             If set to True, the faces will be triangulated. The default is True.
@@ -308,26 +308,26 @@ class CellComplex(topologic.CellComplex):
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created cellcomplex.
 
         """
         if not cluster:
             return None
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         wires = []
         _ = cluster.Wires(None, wires)
         return CellComplex.ByWires(wires, triangulate=triangulate, tolerance=tolerance)
 
     @staticmethod
-    def Cells(cellComplex: topologic.CellComplex) -> list:
+    def Cells(cellComplex: coreCellComplex) -> list:
         """
         Returns the cells of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -336,20 +336,20 @@ class CellComplex(topologic.CellComplex):
             The list of cells.
 
         """
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         cells = []
         _ = cellComplex.Cells(None, cells)
         return cells
 
     @staticmethod
-    def Decompose(cellComplex: topologic.CellComplex, tiltAngle: float = 10.0, tolerance: float = 0.0001) -> dict:
+    def Decompose(cellComplex: coreCellComplex, tiltAngle: float = 10.0, tolerance: float = 0.0001) -> dict:
         """
         Decomposes the input cellComplex into its logical components. This method assumes that the positive Z direction is UP.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             the input cellComplex.
         tiltAngle : float , optional
             The threshold tilt angle in degrees to determine if a face is vertical, horizontal, or tilted. The tilt angle is measured from the nearest cardinal direction. The default is 10.
@@ -376,8 +376,8 @@ class CellComplex(topologic.CellComplex):
             14. "internalInclinedApertures": list of internal inclined apertures
 
         """
-        from topologicpy.Face import Face
-        from topologicpy.Vector import Vector
+        from Wrapper.Face import Face
+        from Wrapper.Vector import Vector
         from topologicpy.Aperture import Aperture
         from topologicpy.Topology import Topology
         from numpy import arctan, pi, signbit, arctan2, rad2deg
@@ -403,7 +403,7 @@ class CellComplex(topologic.CellComplex):
                 apTopologies.append(Aperture.Topology(aperture))
             return apTopologies
 
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         externalVerticalFaces = []
         internalVerticalFaces = []
@@ -488,13 +488,13 @@ class CellComplex(topologic.CellComplex):
         return d
     
     @staticmethod
-    def Edges(cellComplex: topologic.CellComplex) -> list:
+    def Edges(cellComplex: coreCellComplex) -> list:
         """
         Returns the edges of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -503,38 +503,38 @@ class CellComplex(topologic.CellComplex):
             The list of edges.
 
         """ 
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         edges = []
         _ = cellComplex.Edges(None, edges)
         return edges
 
     @staticmethod
-    def ExternalBoundary(cellComplex: topologic.CellComplex) -> topologic.Cell:
+    def ExternalBoundary(cellComplex: coreCellComplex) -> coreCell:
         """
         Returns the external boundary (cell) of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
         -------
-        topologic.Cell
+        coreCell
             The external boundary of the input cellComplex.
 
         """
         return cellComplex.ExternalBoundary()
 
     @staticmethod
-    def ExternalFaces(cellComplex: topologic.CellComplex) -> list:
+    def ExternalFaces(cellComplex: coreCellComplex) -> list:
         """
         Returns the external faces of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -543,18 +543,18 @@ class CellComplex(topologic.CellComplex):
             The list of external faces.
 
         """
-        from topologicpy.Cell import Cell
+        from Wrapper.Cell import Cell
         cell = cellComplex.ExternalBoundary()
         return Cell.Faces(cell)
 
     @staticmethod
-    def Faces(cellComplex: topologic.CellComplex) -> list:
+    def Faces(cellComplex: coreCellComplex) -> list:
         """
         Returns the faces of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -563,20 +563,20 @@ class CellComplex(topologic.CellComplex):
             The list of faces.
 
         """
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         faces = []
         _ = cellComplex.Faces(None, faces)
         return faces
 
     @staticmethod
-    def InternalFaces(cellComplex: topologic.CellComplex) -> list:
+    def InternalFaces(cellComplex: coreCellComplex) -> list:
         """
         Returns the internal boundaries (faces) of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -590,13 +590,13 @@ class CellComplex(topologic.CellComplex):
         return faces
     
     @staticmethod
-    def NonManifoldFaces(cellComplex: topologic.CellComplex) -> list:
+    def NonManifoldFaces(cellComplex: coreCellComplex) -> list:
         """
         Returns the non-manifold faces of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -610,14 +610,14 @@ class CellComplex(topologic.CellComplex):
         return faces
     
     @staticmethod
-    def Prism(origin: topologic.Vertex = None, width: float = 1.0, length: float = 1.0, height: float = 1.0, uSides: int = 2, vSides: int = 2, wSides: int = 2,
-                         direction: list = [0,0,1], placement: str = "center") -> topologic.CellComplex:
+    def Prism(origin: coreVertex = None, width: float = 1.0, length: float = 1.0, height: float = 1.0, uSides: int = 2, vSides: int = 2, wSides: int = 2,
+                         direction: list = [0,0,1], placement: str = "center") -> coreCellComplex:
         """
         Creates a prismatic cellComplex with internal cells.
 
         Parameters
         ----------
-        origin : topologic.Vertex , optional
+        origin : coreVertex , optional
             The origin location of the prism. The default is None which results in the prism being placed at (0,0,0).
         width : float , optional
             The width of the prism. The default is 1.
@@ -638,18 +638,18 @@ class CellComplex(topologic.CellComplex):
 
         Returns
         -------
-        topologic.CellComplex
+        coreCellComplex
             The created prism.
 
         """
-        from topologicpy.Vertex import Vertex
+        from Wrapper.Vertex import Vertex
         from topologicpy.Wire import Wire
-        from topologicpy.Face import Face
-        from topologicpy.Cell import Cell
-        from topologicpy.Cluster import Cluster
+        from Wrapper.Face import Face
+        from Wrapper.Cell import Cell
+        from Wrapper.Cluster import Cluster
         from topologicpy.Topology import Topology
         
-        if not isinstance(origin, topologic.Vertex):
+        if not isinstance(origin, coreVertex):
             origin = Vertex.ByCoordinates(0,0,0)
 
         uOffset = float(width) / float(uSides)
@@ -697,13 +697,13 @@ class CellComplex(topologic.CellComplex):
             return None
 
     @staticmethod
-    def Shells(cellComplex: topologic.CellComplex) -> list:
+    def Shells(cellComplex: coreCellComplex) -> list:
         """
         Returns the shells of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -712,20 +712,20 @@ class CellComplex(topologic.CellComplex):
             The list of shells.
 
         """
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         shells = []
         _ = cellComplex.Shells(None, shells)
         return shells
 
     @staticmethod
-    def Vertices(cellComplex: topologic.CellComplex) -> list:
+    def Vertices(cellComplex: coreCellComplex) -> list:
         """
         Returns the vertices of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -734,20 +734,20 @@ class CellComplex(topologic.CellComplex):
             The list of vertices.
 
         """
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         vertices = []
         _ = cellComplex.Vertices(None, vertices)
         return vertices
 
     @staticmethod
-    def Volume(cellComplex: topologic.CellComplex, mantissa: int = 4) -> float:
+    def Volume(cellComplex: coreCellComplex, mantissa: int = 4) -> float:
         """
         Returns the volume of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
         manitssa: int , optional
             The desired length of the mantissa. The default is 4.
@@ -758,8 +758,8 @@ class CellComplex(topologic.CellComplex):
             The volume of the input cellComplex.
 
         """
-        from topologicpy.Cell import Cell
-        if not isinstance(cellComplex, topologic.CellComplex):
+        from Wrapper.Cell import Cell
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         cells = CellComplex.Cells(cellComplex)
         volume = 0
@@ -768,13 +768,13 @@ class CellComplex(topologic.CellComplex):
         return round(volume, mantissa)
 
     @staticmethod
-    def Wires(cellComplex: topologic.CellComplex) -> list:
+    def Wires(cellComplex: coreCellComplex) -> list:
         """
         Returns the wires of the input cellComplex.
 
         Parameters
         ----------
-        cellComplex : topologic.CellComplex
+        cellComplex : coreCellComplex
             The input cellComplex.
 
         Returns
@@ -783,7 +783,7 @@ class CellComplex(topologic.CellComplex):
             The list of wires.
 
         """
-        if not isinstance(cellComplex, topologic.CellComplex):
+        if not isinstance(cellComplex, coreCellComplex):
             return None
         wires = []
         _ = cellComplex.Wires(None, wires)

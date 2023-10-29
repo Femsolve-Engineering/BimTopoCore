@@ -1,8 +1,8 @@
 import topologicpy
 import topologic
-class Cluster(topologic.Cluster):
+class Cluster(coreCluster):
     @staticmethod
-    def ByTopologies(topologies: list) -> topologic.Cluster:
+    def ByTopologies(topologies: list) -> coreCluster:
         """
         Creates a topologic Cluster from the input list of topologies.
 
@@ -13,22 +13,22 @@ class Cluster(topologic.Cluster):
 
         Returns
         -------
-        topologic.Cluster
+        coreCluster
             The created topologic Cluster.
 
         """
         assert isinstance(topologies, list), "Cluster.ByTopologies - Error: Input is not a list"
         topologyList = [x for x in topologies if isinstance(x, topologic.Topology)]
-        return topologic.Cluster.ByTopologies(topologyList, False)
+        return coreCluster.ByTopologies(topologyList, False)
 
     @staticmethod
-    def CellComplexes(cluster: topologic.Cluster) -> list:
+    def CellComplexes(cluster: coreCluster) -> list:
         """
         Returns the cellComplexes of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -37,20 +37,20 @@ class Cluster(topologic.Cluster):
             The list of cellComplexes.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         cellComplexes = []
         _ = cluster.CellComplexes(None, cellComplexes)
         return cellComplexes
 
     @staticmethod
-    def Cells(cluster: topologic.Cluster) -> list:
+    def Cells(cluster: coreCluster) -> list:
         """
         Returns the cells of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -59,20 +59,20 @@ class Cluster(topologic.Cluster):
             The list of cells.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         cells = []
         _ = cluster.Cells(None, cells)
         return cells
 
     @staticmethod
-    def Edges(cluster: topologic.Cluster) -> list:
+    def Edges(cluster: coreCluster) -> list:
         """
         Returns the edges of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -81,20 +81,20 @@ class Cluster(topologic.Cluster):
             The list of edges.
 
         """ 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         edges = []
         _ = cluster.Edges(None, edges)
         return edges
 
     @staticmethod
-    def Faces(cluster: topologic.Cluster) -> list:
+    def Faces(cluster: coreCluster) -> list:
         """
         Returns the faces of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -103,20 +103,20 @@ class Cluster(topologic.Cluster):
             The list of faces.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         faces = []
         _ = cluster.Faces(None, faces)
         return faces
 
     @staticmethod
-    def FreeCells(cluster: topologic.Cluster) -> list:
+    def FreeCells(cluster: coreCluster) -> list:
         """
         Returns the free cells of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -125,10 +125,10 @@ class Cluster(topologic.Cluster):
             The list of free cells.
 
         """
-        from topologicpy.CellComplex import CellComplex
+        from Wrapper.CellComplex import CellComplex
         from topologicpy.Topology import Topology
 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allCells = []
         _ = cluster.Cells(None, allCells)
@@ -144,7 +144,7 @@ class Cluster(topologic.Cluster):
             return allCells
         cellComplexesCluster = Cluster.ByTopologies(cellComplexesCells)
         resultingCluster = Topology.Boolean(allCellsCluster, cellComplexesCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Cell):
+        if isinstance(resultingCluster, coreCell):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="cell")
         if not result:
@@ -152,13 +152,13 @@ class Cluster(topologic.Cluster):
         return result
     
     @staticmethod
-    def FreeShells(cluster: topologic.Cluster) -> list:
+    def FreeShells(cluster: coreCluster) -> list:
         """
         Returns the free shells of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -167,10 +167,10 @@ class Cluster(topologic.Cluster):
             The list of free shells.
 
         """
-        from topologicpy.Cell import Cell
+        from Wrapper.Cell import Cell
         from topologicpy.Topology import Topology
 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allShells = []
         _ = cluster.Shells(None, allShells)
@@ -185,7 +185,7 @@ class Cluster(topologic.Cluster):
             return allShells
         cellsCluster = Cluster.ByTopologies(cellsShells)
         resultingCluster = Topology.Boolean(allShellsCluster, cellsCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Shell):
+        if isinstance(resultingCluster, coreShell):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="shell")
         if not result:
@@ -193,13 +193,13 @@ class Cluster(topologic.Cluster):
         return result
     
     @staticmethod
-    def FreeFaces(cluster: topologic.Cluster) -> list:
+    def FreeFaces(cluster: coreCluster) -> list:
         """
         Returns the free faces of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -208,9 +208,9 @@ class Cluster(topologic.Cluster):
             The list of free faces.
 
         """
-        from topologicpy.Shell import Shell
+        from Wrapper.Shell import Shell
         from topologicpy.Topology import Topology
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allFaces = []
         _ = cluster.Faces(None, allFaces)
@@ -225,7 +225,7 @@ class Cluster(topologic.Cluster):
             return allFaces
         shellCluster = Cluster.ByTopologies(shellFaces)
         resultingCluster = Topology.Boolean(allFacesCluster, shellCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Face):
+        if isinstance(resultingCluster, coreFace):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="face")
         if not result:
@@ -233,13 +233,13 @@ class Cluster(topologic.Cluster):
         return result
 
     @staticmethod
-    def FreeWires(cluster: topologic.Cluster) -> list:
+    def FreeWires(cluster: coreCluster) -> list:
         """
         Returns the free wires of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -248,10 +248,10 @@ class Cluster(topologic.Cluster):
             The list of free wires.
 
         """
-        from topologicpy.Face import Face
+        from Wrapper.Face import Face
         from topologicpy.Topology import Topology
 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allWires = []
         _ = cluster.Wires(None, allWires)
@@ -274,13 +274,13 @@ class Cluster(topologic.Cluster):
         return result
     
     @staticmethod
-    def FreeEdges(cluster: topologic.Cluster) -> list:
+    def FreeEdges(cluster: coreCluster) -> list:
         """
         Returns the free edges of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -292,7 +292,7 @@ class Cluster(topologic.Cluster):
         from topologicpy.Wire import Wire
         from topologicpy.Topology import Topology
 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allEdges = []
         _ = cluster.Edges(None, allEdges)
@@ -307,7 +307,7 @@ class Cluster(topologic.Cluster):
             return allEdges
         wireCluster = Cluster.ByTopologies(wireEdges)
         resultingCluster = Topology.Boolean(allEdgesCluster, wireCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Edge):
+        if isinstance(resultingCluster, coreEdge):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="edge")
         if not result:
@@ -315,13 +315,13 @@ class Cluster(topologic.Cluster):
         return result
     
     @staticmethod
-    def FreeVertices(cluster: topologic.Cluster) -> list:
+    def FreeVertices(cluster: coreCluster) -> list:
         """
         Returns the free vertices of the input cluster that are not part of a higher topology.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -330,10 +330,10 @@ class Cluster(topologic.Cluster):
             The list of free vertices.
 
         """
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from topologicpy.Topology import Topology
 
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         allVertices = []
         _ = cluster.Vertices(None, allVertices)
@@ -348,7 +348,7 @@ class Cluster(topologic.Cluster):
             return allVertices
         edgesCluster = Cluster.ByTopologies(edgesVertices)
         resultingCluster = Topology.Boolean(allVerticesCluster, edgesCluster, operation="Difference")
-        if isinstance(resultingCluster, topologic.Vertex):
+        if isinstance(resultingCluster, coreVertex):
             return [resultingCluster]
         result = Topology.SubTopologies(resultingCluster, subTopologyType="vertex")
         if not result:
@@ -356,13 +356,13 @@ class Cluster(topologic.Cluster):
         return result
     
     @staticmethod
-    def HighestType(cluster: topologic.Cluster) -> int:
+    def HighestType(cluster: coreCluster) -> int:
         """
         Returns the type of the highest dimension subtopology found in the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -371,29 +371,29 @@ class Cluster(topologic.Cluster):
             The type of the highest dimension subtopology found in the input cluster.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         cellComplexes = Cluster.CellComplexes(cluster)
         if len(cellComplexes) > 0:
-            return topologic.CellComplex.Type()
+            return coreCellComplex.Type()
         cells = Cluster.Cells(cluster)
         if len(cells) > 0:
-            return topologic.Cell.Type()
+            return coreCell.Type()
         shells = Cluster.Shells(cluster)
         if len(shells) > 0:
-            return topologic.Shell.Type()
+            return coreShell.Type()
         faces = Cluster.Faces(cluster)
         if len(faces) > 0:
-            return topologic.Face.Type()
+            return coreFace.Type()
         wires = Cluster.Wires(cluster)
         if len(wires) > 0:
             return topologic.Wire.Type()
         edges = Cluster.Edges(cluster)
         if len(edges) > 0:
-            return topologic.Edge.Type()
+            return coreEdge.Type()
         vertices = Cluster.Vertices(cluster)
         if len(vertices) > 0:
-            return topologic.Vertex.Type()
+            return coreVertex.Type()
     
     @staticmethod
     def K_Means(topologies, selectors=None, keys=["x", "y", "z"], k=4, maxIterations=100, centroidKey="k_centroid"):
@@ -423,9 +423,9 @@ class Cluster(topologic.Cluster):
             The created list of clusters.
 
         """
-        from topologicpy.Helper import Helper
-        from topologicpy.Vertex import Vertex
-        from topologicpy.Dictionary import Dictionary
+        from Wrapper.Helper import Helper
+        from Wrapper.Vertex import Vertex
+        from Wrapper.Dictionary import Dictionary
         from topologicpy.Topology import Topology
 
 
@@ -472,7 +472,7 @@ class Cluster(topologic.Cluster):
         if len(topologies) == 0:
             return None
         if selectors != None:
-            selectors = [s for s in selectors if isinstance(s, topologic.Vertex)]
+            selectors = [s for s in selectors if isinstance(s, coreVertex)]
             if len(selectors) == 0:
                 return None
             if not len(selectors) == len(topologies):
@@ -566,7 +566,7 @@ class Cluster(topologic.Cluster):
         return t_clusters
 
     @staticmethod
-    def MysticRose(wire: topologic.Wire = None, origin: topologic.Vertex = None, radius: float = 0.5, sides: int = 16, perimeter: bool = True, direction: list = [0,0,1], placement:str = "center", tolerance: float = 0.0001) -> topologic.Cluster:
+    def MysticRose(wire: topologic.Wire = None, origin: coreVertex = None, radius: float = 0.5, sides: int = 16, perimeter: bool = True, direction: list = [0,0,1], placement:str = "center", tolerance: float = 0.0001) -> coreCluster:
         """
         Creates a mystic rose.
 
@@ -574,7 +574,7 @@ class Cluster(topologic.Cluster):
         ----------
         wire : topologic.Wire , optional
             The input Wire. if set to None, a circle with the input parameters is created. Otherwise, the input parameters are ignored.
-        origin : topologic.Vertex , optional
+        origin : coreVertex , optional
             The location of the origin of the circle. The default is None which results in the circle being placed at (0,0,0).
         radius : float , optional
             The radius of the mystic rose. The default is 1.
@@ -596,10 +596,10 @@ class Cluster(topologic.Cluster):
 
         """
         import topologicpy
-        from topologicpy.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Vertex import Vertex
+        from Wrapper.Edge import Edge
         from topologicpy.Wire import Wire
-        from topologicpy.Cluster import Cluster
+        from Wrapper.Cluster import Cluster
         from itertools import combinations
 
         if not wire:
@@ -617,13 +617,13 @@ class Cluster(topologic.Cluster):
         return Cluster.ByTopologies(edges)
 
     @staticmethod
-    def Shells(cluster: topologic.Cluster) -> list:
+    def Shells(cluster: coreCluster) -> list:
         """
         Returns the shells of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -632,20 +632,20 @@ class Cluster(topologic.Cluster):
             The list of shells.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         shells = []
         _ = cluster.Shells(None, shells)
         return shells
 
     @staticmethod
-    def Simplify(cluster: topologic.Cluster):
+    def Simplify(cluster: coreCluster):
         """
         Simplifies the input cluster if possible. For example, if the cluster contains only one cell, that cell is returned.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -654,7 +654,7 @@ class Cluster(topologic.Cluster):
             The simplification of the cluster.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         resultingTopologies = []
         topCC = []
@@ -715,13 +715,13 @@ class Cluster(topologic.Cluster):
         return cluster
 
     @staticmethod
-    def Vertices(cluster: topologic.Cluster) -> list:
+    def Vertices(cluster: coreCluster) -> list:
         """
         Returns the vertices of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -730,20 +730,20 @@ class Cluster(topologic.Cluster):
             The list of vertices.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         vertices = []
         _ = cluster.Vertices(None, vertices)
         return vertices
 
     @staticmethod
-    def Wires(cluster: topologic.Cluster) -> list:
+    def Wires(cluster: coreCluster) -> list:
         """
         Returns the wires of the input cluster.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster.
 
         Returns
@@ -752,7 +752,7 @@ class Cluster(topologic.Cluster):
             The list of wires.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         wires = []
         _ = cluster.Wires(None, wires)

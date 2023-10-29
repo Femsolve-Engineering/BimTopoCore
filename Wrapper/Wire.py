@@ -2,6 +2,8 @@ from binascii import a2b_base64
 from re import A
 import itertools
 import numpy as np
+import math
+from typing import List
 
 # Core
 from Core.Topology import Topology as coreTopology
@@ -13,7 +15,7 @@ from Core.Shell import Shell as coreShell
 from Core.Cluster import Cluster as coreCluster
 
 from Core.Dictionary import Dictionary as coreDictionary
-from Core.Utilities.TopologicUtilities import VertexUtility, FaceUtility
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
 
 # Wrapper
 from Wrapper.Cluster import Cluster
@@ -162,7 +164,7 @@ class Wire(coreWire):
         """
         if not isinstance(edges, list):
             return None
-        edgeList = [x for x in edges if isinstance(x, topologic.Edge)]
+        edgeList = [x for x in edges if isinstance(x, coreEdge)]
         if len(edgeList) < 1:
             return None
         wire = None
@@ -180,13 +182,13 @@ class Wire(coreWire):
         return wire
 
     @staticmethod
-    def ByEdgesCluster(cluster: topologic.Cluster) -> coreWire:
+    def ByEdgesCluster(cluster: coreCluster) -> coreWire:
         """
         Creates a wire from the input cluster of edges.
 
         Parameters
         ----------
-        cluster : topologic.Cluster
+        cluster : coreCluster
             The input cluster of edges.
 
         Returns
@@ -195,7 +197,7 @@ class Wire(coreWire):
             The created wire.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         edges = []
         _ = cluster.Edges(None, edges)
@@ -230,12 +232,12 @@ class Wire(coreWire):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Face import Face
-        from topologicpy.Shell import Shell
+        from Wrapper.Shell import Shell
         from Wrapper.Cluster import Cluster
         from Wrapper.Dictionary import Dictionary
-        from topologicpy.Vector import Vector
+        from Wrapper.Vector import Vector
         from random import randrange, sample
 
         if not isinstance(wire, coreWire):
@@ -434,7 +436,7 @@ class Wire(coreWire):
             v1 = vertexList[i]
             v2 = vertexList[i+1]
             try:
-                e = topologic.Edge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.ByStartVertexEndVertex(v1, v2)
                 if e:
                     edges.append(e)
             except:
@@ -443,7 +445,7 @@ class Wire(coreWire):
             v1 = vertexList[-1]
             v2 = vertexList[0]
             try:
-                e = topologic.Edge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.ByStartVertexEndVertex(v1, v2)
                 if e:
                     edges.append(e)
             except:
@@ -455,7 +457,7 @@ class Wire(coreWire):
         return Cluster.SelfMerge(c)
 
     @staticmethod
-    def ByVerticesCluster(cluster: topologic.Cluster, close: bool = True) -> coreWire:
+    def ByVerticesCluster(cluster: coreCluster, close: bool = True) -> coreWire:
         """
         Creates a wire from the input cluster of vertices.
 
@@ -472,7 +474,7 @@ class Wire(coreWire):
             The created wire.
 
         """
-        if not isinstance(cluster, topologic.Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
         vertices = []
         _ = cluster.Vertices(None, vertices)
@@ -511,7 +513,7 @@ class Wire(coreWire):
 
         """
         if not origin:
-            origin = coreVertex.ByCoordinates(0,0,0)
+            origin = coreVertex.by_coordinates(0,0,0)
         if not isinstance(origin, coreVertex):
             return None
         if not placement.lower() in ["center", "lowerleft", "upperleft", "lowerright", "upperright"]:
@@ -742,7 +744,7 @@ class Wire(coreWire):
         
         def vIndex(v, vList, tolerance):
             for i in range(len(vList)):
-                if coreVertexUtility.Distance(v, vList[i]) < tolerance:
+                if VertexUtility.distance(v, vList[i]) < tolerance:
                     return i+1
             return None
         
@@ -827,9 +829,9 @@ class Wire(coreWire):
             for j in range(len(c)-1):
                 v1 = c[j]
                 v2 = c[j+1]
-                e = topologic.Edge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.ByStartVertexEndVertex(v1, v2)
                 resultEdges.append(e)
-            e = topologic.Edge.ByStartVertexEndVertex(c[len(c)-1], c[0])
+            e = coreEdge.ByStartVertexEndVertex(c[len(c)-1], c[0])
             resultEdges.append(e)
             resultWire = coreWire.ByEdges(resultEdges)
             resultWires.append(resultWire)
@@ -1009,7 +1011,7 @@ class Wire(coreWire):
         dictionary
             A dictionary with the following keys and values:
             1. "ellipse" : The ellipse (coreWire)
-            2. "foci" : The two focal points (topologic.Cluster containing two vertices)
+            2. "foci" : The two focal points (coreCluster containing two vertices)
             3. "a" : The major axis length
             4. "b" : The minor axis length
             5. "c" : The focal length
@@ -1019,7 +1021,7 @@ class Wire(coreWire):
 
         """
         if not origin:
-            origin = coreVertex.ByCoordinates(0,0,0)
+            origin = coreVertex.by_coordinates(0,0,0)
         if not isinstance(origin, coreVertex):
             return None
         if inputMode not in [1,2,3,4]:
@@ -1087,7 +1089,7 @@ class Wire(coreWire):
             z = origin.Z()
             xList.append(x)
             yList.append(y)
-            baseV.append(coreVertex.ByCoordinates(x,y,z))
+            baseV.append(coreVertex.by_coordinates(x,y,z))
 
         ellipse = Wire.ByVertices(baseV[::-1], close) #reversing the list so that the normal points up in Blender
 
@@ -1114,7 +1116,7 @@ class Wire(coreWire):
         # Create a Cluster of the two foci
         v1 = coreVertex.ByCoordinates(c+origin.X(), 0+origin.Y(),0)
         v2 = coreVertex.ByCoordinates(-c+origin.X(), 0+origin.Y(),0)
-        foci = topologic.Cluster.ByTopologies([v1, v2])
+        foci = coreCluster.ByTopologies([v1, v2])
         if placement.lower() == "lowerleft":
             foci = coreTopologyUtility.Translate(foci, a, b, 0)
         foci = coreTopologyUtility.Rotate(foci, origin, 0, 1, 0, theta)
@@ -1153,11 +1155,11 @@ class Wire(coreWire):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Cluster import Cluster
         from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
-        from topologicpy.Vector import Vector
+        from Wrapper.Vector import Vector
         if not isinstance(wire, coreWire):
             return None
         if direction == None:
@@ -1227,15 +1229,15 @@ class Wire(coreWire):
         Returns
         -------
         toplogic.Topology
-            The created interpolated wires as well as the input wires. The return type can be a topologic.Cluster or a coreWire based on options.
+            The created interpolated wires as well as the input wires. The return type can be a coreCluster or a coreWire based on options.
 
         """
 
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
-        from topologicpy.Helper import Helper
+        from Wrapper.Helper import Helper
         
         outputType = outputType.lower()
         if outputType not in ["default", "contours", "raster", "zigzag", "toolpath", "grid"]:
@@ -1366,7 +1368,7 @@ class Wire(coreWire):
         status = None
         if wire:
             if isinstance(wire, coreWire):
-                status = wire.IsClosed()
+                status = wire.is_closed()
         return status
     
     @staticmethod
@@ -1390,7 +1392,7 @@ class Wire(coreWire):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         
         if not isinstance(wire, coreWire):
             return None
@@ -1404,7 +1406,7 @@ class Wire(coreWire):
         return False
     
     @staticmethod
-    def Isovist(wire: coreWire, viewPoint: coreVertex, obstaclesCluster: topologic.Cluster, tolerance: float = 0.0001) -> list:
+    def Isovist(wire: coreWire, viewPoint: coreVertex, obstaclesCluster: coreCluster, tolerance: float = 0.0001) -> list:
         """
         Returns a list of faces representing the isovist projection from the input viewpoint.
 
@@ -1414,7 +1416,7 @@ class Wire(coreWire):
             The wire representing the external boundary (border) of the isovist.
         viewPoint : coreVertex
             The vertex representing the location of the viewpoint of the isovist.
-        obstaclesCluster : topologic.Cluster
+        obstaclesCluster : coreCluster
             A cluster of wires representing the obstacles within the externalBoundary.
 
         Returns
@@ -1424,82 +1426,82 @@ class Wire(coreWire):
 
         """
         
-        def vertexPartofFace(vertex, face, tolerance):
+        def vertexPartofFace(vertex, face: coreFace, tolerance):
             vertices = []
-            _ = face.Vertices(None, vertices)
+            _ = face.vertices(None, vertices)
             for v in vertices:
-                if coreVertexUtility.Distance(vertex, v) < tolerance:
+                if VertexUtility.distance(vertex, v) < tolerance:
                     return True
             return False
         
         internalBoundaries = []
-        _ = obstaclesCluster.Wires(None, internalBoundaries)
+        _ = obstaclesCluster.wires(None, internalBoundaries)
         internalVertices = []
-        _ = obstaclesCluster.Vertices(None, internalVertices)
+        _ = obstaclesCluster.vertices(None, internalVertices)
         # 1. Create a Face with external and internal boundaries
-        face = topologic.Face.ByExternalInternalBoundaries(wire, internalBoundaries, False)
+        face = coreFace.by_external_internal_boundaries(wire, internalBoundaries, False)
         # 2. Draw Rays from viewpoint through each Vertex of the obstacles extending to the External Boundary
         #    2.1 Get the Edges and Vertices of the External Boundary
         exBoundaryEdges = []
-        _ = wire.Edges(None, exBoundaryEdges)
+        _ = wire.edges(None, exBoundaryEdges)
         exBoundaryVertices = []
-        _ = wire.Vertices(None, exBoundaryVertices)
+        _ = wire.vertices(None, exBoundaryVertices)
         testTopologies = exBoundaryEdges+exBoundaryVertices
         #    1.2 Find the maximum distance from the viewpoint to the edges and vertices of the external boundary
         distances = []
         for x in testTopologies:
-            distances.append(coreVertexUtility.Distance(viewPoint, x))
+            distances.append(VertexUtility.distance(viewPoint, x))
         maxDistance = max(distances)*1.5
         #    1.3 Shoot rays and intersect with the external boundary
         rays = []
         for aVertex in (internalVertices+exBoundaryVertices):
-            d = coreVertexUtility.Distance(viewPoint, aVertex)
+            d = VertexUtility.distance(viewPoint, aVertex)
             if d > tolerance:
                 scaleFactor = maxDistance/d
                 newV = coreTopologyUtility.Scale(aVertex, viewPoint, scaleFactor, scaleFactor, scaleFactor)
                 try:
-                    ray = topologic.Edge.ByStartVertexEndVertex(viewPoint, newV)
+                    ray = coreEdge.by_start_vertex_end_vertex(viewPoint, newV)
                     topologyC = ray.Intersect(wire, False)
                     vertices = []
                     _ = topologyC.Vertices(None, vertices)
                     if topologyC:
                         try:
-                            rays.append(topologic.Edge.ByStartVertexEndVertex(viewPoint, vertices[0]))
+                            rays.append(coreEdge.by_start_vertex_end_vertex(viewPoint, vertices[0]))
                         except:
                             pass
                     try:
-                        rays.append(topologic.Edge.ByStartVertexEndVertex(viewPoint, aVertex))
+                        rays.append(coreEdge.by_start_vertex_end_vertex(viewPoint, aVertex))
                     except:
                         pass
                 except:
                     pass
         rayEdges = []
         for r in rays:
-            a = r.Difference(obstaclesCluster, False)
+            a: coreTopology = r.Difference(obstaclesCluster, False)
             if a:
                 edges = []
-                _ = a.Edges(None, edges)
+                _ = a.edges(None, edges)
                 w = None
                 try:
-                    w = coreWire.ByEdges(edges)
+                    w = coreWire.by_edges(edges)
                     rayEdges = rayEdges + edges
                 except:
-                    c = topologic.Cluster.ByTopologies(edges)
+                    c = coreCluster.ByTopologies(edges)
                     c = c.SelfMerge()
-                    wires = []
+                    wires: List[coreWire] = []
                     _ = c.Wires(None, wires)
                     if len(wires) > 0:
-                        edges = []
-                        _ = wires[0].Edges(None, edges)
+                        edges: List[coreEdge] = []
+                        _ = wires[0].edges(None, edges)
                         rayEdges = rayEdges + edges
                     else:
                         for e in edges:
                             vertices = []
-                            e.Vertices(None, vertices)
+                            e.vertices(None, vertices)
                             for v in vertices:
-                                if coreVertexUtility.Distance(viewPoint, v) < tolerance:
+                                if VertexUtility.distance(viewPoint, v) < tolerance:
                                     rayEdges.append(e)
-        rayCluster = topologic.Cluster.ByTopologies(rayEdges)
+        rayCluster = coreCluster.ByTopologies(rayEdges)
         #return rayCluster
         shell = face.Slice(rayCluster, False)
         faces = []
@@ -1553,19 +1555,19 @@ class Wire(coreWire):
                     j += k
             return False
 
-        def angleBetweenEdges(e1, e2, tolerance):
-            a = e1.EndVertex().X() - e1.StartVertex().X()
-            b = e1.EndVertex().Y() - e1.StartVertex().Y()
-            c = e1.EndVertex().Z() - e1.StartVertex().Z()
-            d = coreVertexUtility.Distance(e1.EndVertex(), e2.StartVertex())
+        def angleBetweenEdges(e1: coreEdge, e2: coreEdge, tolerance):
+            a = e1.end_vertex().X() - e1.start_vertex().X()
+            b = e1.end_vertex().Y() - e1.start_vertex().Y()
+            c = e1.end_vertex().Z() - e1.start_vertex().Z()
+            d = VertexUtility.distance(e1.end_vertex(), e2.start_vertex())
             if d <= tolerance:
-                d = e2.StartVertex().X() - e2.EndVertex().X()
-                e = e2.StartVertex().Y() - e2.EndVertex().Y()
-                f = e2.StartVertex().Z() - e2.EndVertex().Z()
+                d = e2.start_vertex().X() - e2.end_vertex().X()
+                e = e2.start_vertex().Y() - e2.end_vertex().Y()
+                f = e2.start_vertex().Z() - e2.end_vertex().Z()
             else:
-                d = e2.EndVertex().X() - e2.StartVertex().X()
-                e = e2.EndVertex().Y() - e2.StartVertex().Y()
-                f = e2.EndVertex().Z() - e2.StartVertex().Z()
+                d = e2.end_vertex().X() - e2.start_vertex().X()
+                e = e2.end_vertex().Y() - e2.start_vertex().Y()
+                f = e2.end_vertex().Z() - e2.start_vertex().Z()
             dotProduct = a*d + b*e + c*f
             modOfVector1 = math.sqrt( a*a + b*b + c*c)*math.sqrt(d*d + e*e + f*f) 
             angle = dotProduct/modOfVector1
@@ -1584,7 +1586,7 @@ class Wire(coreWire):
             angles = getInteriorAngles(edges, tolerance)
             lengths = []
             for anEdge in edges:
-                lengths.append(topologic.EdgeUtility.Length(anEdge))
+                lengths.append(EdgeUtility.length(anEdge))
             minLength = min(lengths)
             normalisedLengths = []
             for aLength in lengths:
@@ -1634,10 +1636,10 @@ class Wire(coreWire):
         totalLength = None
         try:
             edges = []
-            _ = wire.Edges(None, edges)
+            _ = wire.edges(None, edges)
             totalLength = 0
             for anEdge in edges:
-                totalLength = totalLength + topologic.EdgeUtility.Length(anEdge)
+                totalLength = totalLength + EdgeUtility.length(anEdge)
             totalLength = round(totalLength, mantissa)
         except:
             totalLength = None
@@ -1667,7 +1669,7 @@ class Wire(coreWire):
         verts = []
         _ = wire.Vertices(None, verts)
         w = Wire.ByVertices([verts[0], verts[1], verts[2]], close=True)
-        f = topologic.Face.ByExternalBoundary(w)
+        f = coreFace.by_external_boundary(w)
         f = Topology.Scale(f, f.Centroid(), 500,500,500)
         proj_verts = []
         direction = Face.NormalAtParameters(f)
@@ -1677,7 +1679,7 @@ class Wire(coreWire):
         return Wire.ByVertices(proj_verts, close=True)
 
     @staticmethod
-    def Project(wire: coreWire, face: topologic.Face, direction: list = None, mantissa: int = 4) -> coreWire:
+    def Project(wire: coreWire, face: coreFace, direction: list = None, mantissa: int = 4) -> coreWire:
         """
         Creates a projection of the input wire unto the input face.
 
@@ -1685,7 +1687,7 @@ class Wire(coreWire):
         ----------
         wire : coreWire
             The input wire.
-        face : topologic.Face
+        face : coreFace
             The face unto which to project the input wire.
         direction : list, optional
             The vector direction of the projection. If None, the reverse vector of the receiving face normal will be used. The default is None.
@@ -1701,7 +1703,7 @@ class Wire(coreWire):
 
         """
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Face import Face
         if not wire:
             return None
@@ -1709,22 +1711,21 @@ class Wire(coreWire):
             return None
         if not face:
             return None
-        if not isinstance(face, topologic.Face):
+        if not isinstance(face, coreFace):
             return None
         if not direction:
             direction = -1*Face.NormalAtParameters(face, 0.5, 0.5, "XYZ", mantissa)
-        large_face = Topology.Scale(face, face.CenterOfMass(), 500, 500, 500)
-        edges = []
-        _ = wire.Edges(None, edges)
+        large_face: Face = Topology.Scale(face, face.CenterOfMass(), 500, 500, 500)
+        edges: List[coreEdge] = wire.edges()
         projected_edges = []
 
         if large_face:
             if (large_face.Type() == Face.Type()):
                 for edge in edges:
                     if edge:
-                        if (edge.Type() == topologic.Edge.Type()):
-                            sv = edge.StartVertex()
-                            ev = edge.EndVertex()
+                        if (edge.Type() == coreEdge.Type()):
+                            sv = edge.start_vertex()
+                            ev = edge.end_vertex()
 
                             psv = Vertex.Project(vertex=sv, face=large_face, direction=direction)
                             pev = Vertex.Project(vertex=ev, face=large_face, direction=direction)
@@ -1839,37 +1840,36 @@ class Wire(coreWire):
             The created wire without any collinear edges.
 
         """
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Wire import Wire
         from Wrapper.Topology import Topology
         def rce(wire, angTolerance=0.1):
             if not isinstance(wire, coreWire):
                 return None
             final_wire = None
-            vertices = []
+            vertices: List[coreVertex] = []
             wire_verts = []
             try:
                 _ = wire.Vertices(None, vertices)
             except:
                 return None
             for aVertex in vertices:
-                edges = []
-                _ = aVertex.Edges(wire, edges)
+                edges = aVertex.edges(wire)
                 if len(edges) > 1:
                     if not Edge.IsCollinear(edges[0], edges[1], angTolerance=angTolerance):
                         wire_verts.append(aVertex)
                 else:
                     wire_verts.append(aVertex)
             if len(wire_verts) > 2:
-                if wire.IsClosed():
+                if wire.is_closed():
                     final_wire = Wire.ByVertices(wire_verts, True)
                 else:
                     final_wire = Wire.ByVertices(wire_verts, False)
             elif len(wire_verts) == 2:
-                final_wire = topologic.Edge.ByStartVertexEndVertex(wire_verts[0], wire_verts[1])
+                final_wire = coreEdge.by_start_vertex_end_vertex(wire_verts[0], wire_verts[1])
             return final_wire
         
-        if not coreTopology.IsManifold(wire, wire):
+        if not coreTopology.is_manifold(wire, wire):
             wires = Wire.Split(wire)
         else:
             wires = [wire]
@@ -1881,15 +1881,15 @@ class Wire(coreWire):
                 returnWires.append(rce(aWire, angTolerance=angTolerance))
         if len(returnWires) == 1:
             returnWire = returnWires[0]
-            if isinstance(returnWire, topologic.Edge):
+            if isinstance(returnWire, coreEdge):
                 return Wire.ByEdges([returnWire])
             elif isinstance(returnWire, coreWire):
                 return returnWire
             else:
                 return None
         elif len(returnWires) > 1:
-            returnWire = topologic.Cluster.ByTopologies(returnWires).SelfMerge()
-            if isinstance(returnWire, topologic.Edge):
+            returnWire = coreCluster.ByTopologies(returnWires).SelfMerge()
+            if isinstance(returnWire, coreEdge):
                 return Wire.ByEdges([returnWire])
             elif isinstance(returnWire, coreWire):
                 return returnWire
@@ -1905,7 +1905,7 @@ class Wire(coreWire):
 
         Parameters
         ----------
-        face : topologic.Face
+        face : coreFace
             The input face.
         degree : float , optioal
             The desired angle in degrees of the roof. The default is 45.
@@ -1918,15 +1918,13 @@ class Wire(coreWire):
             The created roof. This method returns the roof as a set of edges. No faces are created.
 
         """
-        from topologicpy import Polyskel
         from Wrapper.Vertex import Vertex
-        from topologicpy.Edge import Edge
+        from Wrapper.Edge import Edge
         from Wrapper.Face import Face
         from Wrapper.Cluster import Cluster
         from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
-        from topologicpy.Helper import Helper
-        import topologic
+        from Wrapper.Helper import Helper
         import math
 
         def subtrees_to_edges(subtrees, polygon, slope):
@@ -1991,7 +1989,7 @@ class Wire(coreWire):
             roofTopology = Topology.SelfMerge(Cluster.ByTopologies(roofEdges))
             return roofTopology
         
-        if not isinstance(face, topologic.Face):
+        if not isinstance(face, coreFace):
             return None
         degree = abs(degree)
         if degree >= 90-tolerance:
@@ -2019,7 +2017,7 @@ class Wire(coreWire):
 
         Parameters
         ----------
-        face : topologic.Face
+        face : coreFace
             The input face.
        
         tolerance : float , optional
@@ -2031,7 +2029,7 @@ class Wire(coreWire):
             The created straight skeleton.
 
         """
-        if not isinstance(face, topologic.Face):
+        if not isinstance(face, coreFace):
             return None
         return Wire.Roof(face, degree=0, tolerance=tolerance)
     
@@ -2052,23 +2050,21 @@ class Wire(coreWire):
 
         """
         
-        def vertexDegree(v, wire):
-            edges = []
-            _ = v.Edges(wire, edges)
+        def vertexDegree(v: coreVertex, wire: coreWire):
+            edges = v.edges(wire, edges)
             return len(edges)
         
-        def vertexOtherEdge(vertex, edge, wire):
-            edges = []
-            _ = vertex.Edges(wire, edges)
-            if coreTopology.IsSame(edges[0], edge):
+        def vertexOtherEdge(vertex: coreVertex, edge: coreEdge, wire: coreWire):
+            edges = vertex.edges(wire, edges)
+            if coreTopology.is_same(edges[0], edge):
                 return edges[-1]
             else:
                 return edges[0]
         
-        def edgeOtherVertex(edge, vertex):
+        def edgeOtherVertex(edge: coreEdge, vertex: coreVertex):
             vertices = []
-            _ = edge.Vertices(None, vertices)
-            if coreTopology.IsSame(vertex, vertices[0]):
+            _ = edge.vertices(None, vertices)
+            if coreTopology.is_same(vertex, vertices[0]):
                 return vertices[-1]
             else:
                 return vertices[0]
@@ -2079,17 +2075,15 @@ class Wire(coreWire):
                     return True
             return False
         
-        vertices = []
-        _ = wire.Vertices(None, vertices)
-        hubs = []
+        vertices = wire.vertices(None)
+        hubs: List[coreVertex] = []
         for aVertex in vertices:
             if vertexDegree(aVertex, wire) > 2:
                 hubs.append(aVertex)
         wires = []
         global_edges = []
         for aVertex in hubs:
-            hub_edges = []
-            _ = aVertex.Edges(wire, hub_edges)
+            hub_edges = aVertex.edges(wire)
             wire_edges = []
             for hub_edge in hub_edges:
                 if not edgeInList(hub_edge, global_edges):
@@ -2105,7 +2099,7 @@ class Wire(coreWire):
                         global_edges.append(current_edge)
                         wire_edges.append(current_edge)
                     if len(wire_edges) > 1:
-                        wires.append(topologic.Cluster.ByTopologies(wire_edges).SelfMerge())
+                        wires.append(coreCluster.ByTopologies(wire_edges).SelfMerge())
                     else:
                         wires.append(wire_edges[0])
                     wire_edges = []
@@ -2169,7 +2163,7 @@ class Wire(coreWire):
         """
 
         if not origin:
-            origin = coreVertex.ByCoordinates(0,0,0)
+            origin = coreVertex.by_coordinates(0,0,0)
         if not isinstance(origin, coreVertex):
             return None
         radiusA = abs(radiusA)
@@ -2224,7 +2218,7 @@ class Wire(coreWire):
             yOffset = 0
         tranBase = []
         for coord in baseV:
-            tranBase.append(coreVertex.ByCoordinates(coord[0]+xOffset, coord[1]+yOffset, origin.Z()))
+            tranBase.append(coreVertex.by_coordinates(coord[0]+xOffset, coord[1]+yOffset, origin.Z()))
         
         baseWire = Wire.ByVertices(tranBase[::-1], True) #reversing the list so that the normal points up in Blender
         
@@ -2308,10 +2302,10 @@ class Wire(coreWire):
             xOffset = -(max((widthA*0.5 + offsetA), (widthB*0.5 + offsetB)))
             yOffset = -length*0.5
 
-        vb1 = coreVertex.ByCoordinates(origin.X()-widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb2 = coreVertex.ByCoordinates(origin.X()+widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb3 = coreVertex.ByCoordinates(origin.X()+widthB*0.5+offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
-        vb4 = coreVertex.ByCoordinates(origin.X()-widthB*0.5++offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
+        vb1 = coreVertex.by_coordinates(origin.X()-widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
+        vb2 = coreVertex.by_coordinates(origin.X()+widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
+        vb3 = coreVertex.by_coordinates(origin.X()+widthB*0.5+offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
+        vb4 = coreVertex.by_coordinates(origin.X()-widthB*0.5+offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
 
         baseWire = Wire.ByVertices([vb1, vb2, vb3, vb4], True)
         x1 = origin.X()
@@ -2351,7 +2345,6 @@ class Wire(coreWire):
         """
         if not isinstance(wire, coreWire):
             return None
-        vertices = []
-        _ = wire.Vertices(None, vertices)
+        vertices: List[coreVertex] = wire.vertices(None)
         return vertices
 

@@ -1,7 +1,7 @@
 import topologic
 from topologic import IntAttribute, DoubleAttribute, StringAttribute, ListAttribute
 
-class Dictionary(topologic.Dictionary):
+class Dictionary(coreDictionary):
     '''
     @staticmethod
     def ByDGLData(item):
@@ -44,7 +44,7 @@ class Dictionary(topologic.Dictionary):
 
         Returns
         -------
-        topologic.Dictionary
+        coreDictionary
             The created dictionary.
 
         """
@@ -67,7 +67,7 @@ class Dictionary(topologic.Dictionary):
 
         Returns
         -------
-        topologic.Dictionary
+        coreDictionary
             The created dictionary.
 
         """
@@ -124,7 +124,7 @@ class Dictionary(topologic.Dictionary):
                 stl_values.append(topologic.ListAttribute(l))
             else:
                 return None
-        return topologic.Dictionary.ByKeysValues(stl_keys, stl_values)
+        return coreDictionary.ByKeysValues(stl_keys, stl_values)
     
     @staticmethod
     def ByMergedDictionaries(dictionaries):
@@ -266,7 +266,7 @@ class Dictionary(topologic.Dictionary):
 
         Returns
         -------
-        topologic.Dictionary
+        coreDictionary
             The dictionary equivalent to the input python dictionary.
 
         """
@@ -285,7 +285,7 @@ class Dictionary(topologic.Dictionary):
 
         Parameters
         ----------
-        dictionary : topologic.Dictionary or dict
+        dictionary : coreDictionary or dict
             The input dictionary.
 
         Returns
@@ -296,7 +296,7 @@ class Dictionary(topologic.Dictionary):
         """
         if isinstance(dictionary, dict):
             return list(dictionary.keys())
-        elif isinstance(dictionary, topologic.Dictionary):
+        elif isinstance(dictionary, coreDictionary):
             return dictionary.Keys()
         else:
             return None
@@ -337,7 +337,7 @@ class Dictionary(topologic.Dictionary):
 
         Parameters
         ----------
-        dictionary : topologic.Dictionary
+        dictionary : coreDictionary
             The input dictionary.
 
         Returns
@@ -346,7 +346,7 @@ class Dictionary(topologic.Dictionary):
             The python dictionary equivalent of the input dictionary
 
         """
-        if not isinstance(dictionary, topologic.Dictionary):
+        if not isinstance(dictionary, coreDictionary):
             return None
         keys = dictionary.Keys()
         pythonDict = {}
@@ -374,7 +374,7 @@ class Dictionary(topologic.Dictionary):
 
         Parameters
         ----------
-        dictionary : topologic.Dictionary or dict
+        dictionary : coreDictionary or dict
             The input dictionary.
         key : string
             The input key.
@@ -383,7 +383,7 @@ class Dictionary(topologic.Dictionary):
 
         Returns
         -------
-        topologic.Dictionary or dict
+        coreDictionary or dict
             The input dictionary with the key/value pair added to it.
 
         """
@@ -405,7 +405,7 @@ class Dictionary(topologic.Dictionary):
 
         if isinstance(dictionary, dict):
             return processPythonDictionary(dictionary, key, value)
-        elif isinstance(dictionary, topologic.Dictionary):
+        elif isinstance(dictionary, coreDictionary):
             return processTopologicDictionary(dictionary, key, value)
         else:
             return None
@@ -417,7 +417,7 @@ class Dictionary(topologic.Dictionary):
 
         Parameters
         ----------
-        dictionary : topologic.Dictionary or dict
+        dictionary : coreDictionary or dict
             The input dictionary.
         key : string
             The input key.
@@ -430,7 +430,7 @@ class Dictionary(topologic.Dictionary):
         """
         if isinstance(dictionary, dict):
             attr = dictionary[key]
-        elif isinstance(dictionary, topologic.Dictionary):
+        elif isinstance(dictionary, coreDictionary):
             attr = dictionary.ValueAtKey(key)
         else:
             return None
@@ -459,7 +459,7 @@ class Dictionary(topologic.Dictionary):
 
         Parameters
         ----------
-        dictionary : topologic.Dictionary or dict
+        dictionary : coreDictionary or dict
             The input dictionary.
 
         Returns
@@ -471,7 +471,7 @@ class Dictionary(topologic.Dictionary):
         keys = None
         if isinstance(dictionary, dict):
             keys = dictionary.keys()
-        elif isinstance(dictionary, topologic.Dictionary):
+        elif isinstance(dictionary, coreDictionary):
             keys = dictionary.Keys()
         returnList = []
         if not keys:
@@ -480,7 +480,7 @@ class Dictionary(topologic.Dictionary):
             try:
                 if isinstance(dictionary, dict):
                     attr = dictionary[key]
-                elif isinstance(dictionary, topologic.Dictionary):
+                elif isinstance(dictionary, coreDictionary):
                     attr = dictionary.ValueAtKey(key)
                 else:
                     attr = None
