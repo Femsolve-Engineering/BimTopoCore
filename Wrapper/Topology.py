@@ -23,11 +23,6 @@ from Core.Cluster import Cluster as coreCluster
 from Core.CellComplex import CellComplex as coreCellComplex
 from Core.Utilities.TopologicUtilities import VertexUtility
 
-# Wrapper
-from Wrapper.Face import Face
-from Wrapper.Topology import Topology
-import collections
-
 class Topology():
     @staticmethod
     def AddApertures(topology, apertures, exclusive=False, subTopologyType=None, tolerance=0.0001):
