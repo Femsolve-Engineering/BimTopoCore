@@ -151,8 +151,8 @@ class Wire(Topology):
         else:
             # This only works for manifold wire with a flow
             ret_edges: List[Edge] = []
-            vertices: List[Vertex] = Topology.downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
-            if len(vertices):
+            vertices: List[Vertex] = Topology.static_downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
+            if len(vertices) == 0:
                 return []
             
             is_closed = self.is_closed()

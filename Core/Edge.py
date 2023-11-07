@@ -209,8 +209,8 @@ class Edge(Topology):
 
         from Core.Vertex import Vertex
     
-        occt_vertices1: TopTools_MapOfShape = Topology.downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
-        occt_vertices2: TopTools_MapOfShape = Topology.downward_navigation(another_edge.get_occt_shape(), TopAbs_VERTEX)
+        occt_vertices1: TopTools_MapOfShape = Topology.static_downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
+        occt_vertices2: TopTools_MapOfShape = Topology.static_downward_navigation(another_edge.get_occt_shape(), TopAbs_VERTEX)
 
         shared_vertices: 'List[Vertex]' = []
         

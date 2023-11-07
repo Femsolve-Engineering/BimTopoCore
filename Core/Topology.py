@@ -16,6 +16,7 @@ from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape, BRepBuilderAPI_Copy
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex
 from OCC.Core.TopAbs import (
+    TopAbs_SHAPE,
     TopAbs_VERTEX,
     TopAbs_EDGE,
     TopAbs_WIRE,
@@ -262,7 +263,7 @@ class Topology:
         return ret_ancestors
 
     @staticmethod
-    def downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> List['Topology']:
+    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> List['Topology']:
         """
         Navigates downward through the sub-shapes of a given shape and retrieves
         the ones of a specified type.
@@ -293,9 +294,9 @@ class Topology:
         Appends collection of topology members that belong to current shape.
         """
         ret_members: List['Topology'] = []
-        occt_shape_enum: TopAbs_ShapeEnum = self.get_shape_type()
+        topology_type: TopologyTypes = self.get_shape_type()
         occt_shapes: TopTools_MapOfShape = []
-        occt_explorer = TopExp_Explorer(self.get_occt_shape(), occt_shape_enum)
+        occt_explorer = TopExp_Explorer(self.get_occt_shape(), TopAbs_ShapeEnum(topology_type.value))
 
         while occt_explorer.More():
             occt_current_shape = occt_explorer.Current()
