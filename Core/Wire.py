@@ -142,8 +142,74 @@ class Wire(Topology):
         """
         Returns a list of Edges that comprise the wire.
         """
-        pass
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+
+        if not self.is_manifold():
+            # Gives in any order
+            return self.downward_navigation()
+        else:
+            # This only works for manifold wire with a flow
+            ret_edges: List[Edge] = []
+            vertices: List[Vertex] = Topology.downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
+            if len(vertices):
+                return []
+            
+            is_closed = self.is_closed()
+            starting_vertex = None
+            if is_closed:
+                starting_vertex = vertices[0]
+            else:
+                for vertex in vertices:
+                    adjacent_edges = VertexUtility.adjacent_edges(vertex, self)
+
+                    if len(adjacent_edges) == 1:
+
+                        edge_start_vertex: Vertex = adjacent_edges[0].start_vertex()
+
+                        if edge_start_vertex.is_same(vertex):
+                            starting_vertex = vertex
+                            break
+
+                if starting_vertex == None:
+                    raise RuntimeError("This Wire is closed, but is identified as an open Wire.")
     
+        # Get an adjacent edge
+        current_vertex = starting_vertex
+        previous_edge: Edge = None
+
+        while True:
+
+            adjacent_edges = VertexUtility.adjacent_edges(current_vertex, self)
+            current_edge: Edge = None
+            for adjacent_edge in adjacent_edges:
+                if previous_edge == None:
+                    tmp_start_vertex: Vertex = adjacent_edge.start_vertex()
+                    if tmp_start_vertex.is_same(current_vertex):
+                        current_edge = adjacent_edge
+                elif not previous_edge.is_same(adjacent_edge):
+                    current_edge = adjacent_edge
+            
+            if current_edge == None:
+                break
+
+            ret_edges.append(current_edge)
+            previous_edge = current_edge
+
+            (tmp_s_vertex, tmp_e_vertex) = current_edge.vertices()
+            vertices.append([tmp_s_vertex, tmp_e_vertex])
+
+            for vertex in vertices:
+                vertex: Vertex = vertex # For intellisense
+                if vertex.is_same(current_vertex):
+                    continue
+
+                current_vertex = vertex
+                break
+
+            if current_vertex.is_same(starting_vertex):
+                break
+
     def vertices(self) -> List['Vertex']:
         """
         Returns the list of vertices that comprise the wire

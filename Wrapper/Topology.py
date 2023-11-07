@@ -4811,7 +4811,7 @@ class Topology():
 
     
     @staticmethod
-    def SelfMerge(topology):
+    def SelfMerge(topology: coreTopology):
         """
         Self merges the input topology to return the most logical topology type given the input data.
 
@@ -4830,11 +4830,11 @@ class Topology():
             topology = coreCluster.ByTopologies([topology])
         resultingTopologies = []
         topCC = []
-        _ = topology.CellComplexes(None, topCC)
+        _ = topology.cell_complexes(None, topCC)
         topCells = []
-        _ = topology.Cells(None, topCells)
+        _ = topology.cells(None, topCells)
         topShells = []
-        _ = topology.Shells(None, topShells)
+        _ = topology.shells(None, topShells)
         topFaces = []
         _ = topology.Faces(None, topFaces)
         topWires = []

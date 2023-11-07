@@ -262,7 +262,7 @@ class Topology:
         return ret_ancestors
 
     @staticmethod
-    def downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_MapOfShape:
+    def downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> List['Topology']:
         """
         Navigates downward through the sub-shapes of a given shape and retrieves
         the ones of a specified type.
@@ -274,16 +274,19 @@ class Topology:
         Returns:
             TopTools_MapOfShape: Map containing the retrieved sub-shapes.
         """
-        occt_members = TopTools_MapOfShape()
+        ret_members: List['Topology'] = []
 
+        occt_members = TopTools_MapOfShape()
         occt_explorer = TopExp_Explorer(occt_shape, shape_enum)
         while occt_explorer.More():
-            occt_current = occt_explorer.Current()
-            if not occt_members.Contains(occt_current):
-                occt_members.Add(occt_current)
+            occt_current_shape = occt_explorer.Current()
+            if not occt_members.Contains(occt_current_shape):
+                occt_members.Add(occt_current_shape)
+                child_topology = Topology.by_occt_shape(occt_current_shape, "")
+                ret_members.append(child_topology)
             occt_explorer.Next()
 
-        return occt_members
+        return ret_members
 
     def downward_navigation(self) -> List['Topology']:
         """
