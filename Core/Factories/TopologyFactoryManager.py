@@ -33,9 +33,9 @@ class TopologyFactoryManager:
         if guid not in self.topology_factory_map:
             self.topology_factory_map[guid] = rkTopologyFactory
 
-    def find(self, rkGuid: str) -> Tuple[bool, TopologyFactory]:
-        rTopologyFactory = self.topology_factory_map.get(rkGuid)
-        return (rTopologyFactory is not None, rTopologyFactory)
+    def find(self, rkGuid: str) -> TopologyFactory:
+        topology_factory = self.topology_factory_map.get(rkGuid)
+        return topology_factory
 
     def get_default_factory(self, occt_type: TopAbs_ShapeEnum) -> TopologyFactory:
         if occt_type == TopAbs_COMPOUND:
@@ -64,6 +64,6 @@ class TopologyFactoryManager:
         """
 
         if TopologyFactoryManager._instance == None:
-            _instance = TopologyFactoryManager()
+            TopologyFactoryManager._instance = TopologyFactoryManager()
 
-        return _instance
+        return TopologyFactoryManager._instance

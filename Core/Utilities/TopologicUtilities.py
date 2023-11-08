@@ -48,7 +48,6 @@ class TopologyUtility:
         # AttributeManager.deep_copy_attributes(
         #   occt_shape, core_transformed_topology.get_occt_shape())
 
-        # Assuming a method to get sub-contents
         sub_contents: List[Topology] = topology.sub_contents()
 
         for sub_content in sub_contents:

@@ -331,14 +331,15 @@ class Topology:
         for occt_type_int_iteration in range(occt_type_int, int(TopAbs_SHAPE)):
             occt_type_iteration = TopAbs_ShapeEnum(occt_type_int_iteration)
             occt_members = TopTools_MapOfShape()
-            ret_members.append(
+            ret_members.extend(
                 Topology.static_downward_navigation(occt_shape, occt_type_iteration))
 
-            for occt_member in occt_members:
-                pass
-                # ToDo: ContentManager
+            # ToDo: ContentManager
+            # for occt_member in occt_members:
+            #     pass
                 # ContentManager.get_instance().find(occt_member, sub_contents)
 
+        return ret_members
     
     def geometry(self) -> Geom_Geometry:
         """
@@ -457,7 +458,7 @@ class Topology:
         if instance_guid == "":
             p_topology_factory = topology_factory_manager.get_default_factory(occt_shape.ShapeType())
         else:
-            topology_factory_manager.find(instance_guid, p_topology_factory)
+            p_topology_factory = topology_factory_manager.find(instance_guid)
 
         assert p_topology_factory is not None
         p_topology = p_topology_factory.create(occt_shape)

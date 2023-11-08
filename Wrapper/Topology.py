@@ -5999,6 +5999,7 @@ class Topology():
         try:
             return TopologyUtility.translate(topology, x, y, z)
         except Exception as ex:
+            print(f'Translation failed. Exception:\n{ex}')
             return topology
     
     @staticmethod
