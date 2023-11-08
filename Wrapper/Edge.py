@@ -271,14 +271,15 @@ class Edge():
         """
 
         from Wrapper.Vector import Vector
+        from Core.Vertex import Vertex as coreVertex
 
         if not isinstance(edge, coreEdge):
             return None
-        ev = edge.EndVertex()
-        sv = edge.StartVertex()
-        x = ev.X() - sv.X()
-        y = ev.Y() - sv.Y()
-        z = ev.Z() - sv.Z()
+        ev: coreVertex = edge.end_vertex()
+        sv: coreVertex = edge.start_vertex()
+        x = ev.x() - sv.x()
+        y = ev.y() - sv.y()
+        z = ev.z() - sv.z()
         uvec = Vector.Normalize([x,y,z])
         x = round(uvec[0], mantissa)
         y = round(uvec[1], mantissa)

@@ -21,7 +21,7 @@ from Core.Shell import Shell as coreShell
 from Core.Cell import Cell as coreCell
 from Core.Cluster import Cluster as coreCluster
 from Core.CellComplex import CellComplex as coreCellComplex
-from Core.Utilities.TopologicUtilities import VertexUtility
+from Core.Utilities.TopologicUtilities import TopologyUtility, VertexUtility
 
 class Topology():
     @staticmethod
@@ -4147,9 +4147,9 @@ class Topology():
         if not isinstance(originA, coreVertex):
             originA = Vertex.ByCoordinates(0,0,0)
 
-        x = originB.X() - originA.X()
-        y = originB.Y() - originA.Y()
-        z = originB.Z() - originA.Z()
+        x = originB.x() - originA.x()
+        y = originB.y() - originA.y()
+        z = originB.z() - originA.z()
         newTopology = None
         try:
             newTopology = Topology.Translate(topology, x, y, z)
@@ -5997,8 +5997,8 @@ class Topology():
             print("Topology.Translate - Error: The input topology is not a valid topology. Returning None.")
             return None
         try:
-            return coreTopologyUtility.Translate(topology, x, y, z)
-        except:
+            return TopologyUtility.translate(topology, x, y, z)
+        except Exception as ex:
             return topology
     
     @staticmethod
