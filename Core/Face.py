@@ -247,7 +247,7 @@ class Face(Topology):
             raise ValueError("Fewer than 3 edges are passed.")
 
         wire = Wire.by_edges(edges)
-        face = Face.external_boundary(wire)
+        face = Face.by_external_boundary(wire)
         edges_as_topologies: List[Topology] = []
 
         for edge in edges:
@@ -343,10 +343,11 @@ class Face(Topology):
         Instance bound method to get the external boundary wire.
         """
         from Core.Wire import Wire
-        return Wire(self.__external_boundary(self.get_occt_face()))
+        occt_wire = Face.static_external_boundary(self.get_occt_face())
+        return Wire(occt_wire)
 
     @staticmethod
-    def __external_boundary(rk_occt_face: 'TopoDS_Face') -> TopoDS_Wire:
+    def static_external_boundary(rk_occt_face: 'TopoDS_Face') -> TopoDS_Wire:
         """
         Static method to get an external boundary of a face.
         """
@@ -366,7 +367,7 @@ class Face(Topology):
         """
         from Core.Wire import Wire
         rk_face = self.get_occt_face()
-        occt_outer_wire = self.__external_boundary(rk_face)
+        occt_outer_wire = Face.static_external_boundary(rk_face)
         internal_boundaries = []
 
         occt_explorer = TopoDS_Iterator(rk_face, False)

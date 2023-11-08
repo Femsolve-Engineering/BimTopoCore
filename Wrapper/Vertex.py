@@ -8,7 +8,7 @@ from Core.Face import Face as coreFace
 from Core.Shell import Shell as coreShell
 from Core.Cell import Cell as coreCell
 from Core.Cluster import Cluster as coreCluster
-from Core.Utilities.TopologicUtilities import VertexUtility
+from Core.Utilities.TopologicUtilities import TopologyUtility, VertexUtility
 
 # Wrapper
 from Wrapper.Face import Face
@@ -207,9 +207,9 @@ class Vertex(Topology):
         """
         if not isinstance(vertex, coreVertex):
             return None
-        x = round(vertex.X(), mantissa)
-        y = round(vertex.Y(), mantissa)
-        z = round(vertex.Z(), mantissa)
+        x = round(vertex.x(), mantissa)
+        y = round(vertex.y(), mantissa)
+        z = round(vertex.z(), mantissa)
         matrix = [[1,0,0,x],
                 [0,1,0,y],
                 [0,0,1,z],
@@ -756,15 +756,15 @@ class Vertex(Topology):
             return None
         if not direction:
             direction = Vector.Reverse(Face.NormalAtParameters(face, 0.5, 0.5, "XYZ", mantissa))
-        if coreFaceUtility. IsInside(face, vertex, tolerance):
+        if coreFaceUtility.IsInside(face, vertex, tolerance):
             return vertex
         d = VertexUtility.distance(vertex, face)*10
-        far_vertex = Core.TopologyUtility.Translate(vertex, direction[0]*d, direction[1]*d, direction[2]*d)
+        far_vertex = TopologyUtility.translate(vertex, direction[0]*d, direction[1]*d, direction[2]*d)
         if VertexUtility.distance(vertex, far_vertex) > tolerance:
             e = coreEdge.by_start_vertex_end_vertex(vertex, far_vertex)
             pv = face.Intersect(e, False)
             if not pv:
-                far_vertex = Core.TopologyUtility.Translate(vertex, -direction[0]*d, -direction[1]*d, -direction[2]*d)
+                far_vertex = TopologyUtility.translate(vertex, -direction[0]*d, -direction[1]*d, -direction[2]*d)
                 if VertexUtility.distance(vertex, far_vertex) > tolerance:
                     e = coreEdge.by_start_vertex_end_vertex(vertex, far_vertex)
                     pv = face.Intersect(e, False)
@@ -792,7 +792,7 @@ class Vertex(Topology):
         """
         if not isinstance(vertex, coreVertex):
             return None
-        return round(vertex.X(), mantissa)
+        return round(vertex.x(), mantissa)
 
     @staticmethod
     def Y(vertex: coreVertex, mantissa: int = 4) -> float:
@@ -814,7 +814,7 @@ class Vertex(Topology):
         """
         if not isinstance(vertex, coreVertex):
             return None
-        return round(vertex.Y(), mantissa)
+        return round(vertex.y(), mantissa)
 
     @staticmethod
     def Z(vertex: coreVertex, mantissa: int = 4) -> float:
@@ -836,5 +836,5 @@ class Vertex(Topology):
         """
         if not isinstance(vertex, coreVertex):
             return None
-        return round(vertex.Z(), mantissa)
+        return round(vertex.z(), mantissa)
            

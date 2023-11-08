@@ -1383,10 +1383,10 @@ class Face(coreFace):
         """
         returnResult = []
         try:
-            coords = coreFaceUtility.NormalAtParameters(face, u, v)
-            x = round(coords[0], mantissa)
-            y = round(coords[1], mantissa)
-            z = round(coords[2], mantissa)
+            coords = FaceUtility.normal_at_parameters(face, u, v)
+            x = round(coords.X(), mantissa)
+            y = round(coords.Y(), mantissa)
+            z = round(coords.Z(), mantissa)
             outputType = list(outputType.lower())
             for axis in outputType:
                 if axis == "x":
@@ -1395,7 +1395,7 @@ class Face(coreFace):
                     returnResult.append(y)
                 elif axis == "z":
                     returnResult.append(z)
-        except:
+        except Exception as ex:
             returnResult = None
         return returnResult
     
@@ -1795,7 +1795,7 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        return coreFaceUtility.VertexAtParameters(face, u, v)
+        return FaceUtility.vertex_at_parameters(face, u, v)
     
     @staticmethod
     def VertexParameters(face: coreFace, vertex: coreVertex, outputType: str = "uv", mantissa: int = 4) -> list:

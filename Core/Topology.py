@@ -16,6 +16,7 @@ from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShape, BRepBuilderAPI_Copy
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex
 from OCC.Core.TopAbs import (
+    TopAbs_REVERSED,
     TopAbs_SHAPE,
     TopAbs_VERTEX,
     TopAbs_EDGE,
@@ -307,6 +308,38 @@ class Topology:
 
         return ret_members
     
+    def sub_contents(self) -> List['Topology']:
+        """
+        Returns:
+            All topologies that are stored under this topology.
+        """
+        return self.static_sub_contents(self.get_occt_shape())
+
+    @staticmethod
+    def static_sub_contents(occt_shape: TopoDS_Shape) -> List['Topology']:
+        """
+        Finds all the topologies that are of lower type.
+        """
+        ret_members: List['Topology'] = []
+
+        # ToDo: ContentManager
+        # Topology.contents(occt_shape, sub_contents)
+
+        occt_type = occt_shape.ShapeType()
+        occt_type_int = int(occt_type) + 1  # +1 for the next lower type
+
+        for occt_type_int_iteration in range(occt_type_int, int(TopAbs_SHAPE)):
+            occt_type_iteration = TopAbs_ShapeEnum(occt_type_int_iteration)
+            occt_members = TopTools_MapOfShape()
+            ret_members.append(
+                Topology.static_downward_navigation(occt_shape, occt_type_iteration))
+
+            for occt_member in occt_members:
+                pass
+                # ToDo: ContentManager
+                # ContentManager.get_instance().find(occt_member, sub_contents)
+
+    
     def geometry(self) -> Geom_Geometry:
         """
         Pure virtual method for geometry getting.
@@ -430,6 +463,13 @@ class Topology:
         p_topology = p_topology_factory.create(occt_shape)
 
         return p_topology
+    
+    def is_reversed(self) -> bool:
+        """
+        Checks the shape orientation.
+        """
+        occt_orientation = self.get_occt_shape().Orientation()
+        return occt_orientation == TopAbs_REVERSED
     
     def set_instance_guid(self, shape: TopoDS_Shape, guid: str) -> None:
         """

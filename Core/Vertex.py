@@ -213,7 +213,7 @@ class Vertex(Topology):
         Returns:
             List of geometric entities.
         """
-        occt_geometries = [self.__get_point()]
+        occt_geometries = [self.get_point()]
         return occt_geometries
     
     def get_occt_shape(self) -> TopoDS_Shape:
@@ -256,7 +256,7 @@ class Vertex(Topology):
         Returns:
             float: X-coordinate
         """
-        geom_cartesian_point = self.__get_point()
+        geom_cartesian_point = self.get_point()
         return geom_cartesian_point.X()
     
     def y(self) -> float:
@@ -265,7 +265,7 @@ class Vertex(Topology):
         Returns:
             float: Y-coordinate
         """
-        geom_cartesian_point = self.__get_point()
+        geom_cartesian_point = self.get_point()
         return geom_cartesian_point.Y()
 
     def z(self) -> float:
@@ -274,7 +274,7 @@ class Vertex(Topology):
         Returns:
             float: Z-coordinate
         """
-        geom_cartesian_point = self.__get_point()
+        geom_cartesian_point = self.get_point()
         return geom_cartesian_point.Z()
     
     def coordinates(self) -> Tuple[float, float, float]:
@@ -282,10 +282,10 @@ class Vertex(Topology):
         Returns:
             Tuple (triplet) of x,y,z coordinates.
         """
-        geom_point = self.__get_point()
+        geom_point = self.get_point()
         return (geom_point.X(), geom_point.Y(), geom_point.Z())
 
-    def __get_point(self) -> Geom_CartesianPoint:
+    def get_point(self) -> Geom_CartesianPoint:
         """Gets OCC's Geom_Point object.
 
         Returns:
