@@ -167,7 +167,7 @@ class Vertex(Topology):
         edges = []
 
         if host_topology:
-            explorer = TopExp_Explorer(host_topology.GetOcctShape(), TopAbs_EDGE)
+            explorer = TopExp_Explorer(host_topology.get_occt_shape(), TopAbs_EDGE)
             while explorer.More():
                 edge_shape = explorer.Current()
                 edges.append(TopoDS_Shape(edge_shape))
@@ -293,7 +293,7 @@ class Vertex(Topology):
         """
         geometric_point = BRep_Tool.Pnt(self.base_shape_vertex)
         return Geom_CartesianPoint(geometric_point)
-    
+        
     @staticmethod
     def center_of_mass(rkOcctVertex: TopoDS_Vertex) -> TopoDS_Vertex:
         """

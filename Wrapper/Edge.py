@@ -1,3 +1,5 @@
+from typing import Tuple
+
 # Core
 from Core.Topology import Topology as coreTopology
 from Core.Vertex import Vertex as coreVertex
@@ -306,7 +308,7 @@ class Edge():
             return None
         vert = None
         try:
-            vert = edge.EndVertex()
+            vert = edge.end_vertex()
         except:
             vert = None
         return vert
@@ -635,11 +637,11 @@ class Edge():
         if not isinstance(edge, coreEdge):
             return None
         if not useEndVertex:
-            sv = edge.StartVertex()
-            ev = Edge.VertexByDistance(edge, 1.0, edge.StartVertex())
+            sv = edge.start_vertex()
+            ev = Edge.VertexByDistance(edge, 1.0, edge.start_vertex())
         else:
-            sv = Edge.VertexByDistance(edge, 1.0, edge.StartVertex())
-            ev = edge.EndVertex()
+            sv = Edge.VertexByDistance(edge, 1.0, edge.start_vertex())
+            ev = edge.end_vertex()
         return Edge.ByVertices([sv, ev])
 
     @staticmethod
@@ -666,8 +668,9 @@ class Edge():
             return None
         parameter = None
         try:
-            parameter = coreEdgeUtility.ParameterAtPoint(edge, vertex)
-        except:
+            parameter = EdgeUtility.parameter_at_point(edge, vertex)
+        except Exception as ex:
+            print(f'ParameterAtVertex failed. Exception:\n{ex}')
             return None
         return round(parameter, mantissa)
 
@@ -742,7 +745,7 @@ class Edge():
             return None
         vert = None
         try:
-            vert = edge.StartVertex()
+            vert = edge.start_vertex()
         except:
             vert = None
         return vert
@@ -887,7 +890,7 @@ class Edge():
             vertex = edge.end_vertex()
         else:
             try:
-                vertex = coreEdgeUtility.PointAtParameter(edge, parameter)
+                vertex = EdgeUtility.point_at_parameter(edge, parameter)
             except:
                 vertex = None
         return vertex
@@ -910,5 +913,5 @@ class Edge():
         """
         if not isinstance(edge, coreEdge):
             return None
-        vertices = edge.vertices(None)
-        return vertices
+        vertices = edge.vertices()
+        return list(vertices)

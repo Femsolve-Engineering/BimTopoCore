@@ -110,6 +110,34 @@ class Topology:
 
         return Topology.by_occt_shape(closest_subshape)
     
+    def centroid(self) -> 'Vertex':
+        """
+        Averages all the existing vertices of the topological object and constructs
+        a new vertex that is the arithmetic average. (Note, this is not the same as 
+        center of mass). ToDo?: Should this really be called centroid?
+        """
+        from Core.Vertex import Vertex
+        vertices: List[Vertex] = self.vertices()
+        if len(vertices) == None:
+            return None
+        
+        sumX = 0.0
+        sumY = 0.0
+        sumZ = 0.0
+        for vertex in vertices:
+            (xcoor, ycoor, zcoor) = vertex.coordinates()
+            sumX += xcoor
+            sumY += ycoor
+            sumZ += zcoor
+
+        num_of_vertices = len(vertices)
+        avgX = sumX/num_of_vertices
+        avgY = sumY/num_of_vertices
+        avgZ = sumZ/num_of_vertices
+
+        centroid = Vertex.by_coordinates(avgX, avgY, avgZ)
+        return centroid        
+    
     @staticmethod
     def center_of_mass(occt_shape: TopoDS_Shape) -> TopoDS_Vertex:
         """
@@ -290,14 +318,20 @@ class Topology:
 
         return ret_members
 
-    def downward_navigation(self) -> List['Topology']:
+    def downward_navigation(self, topabs_shape_enum: TopAbs_ShapeEnum=None) -> List['Topology']:
         """
         Appends collection of topology members that belong to current shape.
         """
         ret_members: List['Topology'] = []
-        topology_type: TopologyTypes = self.get_shape_type()
-        occt_shapes: TopTools_MapOfShape = []
-        occt_explorer = TopExp_Explorer(self.get_occt_shape(), TopAbs_ShapeEnum(topology_type.value))
+        required_topabs_shapeenum: TopAbs_ShapeEnum = None
+        if topabs_shape_enum == None:
+            topology_type: TopologyTypes = self.get_shape_type()
+            required_topabs_shapeenum = TopAbs_ShapeEnum(topology_type.value)
+        else:
+            required_topabs_shapeenum = topabs_shape_enum
+
+        occt_shapes = TopTools_MapOfShape()
+        occt_explorer = TopExp_Explorer(self.get_occt_shape(), required_topabs_shapeenum)
 
         while occt_explorer.More():
             occt_current_shape = occt_explorer.Current()
@@ -305,6 +339,7 @@ class Topology:
                 occt_shapes.Add(occt_current_shape)
                 child_topology = Topology.by_occt_shape(occt_current_shape, "")
                 ret_members.append(child_topology)
+            occt_explorer.Next()
 
         return ret_members
     
@@ -379,8 +414,10 @@ class Topology:
     
     def vertices(self, host_topology: 'Topology') -> List['Topology']:
         """
-        TODO - M3
+        Gets all vertices associated with the host topology.
         """
+        if host_topology == None:
+            host_topology = self
         return self.navigate(host_topology)
     
     def wires(self, host_topology: 'Topology') -> List['Topology']:

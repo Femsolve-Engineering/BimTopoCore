@@ -112,19 +112,19 @@ class Face(Topology):
         """
         Returns the list of wires associated with this face.
         """
-        return self.downward_navigation(self, TopAbs_WIRE)
+        return self.downward_navigation(TopAbs_WIRE)
     
     def edges(self, host_topology: Topology) -> List['Edge']:
         """
         Returns the list of edges associated with this face.
         """
-        return self.downward_navigation(self, TopAbs_EDGE)
+        return self.downward_navigation(TopAbs_EDGE)
 
-    def vertices(self, host_topology: Topology) -> List['Vertex']:
+    def vertices(self) -> List['Vertex']:
         """
         Returns the list of vertices associated with this face.
         """
-        return self.downward_navigation(self, TopAbs_VERTEX)
+        return self.downward_navigation(TopAbs_VERTEX)
     
     def center_of_mass(self):
         """

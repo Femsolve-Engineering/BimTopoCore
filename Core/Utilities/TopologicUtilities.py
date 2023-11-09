@@ -1,17 +1,29 @@
 
 from typing import List
 from typing import Tuple
+from math import pi
 
 # OCC
 from OCC.Core import Precision
-from OCC.Core.gp import gp_Dir, gp_Vec, gp_Trsf
+from OCC.Core.gp import gp_Pnt, gp_Mat, gp_GTrsf, gp_XYZ, gp_Dir, gp_Vec, gp_Trsf, gp_Ax1
 from OCC.Core.GeomLProp import GeomLProp_SLProps
 from OCC.Core.GeomConvert import geomconvert
-from OCC.Core.Geom import Geom_RectangularTrimmedSurface, Geom_CartesianPoint
+from OCC.Core.Geom import ( 
+    Geom_Line,
+    Geom_RectangularTrimmedSurface, 
+    Geom_CartesianPoint
+)
+from OCC.Core.GeomLib import GeomLib_Tool
 from OCC.Core.ShapeAnalysis import shapeanalysis, ShapeAnalysis_Surface
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRep import BRep_Tool
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform, BRepBuilderAPI_MakeVertex, BRepBuilderAPI_MakeEdge
+from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
+from OCC.Core.BRepBuilderAPI import (
+    BRepBuilderAPI_GTransform,
+    BRepBuilderAPI_Transform, 
+    BRepBuilderAPI_MakeVertex, 
+    BRepBuilderAPI_MakeEdge
+)
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
 from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.TopoDS import TopoDS_Face
@@ -70,6 +82,129 @@ class TopologyUtility:
 
         return core_transformed_topology
 
+    @staticmethod
+    def rotate(topology: 'Topology', 
+               origin_vertex: 'Vertex', 
+               direction_x: float, direction_y: float, direction_z: float, 
+               degree: float):
+        """
+        Rotates a Topological entity about a defined origin and axis.
+        """
+        radian = TopologyUtility.degrees_to_radians(degree)
+        
+        # Set up the rotation transformation
+        transformation = gp_Trsf()
+        occt_origin_point = origin_vertex.get_point()
+        transformation.SetRotation(
+            gp_Ax1(
+                gp_Pnt(occt_origin_point.X(), occt_origin_point.Y(), occt_origin_point.Z()),
+                gp_Dir(direction_x, direction_y, direction_z)), 
+            radian)
+        
+        # Apply the transformation
+        transform = BRepBuilderAPI_Transform(topology.get_occt_shape(), transformation, True)
+        core_transformed_topology = Topology.by_occt_shape(
+            transform.Shape(), topology.get_class_guid())
+        
+        # ToDo: AttributeManager
+        # AttributeManager.get_instance().deep_copy_attributes(
+        #   topology.get_occt_shape(), core_transformed_topology.get_occt_shape())
+        
+        # Recursive rotation for subcontents
+        sub_contents = topology.sub_contents()
+        for sub_content in sub_contents:
+            transformed_subcontent = TopologyUtility.rotate(
+                sub_content, origin_vertex, direction_x, direction_y, direction_z, degree)
+            
+            # ToDo: ContextManager
+            # contexts = sub_content.contexts()
+            # context_type = 0
+            # for context in contexts:
+            #     context_topology = context.topology()
+            #     context_topology_type = context_topology.get_type()
+            #     context_type |= context_topology_type
+            # core_transformed_topology = core_transformed_topology.add_contents([transformed_subcontent], context_type)
+        
+        # ToDo: GlobalCluster
+        # GlobalCluster.get_instance().add_topology(core_transformed_topology)
+        
+        return core_transformed_topology
+    
+    @staticmethod
+    def scale(topology: 'Topology', origin_vertex: 'Vertex', 
+              x_factor: float, y_factor: float, z_factor: float):
+        """
+        Scales topological entities about a vertex. 
+        """
+
+        scale_origin = origin_vertex.get_point()
+        
+        # Translate the topology to the origin
+        trsf_to_origin = gp_Trsf()
+        trsf_to_origin.SetTranslation(gp_Vec(-scale_origin.X(), -scale_origin.Y(), -scale_origin.Z()))
+        transform_to_origin = BRepBuilderAPI_Transform(
+            topology.get_occt_shape(), trsf_to_origin, True)
+        
+        # Create the scaling transformation
+        scaling_mat = gp_Mat(
+            x_factor, 0, 0, 
+            0, y_factor, 0, 
+            0, 0, z_factor)
+        scaling_transformation = gp_GTrsf(scaling_mat, gp_XYZ(0, 0, 0))
+        scaling_transform = BRepBuilderAPI_GTransform(
+            transform_to_origin.Shape(), scaling_transformation, True)
+        
+        # Translate the topology back to its original position
+        trsf_back = gp_Trsf()
+        trsf_back.SetTranslation(gp_Vec(scale_origin.X(), scale_origin.Y(), scale_origin.Z()))
+        transform_back = BRepBuilderAPI_Transform(scaling_transform.Shape(), trsf_back, True)
+        
+        # Create the new transformed topology
+        transformed_shape = transform_back.Shape()
+        core_transformed_topology = Topology.by_occt_shape(
+            transformed_shape, topology.get_class_guid())
+        
+        # ToDo: AttributeManager
+        # AttributeManager.get_instance().deep_copy_attributes(
+        #     topology.get_occt_shape(), core_transformed_topology.get_occt_shape())
+        
+        # Scale subcontents recursively
+        sub_contents = topology.sub_contents()
+        for sub_content in sub_contents:
+            transformed_subcontent = TopologyUtility.scale(
+                sub_content, origin_vertex, x_factor, y_factor, z_factor)
+            
+            # ToDo: ContextManager
+            # # Determine context types
+            # contexts = sub_content.contexts()
+            # context_type = 0
+            # for context in contexts:
+            #     context_topology = context.topology()
+            #     context_topology_type = context_topology.get_type()
+            #     context_type |= context_topology_type
+            
+            # # Add scaled subcontents to the transformed topology
+            # core_transformed_topology.add_contents([transformed_subcontent], context_type)
+        
+        # ToDo: Global Cluster
+        # GlobalCluster.get_instance().add_topology(core_transformed_topology)
+        
+        return core_transformed_topology
+    
+    @staticmethod
+    def degrees_to_radians(degrees: float) -> float:
+        """
+        Converts degrees to radians.
+        """
+        return degrees * pi / 180.0
+    
+    @staticmethod
+    def radians_to_degress(radians: float) -> float:
+        """
+        Converts radians to degrees.
+        """
+        return radians * 180.0 / pi
+
 class VertexUtility:
 
     @staticmethod
@@ -115,6 +250,45 @@ class EdgeUtility:
         occt_shape_properties = GProp_GProps()
         brepgprop.LinearProperties(edge.get_occt_shape(), occt_shape_properties)
         return occt_shape_properties.Mass()
+    
+    @staticmethod
+    def parameter_at_point(edge: 'Edge', vertex: 'Vertex') -> float:
+        """
+        Computes at which location the vertex is located for the edge.
+        """
+        (occt_geom_curve, u0, u1) = edge.curve()
+        occt_point = vertex.get_point()
+        (is_on_curve, occt_parameter) = GeomLib_Tool.Parameter(
+            occt_geom_curve,
+            occt_point.Pnt(),
+            Precision.precision_Confusion()) 
+        
+        if not is_on_curve:
+            raise RuntimeError("Point not on Curve!")
+        
+        # Parameter may be non-normalized, so normalize it
+        return edge.normalize_parameter(u0, u1, occt_parameter)
+    
+    @staticmethod
+    def point_at_parameter(edge: 'Edge', parameter: float) -> 'Vertex':
+        """
+        Constructs a point along the length of the edge. The position
+        is defined by the parameter passed in.
+        """
+        u0 = 0.0
+        u1 = 0.0
+        (occt_geom_curve, u0, u1) = edge.curve()
+        # is_instance = isinstance(occt_geom_curve, Geom_Line)
+        occt_line: Geom_Line = occt_geom_curve # Downcasting to 'geom_line'
+        if not occt_line is None:
+            u0 = 0.0
+            u1 = EdgeUtility.length(edge)
+
+        # Parameter is normalized, so non-normalize it
+        occt_parameter = edge.non_normalize_parameter(u0, u1, parameter)
+        occt_point = occt_geom_curve.Value(occt_parameter)
+
+        return Vertex.by_point(Geom_CartesianPoint(occt_point))
     
 class FaceUtility:
 

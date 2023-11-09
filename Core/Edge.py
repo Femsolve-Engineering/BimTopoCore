@@ -273,14 +273,13 @@ class Edge(Topology):
 
         return True
         
-    def vertices(self) -> 'Tuple[Vertex, Vertex]':
+    def vertices(self) -> list:
         """Returns a tuple of vertices.
 
         Returns:
-            Tuple[Vertex, Vertex]: (start_vertex, end_vertex)
+            list: [start_vertex, end_vertex]
         """
-        return (self.start_vertex(), self.end_vertex())
-
+        return [self.start_vertex(), self.end_vertex()]
 
     def start_vertex(self) -> 'Vertex':
         """Getter for start vertex.
@@ -302,14 +301,12 @@ class Edge(Topology):
         occt_vertex = self.__get_vertex_at_end(self.base_shape_edge, EdgeEnd.END)
         return Vertex(occt_vertex)
     
-    def curve(self) -> Geom_Curve:
-        """Quick getter for the geometry curve.
+    def curve(self) -> Tuple[Geom_Curve, float, float]:
+        """Quick getter for the geometry of the curve.
 
         Returns:
             Geom_Curve: The geometric curve representing the edge.
         """
-        # ToDo?: Need to test if this actually returns a curve and not the 
-        # first and last point parameters
         return BRep_Tool.Curve(self.get_occt_edge())
     
     def geometry(self) -> 'List[Geom_Geometry]':

@@ -9,6 +9,7 @@ from numpy.linalg import norm
 import math
 
 # Core
+from Core.TopologyConstants import TopologyTypes as coreTopologyTypes
 from Core.Dictionary import Dictionary as coreDictionary
 from Core.Aperture import Aperture as coreAperture
 from Core.Context import Context as coreContext
@@ -848,84 +849,84 @@ class Topology():
             hidimB = Topology.HighestType(topologyB)
             hidimC = Topology.HighestType(topologyC)
             verticesA = []
-            if topologyA.get_shape_type() == coreVertex.get_shape_type():
+            if topologyA.get_shape_type() == coreTopologyTypes.VERTEX:
                 verticesA.append(topologyA)
-            elif hidimA >= coreVertex.get_shape_type():
+            elif hidimA >= coreTopologyTypes.VERTEX:
                 _ = topologyA.vertices(None, verticesA)
                 for aVertex in verticesA:
                     sourceVertices.append(aVertex)
             verticesB = []
-            if topologyB.get_shape_type() == coreVertex.get_shape_type():
+            if topologyB.get_shape_type() == coreTopologyTypes.VERTEX:
                 verticesB.append(topologyB)
-            elif hidimB >= coreVertex.get_shape_type():
+            elif hidimB >= coreTopologyTypes.VERTEX:
                 _ = topologyB.vertices(None, verticesB)
                 for aVertex in verticesB:
                     sourceVertices.append(aVertex)
             sinkVertices = []
-            if topologyC.get_shape_type() == coreVertex.get_shape_type():
+            if topologyC.get_shape_type() == coreTopologyTypes.VERTEX:
                 sinkVertices.append(topologyC)
-            elif hidimC >= coreVertex.get_shape_type():
+            elif hidimC >= coreTopologyTypes.VERTEX:
                 _ = topologyC.vertices(None, sinkVertices)
             _ = Topology.TransferDictionaries(sourceVertices, sinkVertices, tolerance)
-            if topologyA.get_shape_type() == coreEdge.get_shape_type():
+            if topologyA.get_shape_type() == coreTopologyTypes.EDGE:
                 sourceEdges.append(topologyA)
-            elif hidimA >= coreEdge.get_shape_type():
+            elif hidimA >= coreTopologyTypes.EDGE:
                 edgesA = []
                 _ = topologyA.edges(None, edgesA)
                 for anEdge in edgesA:
                     sourceEdges.append(anEdge)
-            if topologyB.get_shape_type() == coreEdge.get_shape_type():
+            if topologyB.get_shape_type() == coreTopologyTypes.EDGE:
                 sourceEdges.append(topologyB)
-            elif hidimB >= coreEdge.get_shape_type():
+            elif hidimB >= coreTopologyTypes.EDGE:
                 edgesB = []
                 _ = topologyB.edges(None, edgesB)
                 for anEdge in edgesB:
                     sourceEdges.append(anEdge)
             sinkEdges = []
-            if topologyC.get_shape_type() == coreEdge.get_shape_type():
+            if topologyC.get_shape_type() == coreTopologyTypes.EDGE:
                 sinkEdges.append(topologyC)
-            elif hidimC >= coreEdge.get_shape_type():
+            elif hidimC >= coreTopologyTypes.EDGE:
                 _ = topologyC.edges(None, sinkEdges)
             _ = Topology.TransferDictionaries(sourceEdges, sinkEdges, tolerance)
 
-            if topologyA.get_shape_type() == coreFace.get_shape_type():
+            if topologyA.get_shape_type() == coreTopologyTypes.FACE:
                 sourceFaces.append(topologyA)
-            elif hidimA >= coreFace.get_shape_type():
+            elif hidimA >= coreTopologyTypes.FACE:
                 facesA = []
                 _ = topologyA.faces(None, facesA)
                 for aFace in facesA:
                     sourceFaces.append(aFace)
-            if topologyB.get_shape_type() == coreFace.get_shape_type():
+            if topologyB.get_shape_type() == coreTopologyTypes.FACE:
                 sourceFaces.append(topologyB)
-            elif hidimB >= coreFace.get_shape_type():
+            elif hidimB >= coreTopologyTypes.FACE:
                 facesB = []
                 _ = topologyB.faces(None, facesB)
                 for aFace in facesB:
                     sourceFaces.append(aFace)
             sinkFaces = []
-            if topologyC.get_shape_type() == coreFace.get_shape_type():
+            if topologyC.get_shape_type() == coreTopologyTypes.FACE:
                 sinkFaces.append(topologyC)
-            elif hidimC >= coreFace.get_shape_type():
+            elif hidimC >= coreTopologyTypes.FACE:
                 _ = topologyC.faces(None, sinkFaces)
             _ = Topology.TransferDictionaries(sourceFaces, sinkFaces, tolerance)
-            if topologyA.get_shape_type() == coreCell.get_shape_type():
+            if topologyA.get_shape_type() == coreTopologyTypes.CELL:
                 sourceCells.append(topologyA)
-            elif hidimA >= coreCell.get_shape_type():
+            elif hidimA >= coreTopologyTypes.CELL:
                 cellsA = []
                 _ = topologyA.cells(None, cellsA)
                 for aCell in cellsA:
                     sourceCells.append(aCell)
-            if topologyB.get_shape_type() == coreCell.get_shape_type():
+            if topologyB.get_shape_type() == coreTopologyTypes.CELL:
                 sourceCells.append(topologyB)
-            elif hidimB >= coreCell.get_shape_type():
+            elif hidimB >= coreTopologyTypes.CELL:
                 cellsB = []
                 _ = topologyB.cells(None, cellsB)
                 for aCell in cellsB:
                     sourceCells.append(aCell)
             sinkCells = []
-            if topologyC.get_shape_type() == coreCell.get_shape_type():
+            if topologyC.get_shape_type() == coreTopologyTypes.CELL:
                 sinkCells.append(topologyC)
-            elif hidimC >= coreCell.get_shape_type():
+            elif hidimC >= coreTopologyTypes.CELL:
                 _ = topologyC.cells(None, sinkCells)
             _ = Topology.TransferDictionaries(sourceCells, sinkCells, tolerance)
         return topologyC
@@ -2248,7 +2249,7 @@ class Topology():
         if not isinstance(topology, coreTopology):
             print("Topology.Centroid - Error: the input topology is not a valid topology. Returning None.")
             return None
-        return topology.Centroid()
+        return topology.centroid()
     
     @staticmethod
     def ClusterFaces(topology, tolerance=0.0001):
@@ -3658,7 +3659,7 @@ class Topology():
 
         """
         from Wrapper.Cluster import Cluster
-        if (topology.get_shape_type() == coreCluster.get_shape_type()):
+        if (topology.get_shape_type() == coreTopologyTypes.CLUSTER):
             return Cluster.HighestType(topology)
         else:
             return(topology.get_shape_type())
@@ -3752,13 +3753,13 @@ class Topology():
             print("Topology.ExportToOBJ - Error: the input vertex is not a valid vertex. Returning None.")
             return None
         is_inside = False
-        if topology.get_shape_type() == coreVertex.get_shape_type():
+        if topology.get_shape_type() == Topology:
             try:
                 is_inside = (Vertex.Distance(vertex, topology) <= tolerance)
             except:
                 is_inside = False
             return is_inside
-        elif topology.get_shape_type() == coreEdge.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.EDGE:
             u = Edge.ParameterAtVertex(topology, vertex)
             d = Vertex.Distance(vertex, topology)
             if u:
@@ -3766,29 +3767,29 @@ class Topology():
             else:
                 is_inside = False
             return is_inside
-        elif topology.get_shape_type() == coreWire.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.WIRE:
             edges = Wire.Edges(topology)
             for edge in edges:
                 is_inside = (Vertex.Distance(vertex, edge) <= tolerance)
                 if is_inside:
                     return is_inside
-        elif topology.get_shape_type() == coreFace.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.FACE:
             return Face.IsInside(topology, vertex, tolerance)
-        elif topology.get_shape_type() == coreShell.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.SHELL:
             faces = Shell.Faces(topology)
             for face in faces:
                 is_inside = Face.IsInside(face, vertex, tolerance)
                 if is_inside:
                     return is_inside
-        elif topology.get_shape_type() == coreCell.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.CELL:
             return Cell.IsInside(topology, vertex, tolerance)
-        elif topology.get_shape_type() == coreCellComplex.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.CELLCOMPLEX:
             cells = CellComplex.Cells(topology)
             for cell in cells:
                 is_inside = Cell.IsInside(cell, vertex, tolerance)
                 if is_inside:
                     return is_inside
-        elif topology.get_shape_type() == coreCluster.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.CLUSTER:
             cells = Cluster.Cells(topology)
             faces = Cluster.Faces(topology)
             edges = Cluster.Edges(topology)
@@ -4175,13 +4176,13 @@ class Topology():
             The relevant selector.
 
         """
-        if topology.get_shape_type() == coreVertex.get_shape_type():
+        if topology.get_shape_type() == coreTopologyTypes.VERTEX:
             return topology
-        elif topology.get_shape_type() == coreEdge.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.EDGE:
             return coreEdgeUtility.PointAtParameter(topology, 0.5)
-        elif topology.get_shape_type() == coreFace.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.FACE:
             return coreFaceUtility.InternalVertex(topology, tolerance)
-        elif topology.get_shape_type() == coreCell.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.CELL:
             return coreCellUtility.InternalVertex(topology, tolerance)
         else:
             return topology.CenterOfMass()
@@ -4761,7 +4762,7 @@ class Topology():
             return None
         newTopology = None
         try:
-            newTopology = coreTopologyUtility.Scale(topology, origin, x, y, z)
+            newTopology = TopologyUtility.scale(topology, origin, x, y, z)
         except:
             print("ERROR: (Topologic>TopologyUtility.Scale) operation failed. Returning None.")
             newTopology = None
@@ -5373,9 +5374,9 @@ class Topology():
         for i in range(sides+1):
             topologies.append(coreTopologyUtility.Rotate(topology, origin, direction[0], direction[1], direction[2], unit_degree*i))
         returnTopology = None
-        if topology.get_shape_type() == coreVertex.get_shape_type():
+        if topology.get_shape_type() == coreTopologyTypes.VERTEX:
             returnTopology = Wire.ByVertices(topologies, False)
-        elif topology.get_shape_type() == coreEdge.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.EDGE:
             try:
                 returnTopology = Shell.ByWires(topologies,triangulate=triangulate, tolerance=tolerance)
             except:
@@ -5383,7 +5384,7 @@ class Topology():
                     returnTopology = coreCluster.ByTopologies(topologies)
                 except:
                     returnTopology = None
-        elif topology.get_shape_type() == coreWire.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.WIRE:
             if topology.IsClosed():
                 returnTopology = Cell.ByWires(topologies, triangulate=triangulate, tolerance=tolerance)
                 try:
@@ -5414,7 +5415,7 @@ class Topology():
                         returnTopology = coreCluster.ByTopologies(topologies)
                     except:
                         returnTopology = None
-        elif topology.get_shape_type() == coreFace.get_shape_type():
+        elif topology.get_shape_type() == coreTopologyTypes.FACE:
             external_wires = []
             for t in topologies:
                 external_wires.append(coreFace.ExternalBoundary(t))
@@ -5432,7 +5433,7 @@ class Topology():
             returnTopology = Topology.SelfMerge(coreCluster.ByTopologies(topologies))
         if not returnTopology:
             return coreCluster.ByTopologies(topologies)
-        if returnTopology.get_shape_type() == coreShell.get_shape_type():
+        if returnTopology.get_shape_type() == coreTopologyTypes.SHELL:
             try:
                 new_t = coreCell.ByShell(returnTopology)
                 if new_t:
@@ -5730,19 +5731,19 @@ class Topology():
         if topology.get_shape_type() >= typeID:
             print("Topology.SuperTopologies - Error: The input topologyType is not a valid type for a super topology of the input topology. Returning None.")
             return None #The user has asked for a topology type lower than the input topology
-        elif typeID == coreEdge.get_shape_type():
+        elif typeID == coreTopologyTypes.EDGE:
             topology.Edges(hostTopology, superTopologies)
-        elif typeID == coreWire.get_shape_type():
+        elif typeID == coreTopologyTypes.WIRE:
             topology.Wires(hostTopology, superTopologies)
-        elif typeID == coreFace.get_shape_type():
+        elif typeID == coreTopologyTypes.FACE:
             topology.Faces(hostTopology, superTopologies)
-        elif typeID == coreShell.get_shape_type():
+        elif typeID == coreTopologyTypes.SHELL:
             topology.Shells(hostTopology, superTopologies)
-        elif typeID == coreCell.get_shape_type():
+        elif typeID == coreTopologyTypes.CELL:
             topology.Cells(hostTopology, superTopologies)
-        elif typeID == coreCellComplex.get_shape_type():
+        elif typeID == coreTopologyTypes.CELLCOMPLEX:
             topology.CellComplexes(hostTopology, superTopologies)
-        elif typeID == coreCluster.get_shape_type():
+        elif typeID == coreTopologyTypes.CLUSTER:
             topology.Cluster(hostTopology, superTopologies)
         else:
             print("Topology.SuperTopologies - Error: The input topologyType is not a valid type for a super topology of the input topology. Returning None.")
@@ -5896,30 +5897,30 @@ class Topology():
         hidimSink = Topology.HighestType(topology)
         if tranVertices == True:
             sinkVertices = []
-            if topology.get_shape_type() == coreVertex.get_shape_type():
+            if topology.get_shape_type() == coreTopologyTypes.VERTEX:
                 sinkVertices.append(topology)
-            elif hidimSink >= coreVertex.get_shape_type():
+            elif hidimSink >= coreTopologyTypes.VERTEX:
                 topology.Vertices(None, sinkVertices)
             _ = Topology.TransferDictionaries(selectors, sinkVertices, tolerance)
         if tranEdges == True:
             sinkEdges = []
-            if topology.get_shape_type() == coreEdge.get_shape_type():
+            if topology.get_shape_type() == coreTopologyTypes.EDGE:
                 sinkEdges.append(topology)
-            elif hidimSink >= coreEdge.get_shape_type():
+            elif hidimSink >= coreTopologyTypes.EDGE:
                 topology.Edges(None, sinkEdges)
                 _ = Topology.TransferDictionaries(selectors, sinkEdges, tolerance)
         if tranFaces == True:
             sinkFaces = []
-            if topology.get_shape_type() == coreFace.get_shape_type():
+            if topology.get_shape_type() == coreTopologyTypes.FACE:
                 sinkFaces.append(topology)
-            elif hidimSink >= coreFace.get_shape_type():
+            elif hidimSink >= coreTopologyTypes.FACE:
                 topology.Faces(None, sinkFaces)
             _ = Topology.TransferDictionaries(selectors, sinkFaces, tolerance)
         if tranCells == True:
             sinkCells = []
-            if topology.get_shape_type() == coreCell.get_shape_type():
+            if topology.get_shape_type() == coreTopologyTypes.CELL:
                 sinkCells.append(topology)
-            elif hidimSink >= coreCell.get_shape_type():
+            elif hidimSink >= coreTopologyTypes.CELL:
                 topology.Cells(None, sinkCells)
             _ = Topology.TransferDictionaries(selectors, sinkCells, tolerance)
         return topology
