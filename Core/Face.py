@@ -108,7 +108,7 @@ class Face(Topology):
         else:
             raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
 
-    def wires(self, host_topology: Topology) -> List['Wire']:
+    def wires(self) -> List['Wire']:
         """
         Returns the list of wires associated with this face.
         """
