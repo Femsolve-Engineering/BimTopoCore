@@ -78,7 +78,8 @@ class Vertex(Topology):
             List[Edge]: The edges containing this vertex as a constituent member.
         """
         if not host_topology.is_null_shape():
-            return self.upward_navigation(host_topology)
+            print('REMINDER!!! Vertex.edges() -> Base Topology method of upward_navigation() is not yet correctly implemented.')
+            return self.upward_navigation(host_topology.get_occt_shape(), TopologyTypes.EDGE)
         else:
             raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
     

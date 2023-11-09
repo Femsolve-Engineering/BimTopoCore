@@ -424,7 +424,7 @@ class Face(coreFace):
             return None
         
         w = Wire.ByVertices(vertexList)
-        f = Face.ByExternalBoundary(w)
+        f = Face.by_external_boundary(w)
         return f
 
     @staticmethod

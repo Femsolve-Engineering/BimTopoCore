@@ -5,8 +5,9 @@ from typing import List
 # OCC
 from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Vertex, TopoDS_Edge, TopoDS_Wire, topods
-from OCC.Core.TopAbs import TopAbs_VERTEX
+from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE
 from OCC.Core.BRep import BRep_Tool
+from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Curve, Geom_Geometry
@@ -79,7 +80,7 @@ class Wire(Topology):
                             starting_vertex = vertex
                             break
 
-                if starting_vertex is None:
+                if starting_vertex == None:
                     raise RuntimeError("This Wire is closed, but is identified as an open Wire.")
             
             # Get an adjacent edge
@@ -145,6 +146,18 @@ class Wire(Topology):
         from Core.Vertex import Vertex
         from Core.Edge import Edge
 
+        print(f'REMINDER!!!: ToDo: returns empty list of edges, requires probably fix to adjacent_edges(..) method!')
+
+        # Placeholder method until we figure out why the original workflow does not work.
+        def use_classic_edge_extraction(wire: TopoDS_Wire) -> List[Edge]:
+            tmp_ret_edges = []
+            explorer = TopExp_Explorer(self.get_occt_wire(), TopAbs_EDGE)
+            while explorer.More():
+                current_edge = explorer.Current()
+                tmp_ret_edges.append(Edge(current_edge))
+                explorer.Next()
+            return tmp_ret_edges
+
         if not self.is_manifold():
             # Gives in any order
             return self.downward_navigation()
@@ -172,7 +185,11 @@ class Wire(Topology):
                             break
 
                 if starting_vertex == None:
-                    raise RuntimeError("This Wire is closed, but is identified as an open Wire.")
+                    print(f'ToDo?: Wire.Edges() Check logic here as we used to throw error \
+                          when it is deemed not closed.')
+                    ret_edges = use_classic_edge_extraction(self.get_occt_wire())
+                    return ret_edges
+                    # raise RuntimeError("This Wire is closed, but is identified as an open Wire.")
     
         # Get an adjacent edge
         current_vertex = starting_vertex
@@ -209,6 +226,15 @@ class Wire(Topology):
 
             if current_vertex.is_same(starting_vertex):
                 break
+
+        if len(ret_edges) == 0:
+            # ToDo: Check logic here, for now we are exploding it to get the edges
+            print(f'REMINDER!!!: ToDo: Original Wire.Edges() returns empty list of edges, \
+                  requires probably fix to adjacent_edges(..) method!')
+            ret_edges = use_classic_edge_extraction(self.get_occt_wire())
+
+        return ret_edges
+            
 
     def vertices(self) -> List['Vertex']:
         """

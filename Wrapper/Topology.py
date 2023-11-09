@@ -4098,12 +4098,12 @@ class Topology():
         if not isinstance(origin, coreVertex):
             origin = topology.CenterOfMass()
         topology = Topology.Flatten(topology, origin=origin, vector=dirA)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + dirB[0]
-        y2 = origin.Y() + dirB[1]
-        z2 = origin.Z() + dirB[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + dirB[0]
+        y2 = origin.y() + dirB[1]
+        z2 = origin.z() + dirB[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
@@ -4727,7 +4727,7 @@ class Topology():
             origin = Vertex.ByCoordinates(0,0,0)
         if not isinstance(origin, coreVertex):
             return None
-        return coreTopologyUtility.Rotate(topology, origin, x, y, z, degree)
+        return TopologyUtility.rotate(topology, origin, x, y, z, degree)
     
     @staticmethod
     def Scale(topology, origin=None, x=1, y=1, z=1):

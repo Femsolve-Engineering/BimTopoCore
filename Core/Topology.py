@@ -243,17 +243,10 @@ class Topology:
         copy_shape = BRepBuilderAPI_Copy()
         copy_shape.Perform(self.get_occt_shape())
         return copy_shape.Shape()
-    
-    def upward_navigation(self, host_topology: TopoDS_Shape, shape_type: int) -> 'List[Topology]':
-        """
-        TODO
-        Returns all upward ancestors.
-        """
-        # ToDo!!!
-        return self.upward_navigation(host_topology)
-
         
-    def upward_navigation(self, host_topology: TopoDS_Shape) -> 'List[Topology]':
+    def upward_navigation(self, 
+                          host_topology: TopoDS_Shape,
+                          topology_type: TopologyTypes) -> 'List[Topology]':
         """
         Returns:
             Looks up what higher order shapes contain this topology.
@@ -268,17 +261,16 @@ class Topology:
         topexp.MapShapesAndUniqueAncestors(
             host_topology,
             self.get_occt_shape().ShapeType(),
-            occt_shape_type,
+            TopAbs_ShapeEnum(occt_shape_type.value),
             occt_shape_map)
         
-        occt_ancestors: TopTools_ListOfShape = None
+        occt_ancestors = TopTools_ListOfShape()
         is_in_shape = occt_shape_map.FindFromKey(self.get_occt_shape(), occt_ancestors)
         if not is_in_shape: return []
 
         shape_iterator = TopTools_ListIteratorOfListOfShape(occt_ancestors)
-        current_ancestor_iter = shape_iterator.Begin()
         while shape_iterator.More():
-            occt_ancestor = current_ancestor_iter.Value()
+            occt_ancestor = shape_iterator.Value()
             is_ancestor_added = occt_ancestor_map.Contains(occt_ancestor)
 
             if occt_ancestor.ShapeType() == occt_shape_type and not is_ancestor_added:

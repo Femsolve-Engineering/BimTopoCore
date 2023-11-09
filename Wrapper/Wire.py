@@ -6,6 +6,7 @@ import math
 from typing import List
 
 # Core
+from Core.TopologyConstants import TopologyTypes as coreTopologyTypes
 from Core.Topology import Topology as coreTopology
 from Core.Vertex import Vertex as coreVertex
 from Core.Edge import Edge as coreEdge
@@ -15,7 +16,7 @@ from Core.Shell import Shell as coreShell
 from Core.Cluster import Cluster as coreCluster
 
 from Core.Dictionary import Dictionary as coreDictionary
-from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
+from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility, TopologyUtility
 
 # Wrapper
 from Wrapper.Cluster import Cluster
@@ -43,19 +44,17 @@ class Wire(coreWire):
         from Wrapper.Vertex import Vertex
         from Wrapper.Wire import Wire
         from Wrapper.Face import Face
-        from Wrapper.Cluster import Cluster
         from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         from random import sample
 
-        def br(topology):
-            vertices = []
-            _ = topology.Vertices(None, vertices)
+        def br(topology: coreTopology):
+            vertices: List[coreVertex] = topology.vertices(None, vertices)
             x = []
             y = []
             for aVertex in vertices:
-                x.append(aVertex.X())
-                y.append(aVertex.Y())
+                x.append(aVertex.x())
+                y.append(aVertex.y())
             minX = min(x)
             minY = min(y)
             maxX = max(x)
@@ -164,20 +163,20 @@ class Wire(coreWire):
         """
         if not isinstance(edges, list):
             return None
-        edgeList = [x for x in edges if isinstance(x, coreEdge)]
+        edgeList: List[coreEdge] = [x for x in edges if isinstance(x, coreEdge)]
         if len(edgeList) < 1:
             return None
-        wire = None
+        wire: coreWire = None
         for anEdge in edgeList:
-            if anEdge.Type() == 2:
+            if anEdge.get_shape_type() == coreTopologyTypes.EDGE:
                 if wire == None:
-                    wire = coreWire.ByEdges([anEdge])
+                    wire = coreWire.by_edges([anEdge])
                 else:
                     try:
                         wire = wire.Merge(anEdge)
                     except:
                         continue
-        if wire.Type() != 4:
+        if wire.get_shape_type() != coreTopologyTypes.WIRE:
             wire = None
         return wire
 
@@ -452,7 +451,10 @@ class Wire(coreWire):
                 pass
         if len(edges) < 1:
             return None
-        #return Wire.ByEdges(edges)
+        
+        print("REMINDER!!! -> ToDo: Using Wire.Edges(...) instead of Cluster methods! To be implemented in Phase 3")
+        return coreWire.by_edges(edges)
+        # return Wire.ByEdges(edges)
         c = Cluster.ByTopologies(edges)
         return Cluster.SelfMerge(c)
 
@@ -538,29 +540,29 @@ class Wire(coreWire):
         sides = int(math.floor(sides))
         for i in range(sides+1):
             angle = fromAngle + math.radians(angleRange/sides)*i
-            x = math.sin(angle)*radius + origin.X()
-            y = math.cos(angle)*radius + origin.Y()
-            z = origin.Z()
+            x = math.sin(angle)*radius + origin.x()
+            y = math.cos(angle)*radius + origin.y()
+            z = origin.z()
             xList.append(x)
             yList.append(y)
-            baseV.append(coreVertex.ByCoordinates(x,y,z))
+            baseV.append(coreVertex.by_coordinates(x,y,z))
 
         baseWire = Wire.ByVertices(baseV[::-1], close) #reversing the list so that the normal points up in Blender
 
         if placement.lower() == "lowerleft":
-            baseWire = coreTopologyUtility.Translate(baseWire, radius, radius, 0)
+            baseWire = TopologyUtility.translate(baseWire, radius, radius, 0)
         elif placement.lower() == "upperleft":
-            baseWire = coreTopologyUtility.Translate(baseWire, radius, -radius, 0)
+            baseWire = TopologyUtility.translate(baseWire, radius, -radius, 0)
         elif placement.lower() == "lowerright":
-            baseWire = coreTopologyUtility.Translate(baseWire, -radius, radius, 0)
+            baseWire = TopologyUtility.translate(baseWire, -radius, radius, 0)
         elif placement.lower() == "upperright":
-            baseWire = coreTopologyUtility.Translate(baseWire, -radius, -radius, 0)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+            baseWire = TopologyUtility.translate(baseWire, -radius, -radius, 0)
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
@@ -570,8 +572,8 @@ class Wire(coreWire):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 1, 0, theta)
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 0, 1, phi)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 1, 0, theta)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 0, 1, phi)
         return baseWire
 
     @staticmethod
@@ -785,7 +787,7 @@ class Wire(coreWire):
                                 findNewCycles(graph, cycles, sub, maxVertices);
                         elif len(path) > 2  and next_node == path[-1]:
                                 # cycle found
-                                p = rotate_to_smallest(path);
+                                p = rotate_to_smallest(path)
                                 inv = invert(p)
                                 if isNew(cycles, p) and isNew(cycles, inv):
                                     cycles.append(p)
@@ -802,15 +804,14 @@ class Wire(coreWire):
                 returnValue.append(row)
             return returnValue
 
-        tEdges = []
-        _ = wire.Edges(None, tEdges)
-        tVertices = []
-        _ = wire.Vertices(None, tVertices)
-        tVertices = tVertices
+        tEdges: List[coreEdge] = wire.edges()
+        tVertices: List[coreVertex] = wire.vertices()
 
         graph = []
         for anEdge in tEdges:
-            graph.append([vIndex(anEdge.StartVertex(), tVertices, tolerance), vIndex(anEdge.EndVertex(), tVertices, tolerance)])
+            graph.append([vIndex(
+                anEdge.start_vertex(), tVertices, tolerance), 
+                vIndex(anEdge.end_vertex(), tVertices, tolerance)])
 
         cycles = []
         resultingCycles = main(graph, cycles, maxVertices)
@@ -829,11 +830,11 @@ class Wire(coreWire):
             for j in range(len(c)-1):
                 v1 = c[j]
                 v2 = c[j+1]
-                e = coreEdge.ByStartVertexEndVertex(v1, v2)
+                e = coreEdge.by_start_vertex_end_vertex(v1, v2)
                 resultEdges.append(e)
-            e = coreEdge.ByStartVertexEndVertex(c[len(c)-1], c[0])
+            e = coreEdge.by_start_vertex_end_vertex(c[len(c)-1], c[0])
             resultEdges.append(e)
-            resultWire = coreWire.ByEdges(resultEdges)
+            resultWire = coreWire.by_edges(resultEdges)
             resultWires.append(resultWire)
         return resultWires
 
@@ -959,7 +960,12 @@ class Wire(coreWire):
             The created ellipse
 
         """
-        ellipseAll = Wire.EllipseAll(origin=origin, inputMode=inputMode, width=width, length=length, focalLength=focalLength, eccentricity=eccentricity, majorAxisLength=majorAxisLength, minorAxisLength=minorAxisLength, sides=sides, fromAngle=fromAngle, toAngle=toAngle, close=close, direction=direction, placement=placement, tolerance=tolerance)
+        ellipseAll = Wire.EllipseAll(
+            origin=origin, inputMode=inputMode, width=width, 
+            length=length, focalLength=focalLength, eccentricity=eccentricity, 
+            majorAxisLength=majorAxisLength, minorAxisLength=minorAxisLength, 
+            sides=sides, fromAngle=fromAngle, toAngle=toAngle, close=close, 
+            direction=direction, placement=placement, tolerance=tolerance)
         return ellipseAll["ellipse"]
 
     @staticmethod
@@ -1083,9 +1089,9 @@ class Wire(coreWire):
         sides = int(math.floor(sides))
         for i in range(sides+1):
             angle = fromAngle + math.radians(angleRange/sides)*i
-            x = math.sin(angle)*a + origin.X()
-            y = math.cos(angle)*b + origin.Y()
-            z = origin.Z()
+            x = math.sin(angle)*a + origin.x()
+            y = math.cos(angle)*b + origin.y()
+            z = origin.z()
             xList.append(x)
             yList.append(y)
             baseV.append(coreVertex.by_coordinates(x,y,z))
@@ -1093,13 +1099,13 @@ class Wire(coreWire):
         ellipse = Wire.ByVertices(baseV[::-1], close) #reversing the list so that the normal points up in Blender
 
         if placement.lower() == "lowerleft":
-            ellipse = coreTopologyUtility.Translate(ellipse, a, b, 0)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+            ellipse = TopologyUtility.translate(ellipse, a, b, 0)
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
@@ -1109,20 +1115,25 @@ class Wire(coreWire):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
-        ellipse = coreTopologyUtility.Rotate(ellipse, origin, 0, 1, 0, theta)
-        ellipse = coreTopologyUtility.Rotate(ellipse, origin, 0, 0, 1, phi)
+        ellipse = TopologyUtility.rotate(ellipse, origin, 0, 1, 0, theta)
+        ellipse = TopologyUtility.rotate(ellipse, origin, 0, 0, 1, phi)
 
         # Create a Cluster of the two foci
-        v1 = coreVertex.ByCoordinates(c+origin.X(), 0+origin.Y(),0)
-        v2 = coreVertex.ByCoordinates(-c+origin.X(), 0+origin.Y(),0)
-        foci = coreCluster.ByTopologies([v1, v2])
-        if placement.lower() == "lowerleft":
-            foci = coreTopologyUtility.Translate(foci, a, b, 0)
-        foci = coreTopologyUtility.Rotate(foci, origin, 0, 1, 0, theta)
-        foci = coreTopologyUtility.Rotate(foci, origin, 0, 0, 1, phi)
+        v1 = coreVertex.by_coordinates(c+origin.x(), 0+origin.y(),0)
+        v2 = coreVertex.by_coordinates(-c+origin.x(), 0+origin.y(),0)
+
         d = {}
+        try: 
+            foci = coreCluster.ByTopologies([v1, v2])
+            if placement.lower() == "lowerleft":
+                foci = TopologyUtility.translate(foci, a, b, 0)
+            foci = TopologyUtility.rotate(foci, origin, 0, 1, 0, theta)
+            foci = TopologyUtility.rotate(foci, origin, 0, 0, 1, phi)
+            d['foci'] = foci
+        except:
+            print(f'ToDo: EllipseAll has coreCluster.ByTopologies() that is currently omitted.')
+
         d['ellipse'] = ellipse
-        d['foci'] = foci
         d['a'] = a
         d['b'] = b
         d['c'] = c
@@ -1555,18 +1566,18 @@ class Wire(coreWire):
             return False
 
         def angleBetweenEdges(e1: coreEdge, e2: coreEdge, tolerance):
-            a = e1.end_vertex().X() - e1.start_vertex().X()
-            b = e1.end_vertex().Y() - e1.start_vertex().Y()
-            c = e1.end_vertex().Z() - e1.start_vertex().Z()
+            a = e1.end_vertex().x() - e1.start_vertex().x()
+            b = e1.end_vertex().y() - e1.start_vertex().y()
+            c = e1.end_vertex().z() - e1.start_vertex().z()
             d = VertexUtility.distance(e1.end_vertex(), e2.start_vertex())
             if d <= tolerance:
-                d = e2.start_vertex().X() - e2.end_vertex().X()
-                e = e2.start_vertex().Y() - e2.end_vertex().Y()
-                f = e2.start_vertex().Z() - e2.end_vertex().Z()
+                d = e2.start_vertex().x() - e2.end_vertex().x()
+                e = e2.start_vertex().y() - e2.end_vertex().y()
+                f = e2.start_vertex().z() - e2.end_vertex().z()
             else:
-                d = e2.end_vertex().X() - e2.start_vertex().X()
-                e = e2.end_vertex().Y() - e2.start_vertex().Y()
-                f = e2.end_vertex().Z() - e2.start_vertex().Z()
+                d = e2.end_vertex().x() - e2.start_vertex().x()
+                e = e2.end_vertex().y() - e2.start_vertex().y()
+                f = e2.end_vertex().z() - e2.start_vertex().z()
             dotProduct = a*d + b*e + c*f
             modOfVector1 = math.sqrt( a*a + b*b + c*c)*math.sqrt(d*d + e*e + f*f) 
             angle = dotProduct/modOfVector1
@@ -1592,14 +1603,12 @@ class Wire(coreWire):
                 normalisedLengths.append(aLength/minLength)
             return [x for x in itertools.chain(*itertools.zip_longest(normalisedLengths, angles)) if x is not None]
         
-        if (wireA.IsClosed() == False):
+        if (wireA.is_closed() == False):
             return None
-        if (wireB.IsClosed() == False):
+        if (wireB.is_closed() == False):
             return None
-        edgesA = []
-        _ = wireA.Edges(None, edgesA)
-        edgesB = []
-        _ = wireB.Edges(None, edgesB)
+        edgesA = wireA.edges()
+        edgesB = wireB.edges()
         if len(edgesA) != len(edgesB):
             return False
         repA = getRep(list(edgesA), tolerance)
@@ -1634,8 +1643,7 @@ class Wire(coreWire):
             return None
         totalLength = None
         try:
-            edges = []
-            _ = wire.edges(None, edges)
+            edges = wire.edges()
             totalLength = 0
             for anEdge in edges:
                 totalLength = totalLength + EdgeUtility.length(anEdge)
@@ -1665,15 +1673,14 @@ class Wire(coreWire):
         from Wrapper.Topology import Topology
         if not isinstance(wire, coreWire):
             return None
-        verts = []
-        _ = wire.Vertices(None, verts)
+        verts = wire.vertices()
         w = Wire.ByVertices([verts[0], verts[1], verts[2]], close=True)
         f = coreFace.by_external_boundary(w)
-        f = Topology.Scale(f, f.Centroid(), 500,500,500)
+        f = Topology.Scale(f, f.centroid(), 500,500,500)
         proj_verts = []
         direction = Face.NormalAtParameters(f)
         for v in verts:
-            v = Vertex.ByCoordinates(v.X()+direction[0]*5, v.Y()+direction[1]*5, v.Z()+direction[2]*5)
+            v = Vertex.ByCoordinates(v.x()+direction[0]*5, v.y()+direction[1]*5, v.z()+direction[2]*5)
             proj_verts.append(Vertex.Project(v, f))
         return Wire.ByVertices(proj_verts, close=True)
 
@@ -1714,15 +1721,15 @@ class Wire(coreWire):
             return None
         if not direction:
             direction = -1*Face.NormalAtParameters(face, 0.5, 0.5, "XYZ", mantissa)
-        large_face: Face = Topology.Scale(face, face.CenterOfMass(), 500, 500, 500)
+        large_face: Face = Topology.Scale(face, face.center_of_mass(), 500, 500, 500)
         edges: List[coreEdge] = wire.edges()
         projected_edges = []
 
         if large_face:
-            if (large_face.Type() == Face.Type()):
+            if (large_face.get_shape_type() == coreTopologyTypes.FACE):
                 for edge in edges:
                     if edge:
-                        if (edge.Type() == coreEdge.Type()):
+                        if (edge.get_shape_type() == coreTopologyTypes.EDGE):
                             sv = edge.start_vertex()
                             ev = edge.end_vertex()
 
@@ -2050,7 +2057,7 @@ class Wire(coreWire):
         """
         
         def vertexDegree(v: coreVertex, wire: coreWire):
-            edges = v.edges(wire, edges)
+            edges = v.edges(wire)
             return len(edges)
         
         def vertexOtherEdge(vertex: coreVertex, edge: coreEdge, wire: coreWire):
@@ -2070,11 +2077,11 @@ class Wire(coreWire):
         
         def edgeInList(edge, edgeList):
             for anEdge in edgeList:
-                if coreTopology.IsSame(anEdge, edge):
+                if coreTopology.is_same(anEdge, edge):
                     return True
             return False
         
-        vertices = wire.vertices(None)
+        vertices = wire.vertices()
         hubs: List[coreVertex] = []
         for aVertex in vertices:
             if vertexDegree(aVertex, wire) > 2:
@@ -2185,9 +2192,9 @@ class Wire(coreWire):
             else:
                 radius = radiusB
             angle = math.radians(360/sides)*i
-            x = math.sin(angle)*radius + origin.X()
-            y = math.cos(angle)*radius + origin.Y()
-            z = origin.Z()
+            x = math.sin(angle)*radius + origin.x()
+            y = math.cos(angle)*radius + origin.y()
+            z = origin.z()
             xList.append(x)
             yList.append(y)
             baseV.append([x,y])
@@ -2195,38 +2202,38 @@ class Wire(coreWire):
         if placement.lower() == "lowerleft":
             xmin = min(xList)
             ymin = min(yList)
-            xOffset = origin.X() - xmin
-            yOffset = origin.Y() - ymin
+            xOffset = origin.x() - xmin
+            yOffset = origin.y() - ymin
         elif placement.lower() == "upperleft":
             xmin = min(xList)
             ymax = max(yList)
-            xOffset = origin.X() - xmin
-            yOffset = origin.Y() - ymax
+            xOffset = origin.x() - xmin
+            yOffset = origin.y() - ymax
         elif placement.lower() == "lowerright":
             xmax = max(xList)
             ymin = min(yList)
-            xOffset = origin.X() - xmax
-            yOffset = origin.Y() - ymin
+            xOffset = origin.x() - xmax
+            yOffset = origin.y() - ymin
         elif placement.lower() == "upperright":
             xmax = max(xList)
             ymax = max(yList)
-            xOffset = origin.X() - xmax
-            yOffset = origin.Y() - ymax
+            xOffset = origin.x() - xmax
+            yOffset = origin.y() - ymax
         else:
             xOffset = 0
             yOffset = 0
         tranBase = []
         for coord in baseV:
-            tranBase.append(coreVertex.by_coordinates(coord[0]+xOffset, coord[1]+yOffset, origin.Z()))
+            tranBase.append(coreVertex.by_coordinates(coord[0]+xOffset, coord[1]+yOffset, origin.z()))
         
         baseWire = Wire.ByVertices(tranBase[::-1], True) #reversing the list so that the normal points up in Blender
         
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
@@ -2236,8 +2243,8 @@ class Wire(coreWire):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Y-Axis
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 1, 0, theta)
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 0, 1, phi)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 1, 0, theta)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 0, 1, phi)
         return baseWire
 
     @staticmethod
@@ -2273,7 +2280,7 @@ class Wire(coreWire):
 
         """
         if not origin:
-            origin = coreVertex.ByCoordinates(0,0,0)
+            origin = coreVertex.by_coordinates(0,0,0)
         if not isinstance(origin, coreVertex):
             return None
         widthA = abs(widthA)
@@ -2301,18 +2308,18 @@ class Wire(coreWire):
             xOffset = -(max((widthA*0.5 + offsetA), (widthB*0.5 + offsetB)))
             yOffset = -length*0.5
 
-        vb1 = coreVertex.by_coordinates(origin.X()-widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb2 = coreVertex.by_coordinates(origin.X()+widthA*0.5+offsetA+xOffset,origin.Y()-length*0.5+yOffset,origin.Z())
-        vb3 = coreVertex.by_coordinates(origin.X()+widthB*0.5+offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
-        vb4 = coreVertex.by_coordinates(origin.X()-widthB*0.5+offsetB+xOffset,origin.Y()+length*0.5+yOffset,origin.Z())
+        vb1 = coreVertex.by_coordinates(origin.x()-widthA*0.5+offsetA+xOffset,origin.y()-length*0.5+yOffset,origin.z())
+        vb2 = coreVertex.by_coordinates(origin.x()+widthA*0.5+offsetA+xOffset,origin.y()-length*0.5+yOffset,origin.z())
+        vb3 = coreVertex.by_coordinates(origin.x()+widthB*0.5+offsetB+xOffset,origin.y()+length*0.5+yOffset,origin.z())
+        vb4 = coreVertex.by_coordinates(origin.x()-widthB*0.5+offsetB+xOffset,origin.y()+length*0.5+yOffset,origin.z())
 
         baseWire = Wire.ByVertices([vb1, vb2, vb3, vb4], True)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
@@ -2322,8 +2329,8 @@ class Wire(coreWire):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 1, 0, theta)
-        baseWire = coreTopologyUtility.Rotate(baseWire, origin, 0, 0, 1, phi)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 1, 0, theta)
+        baseWire = TopologyUtility.rotate(baseWire, origin, 0, 0, 1, phi)
         return baseWire
 
     @staticmethod
@@ -2344,6 +2351,6 @@ class Wire(coreWire):
         """
         if not isinstance(wire, coreWire):
             return None
-        vertices: List[coreVertex] = wire.vertices(None)
+        vertices: List[coreVertex] = wire.vertices()
         return vertices
 

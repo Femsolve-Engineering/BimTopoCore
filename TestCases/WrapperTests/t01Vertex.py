@@ -19,8 +19,6 @@ from Wrapper.CellComplex import CellComplex
 
 def test_01vertex() -> bool:
     try:
-        # 
-
         # Object for test case
         # f = Face.Rectangle()
         print("TestToDo-Vertex: Originally created face with 'Face.Rectangle()' but that uses 'Topologic.SelfMerge' method which is not yet available.")
