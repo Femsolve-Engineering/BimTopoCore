@@ -10,7 +10,7 @@ from Core.Shell import Shell as coreShell
 from Core.Cluster import Cluster as coreCluster
 
 from Core.Dictionary import Dictionary as coreDictionary
-from Core.Utilities.TopologicUtilities import VertexUtility, FaceUtility
+from Core.Utilities.TopologicUtilities import VertexUtility, FaceUtility, EdgeUtility
 
 # Wrapper
 from Wrapper.Vector import Vector
@@ -47,8 +47,7 @@ class Face(coreFace):
         if len(wireList) < 1:
             return face
         faceeb = face.external_boundary()
-        faceibList = []
-        _ = face.internal_boundaries(faceibList)
+        faceibList = face.internal_boundaries()
         for wire in wires:
             faceibList.append(wire)
         return coreFace.by_external_internal_boundaries(faceeb, faceibList)
@@ -134,8 +133,9 @@ class Face(coreFace):
             return None
         area = None
         try:
-            area = round(FaceUtility.area(face), mantissa)
-        except:
+            area = round(FaceUtility.area(face.get_occt_face()), mantissa)
+        except Exception as ex:
+            print(f'Face: Failed to calculate area. Exception:\n{ex}')
             area = None
         return area
 
@@ -163,13 +163,12 @@ class Face(coreFace):
         from Wrapper.Topology import Topology
         from Wrapper.Dictionary import Dictionary
         def bb(topology: coreTopology):
-            vertices = []
-            _ = topology.vertices(None, vertices)
+            vertices = topology.vertices()
             x = []
             y = []
             for aVertex in vertices:
-                x.append(aVertex.X())
-                y.append(aVertex.Y())
+                x.append(aVertex.x())
+                y.append(aVertex.y())
             minX = min(x)
             minY = min(y)
             maxX = max(x)
@@ -473,6 +472,10 @@ class Face(coreFace):
         from Wrapper.Dictionary import Dictionary
         import random
 
+        print('REMINDER!!!: ToDo: We are using workaround method to construct faces to avoid the usage of the Cluster and Topology classes -> to be done in Phase 3')
+        edges = wire.edges()
+        return coreFace.by_edges(edges)
+
         def triangulateWire(wire):
             wire = Topology.RemoveCollinearEdges(wire)
             vertices = Wire.Vertices(wire)
@@ -542,7 +545,7 @@ class Face(coreFace):
         if not Wire.IsClosed(externalBoundary):
             return None
         ibList = [x for x in internalBoundaries if isinstance(x, coreWire) and Wire.IsClosed(x)]
-        return coreFace.ByExternalInternalBoundaries(externalBoundary, ibList)
+        return coreFace.by_external_internal_boundaries(externalBoundary, ibList)
 
     @staticmethod
     def ByWiresCluster(externalBoundary: coreWire, internalBoundariesCluster: coreCluster = None) -> coreFace:
@@ -674,7 +677,10 @@ class Face(coreFace):
 
         """
         from Wrapper.Wire import Wire
-        wire = Wire.Circle(origin=origin, radius=radius, sides=sides, fromAngle=fromAngle, toAngle=toAngle, close=True, direction=direction, placement=placement, tolerance=tolerance)
+        wire = Wire.Circle(
+            origin=origin, radius=radius, sides=sides, 
+            fromAngle=fromAngle, toAngle=toAngle, close=True, 
+            direction=direction, placement=placement, tolerance=tolerance)
         if not isinstance(wire, coreWire):
             return None
         return Face.ByWire(wire)
@@ -697,13 +703,12 @@ class Face(coreFace):
             The compactness measure of the input face.
 
         """
-        exb = face.external_boundary()
-        edges = []
-        _ = exb.Edges(None, edges)
+        exb: coreWire = face.external_boundary()
+        edges = exb.edges()
         perimeter = 0.0
         for anEdge in edges:
-            perimeter = perimeter + abs(coreEdgeUtility.Length(anEdge))
-        area = abs(FaceUtility.area(face))
+            perimeter = perimeter + abs(EdgeUtility.length(anEdge))
+        area = abs(FaceUtility.area(face.get_occt_face()))
         compactness  = 0
         #From https://en.wikipedia.org/wiki/Compactness_measure_of_a_shape
 
@@ -762,8 +767,7 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        edges = []
-        _ = face.Edges(None, edges)
+        edges = face.edges()
         return edges
 
     @staticmethod
@@ -805,7 +809,7 @@ class Face(coreFace):
             The external boundary of the input face.
 
         """
-        return face.ExternalBoundary()
+        return face.external_boundary()
     
     @staticmethod
     def FacingToward(face: coreFace, direction: list = [0,0,-1], asVertex: bool = False, tolerance: float = 0.0001) -> bool:
@@ -829,11 +833,12 @@ class Face(coreFace):
             True if the face is facing toward the direction. False otherwise.
 
         """
-        faceNormal = coreFaceUtility.NormalAtParameters(face,0.5, 0.5)
-        faceCenter = coreFaceUtility.VertexAtParameters(face,0.5,0.5)
-        cList = [faceCenter.X(), faceCenter.Y(), faceCenter.Z()]
+        occt_face_normal = FaceUtility.normal_at_parameters(face,0.5, 0.5)
+        faceNormal = [occt_face_normal.X(), occt_face_normal.Y(), occt_face_normal.Z()]
+        faceCenter = FaceUtility.vertex_at_parameters(face,0.5,0.5)
+        cList = [faceCenter.x(), faceCenter.y(), faceCenter.z()]
         try:
-            vList = [direction.X(), direction.Y(), direction.Z()]
+            vList = [direction.x(), direction.y(), direction.z()]
         except:
             try:
                 vList = [direction[0], direction[1], direction[2]]
@@ -938,7 +943,7 @@ class Face(coreFace):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
-        flatFace = Topology.Translate(face, -cm.X(), -cm.Y(), -cm.Z())
+        flatFace = Topology.Translate(face, -cm.x(), -cm.y(), -cm.z())
         flatFace = Topology.Rotate(flatFace, world_origin, 0, 0, 1, -phi)
         flatFace = Topology.Rotate(flatFace, world_origin, 0, 1, 0, -theta)
         # Ensure flatness. Force Z to be zero
@@ -1031,8 +1036,7 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        wires = []
-        _ = face.InternalBoundaries(wires)
+        wires = face.internal_boundaries()
         return list(wires)
 
     @staticmethod
@@ -1055,7 +1059,7 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        v = coreFaceUtility.InternalVertex(face, tolerance)
+        v = FaceUtility.internal_vertex(face, tolerance)
         return v
 
     @staticmethod
@@ -1532,9 +1536,8 @@ class Face(coreFace):
         if not isinstance(faceB, coreFace):
             return None
 
-        eb = faceA.ExternalBoundary()
-        ib_list = []
-        _ = faceA.InternalBoundaries(ib_list)
+        eb = faceA.external_boundary()
+        ib_list = faceA.internal_boundaries()
         p_eb = Wire.Project(wire=eb, face = faceB, direction=direction, mantissa=mantissa)
         p_ib_list = []
         for ib in ib_list:
@@ -1709,7 +1712,7 @@ class Face(coreFace):
         faceTriangles = []
         for i in range(0,5,1):
             try:
-                _ = coreFaceUtility.Triangulate(flatFace, float(i)*0.1, faceTriangles)
+                faceTriangles = FaceUtility.triangulate(flatFace, float(i)*0.1)
                 break
             except:
                 continue
@@ -1753,7 +1756,7 @@ class Face(coreFace):
             return None
         if not isinstance(wire, coreWire):
             return face
-        trimmed_face = coreFaceUtility.TrimByWire(face, wire, False)
+        trimmed_face = FaceUtility.trim_by_wire(face, wire, False)
         if reverse:
             trimmed_face = face.Difference(trimmed_face)
         return trimmed_face
@@ -1823,7 +1826,7 @@ class Face(coreFace):
             return None
         if not isinstance(vertex, coreVertex):
             return None
-        params = coreFaceUtility.ParametersAtVertex(face, vertex)
+        params = FaceUtility.parameters_at_vertex(face, vertex)
         u = round(params[0], mantissa)
         v = round(params[1], mantissa)
         outputType = list(outputType.lower())
@@ -1853,8 +1856,7 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        vertices = []
-        _ = face.Vertices(None, vertices)
+        vertices = face.vertices()
         return vertices
     
     @staticmethod
@@ -1873,7 +1875,7 @@ class Face(coreFace):
             The external boundary of the input face.
 
         """
-        return face.ExternalBoundary()
+        return face.external_boundary()
     
     @staticmethod
     def Wires(face: coreFace) -> list:
@@ -1893,6 +1895,5 @@ class Face(coreFace):
         """
         if not isinstance(face, coreFace):
             return None
-        wires = []
-        _ = face.Wires(None, wires)
+        wires = face.wires()
         return wires

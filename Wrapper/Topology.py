@@ -2228,7 +2228,7 @@ class Topology():
         if not isinstance(topology, coreTopology):
             print("Topology.CenterofMass - Error: the input topology is not a valid topology. Returning None.")
             return None
-        return topology.CenterOfMass()
+        return topology.center_of_mass()
     
     @staticmethod
     def Centroid(topology):

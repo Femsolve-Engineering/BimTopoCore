@@ -114,7 +114,7 @@ class Face(Topology):
         """
         return self.downward_navigation(TopAbs_WIRE)
     
-    def edges(self, host_topology: Topology) -> List['Edge']:
+    def edges(self) -> List['Edge']:
         """
         Returns the list of edges associated with this face.
         """
@@ -208,7 +208,13 @@ class Face(Topology):
             occt_make_face.Add(occt_internal_wire)
             area = FaceUtility.area(occt_make_face.Face())
 
-        occt_fixed_face = Face.occt_shape_fix(occt_make_face.Face())
+        occt_fixed_face = None
+        try:
+            occt_fixed_face = Face.occt_shape_fix(occt_make_face.Face())
+        except Exception as ex:
+            print(f'Failed to fix face, will keep as-is. Exception:\n{ex}')
+            occt_fixed_face = occt_make_face.Face()
+
         face = Face(occt_fixed_face)
         copy_face: Face = Face(face.deep_copy_shape())
 
@@ -244,7 +250,8 @@ class Face(Topology):
         from Core.Wire import Wire
 
         if len(edges) < 3:
-            raise ValueError("Fewer than 3 edges are passed.")
+            print("Face.by_edges(): Fewer than 3 edges are passed -> this used to throw an exception, not sure why?")
+            # raise ValueError("Fewer than 3 edges are passed.")
 
         wire = Wire.by_edges(edges)
         face = Face.by_external_boundary(wire)

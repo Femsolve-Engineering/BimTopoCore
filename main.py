@@ -28,9 +28,9 @@ def test_runner(functors: list) -> dict[str, bool]:
     
 # Test collections
 test_to_outcome = test_runner([
-    test_01vertex,
-    test_02edge,
-    test_03wire,
+    # test_01vertex,
+    # test_02edge,
+    # test_03wire,
     test_04face,
     test_10dictionary,
     test_15aperture

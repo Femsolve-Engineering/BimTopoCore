@@ -13,20 +13,44 @@ from OCC.Core.Geom import (
     Geom_RectangularTrimmedSurface, 
     Geom_CartesianPoint
 )
+
+from OCC.Core.ShapeBuild import ShapeBuild_ReShape
+from OCC.Core.ShapeFix import shapefix, ShapeFix_Wire, ShapeFix_Shape, ShapeFix_Edge, ShapeFix_Face
+
+from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+from OCC.Core.TopLoc import TopLoc_Location
+from OCC.Core.Poly import Poly_Triangulation
+from OCC.Core.TopAbs import (
+    TopAbs_EDGE,
+    TopAbs_SHAPE,
+    TopAbs_WIRE,
+    TopAbs_VERTEX
+)
+
+from OCC.Core.TopoDS import (
+    TopoDS_Face,
+    TopoDS_Wire
+)
+
+from OCC.Core.TopExp import TopExp_Explorer
+
 from OCC.Core.GeomLib import GeomLib_Tool
 from OCC.Core.ShapeAnalysis import shapeanalysis, ShapeAnalysis_Surface
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 from OCC.Core.BRepBuilderAPI import (
+    brepbuilderapi,
+    BRepBuilderAPI_FaceDone,
     BRepBuilderAPI_GTransform,
     BRepBuilderAPI_Transform, 
     BRepBuilderAPI_MakeVertex, 
+    BRepBuilderAPI_MakeFace,
     BRepBuilderAPI_MakeEdge
 )
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
 from OCC.Core.BRepGProp import brepgprop
-from OCC.Core.TopoDS import TopoDS_Face
+from OCC.Core.TopoDS import topods, TopoDS_Face
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 
 # BimTopoCore
@@ -293,6 +317,118 @@ class EdgeUtility:
 class FaceUtility:
 
     @staticmethod
+    def trim_by_wire(face: 'Face', wire: 'Wire', reverse_wire: bool) -> 'Face':
+        """
+        Public method to create a new face that was trimmed by the passed in wire.
+        """
+        output_face = FaceUtility.__trim_by_wire_impl(face, wire, reverse_wire)
+        # ToDo: GlobalCluster
+        # GlobalCluster.get_instance().add_topology(output_face.get_occt_face())
+        return output_face
+
+    @staticmethod
+    def __trim_by_wire_impl(face: 'Face', occt_wire: TopoDS_Wire, reverse_wire: bool) -> 'Face':
+        """
+        Implementation of trimming with a wire.
+        """
+        pOcctSurface = face.surface() 
+
+        wireFix = ShapeFix_Wire()
+        wireFix.Load(occt_wire)
+        wireFix.Perform()
+
+        if reverse_wire:
+            trimmingWire = topods.Wire(wireFix.Wire().Reversed())
+        else:
+            trimmingWire = topods.Wire(wireFix.Wire())
+        
+        occtTrimMakeFace = BRepBuilderAPI_MakeFace(pOcctSurface, trimmingWire)
+        if occtTrimMakeFace.Error() != BRepBuilderAPI_FaceDone:
+            raise Exception("Error in making face")
+
+        core_resulting_face = occtTrimMakeFace.Face()
+
+        # Perform general shape fix
+        occtFixShape = ShapeFix_Shape(core_resulting_face)
+        occtFixShape.Perform()
+
+        # Fix edges
+        edge_explorer = TopExp_Explorer(core_resulting_face, TopAbs_EDGE)
+        while edge_explorer.More():
+            occtEdge = topods.Edge(edge_explorer.Current())
+            occtFixEdge = ShapeFix_Edge()
+            occtFixEdge.FixAddCurve3d(occtEdge)
+            occtFixEdge.FixVertexTolerance(occtEdge)
+            edge_explorer.Next()
+
+        # Fix wires
+        wire_explorer = TopExp_Explorer(core_resulting_face, TopAbs_WIRE)
+        while wire_explorer.More():
+            occtWire = topods.Wire(wire_explorer.Current())
+            occtFixWire = ShapeFix_Wire(occtWire, core_resulting_face, 0.0001)
+            occtFixWire.Perform()
+            wire_explorer.Next()
+
+        faceFix = ShapeFix_Face(core_resulting_face)
+        faceFix.Perform()
+
+        occtContext = ShapeBuild_ReShape()
+        occtContext.Apply(faceFix.Face())
+
+        occtFinalFace = topods.Face(
+            shapefix.RemoveSmallEdges(
+                core_resulting_face, 0.0001, occtContext))
+
+        # Debugging checks
+        # Uncomment below for debugging purposes
+        # occtAnalyzer = BRepCheck_Analyzer(occtFinalFace)
+        # isValid = occtAnalyzer.IsValid()
+        # occtFaceCheck = BRepCheck_Face(topoDS.Face(occtFinalFace))
+        # isUnorientable = occtFaceCheck.IsUnorientable()
+        # orientationStatus = occtFaceCheck.OrientationOfWires()
+        # intersectionStatus = occtFaceCheck.IntersectWires()
+        # classificationStatus = occtFaceCheck.ClassifyWires()
+
+        return Face(topods.Face(occtFinalFace)) 
+
+    @staticmethod
+    def triangulate(face: 'Face', deflection: float) -> List['Face']:
+        """
+        List of triangles that are converted to faces.
+        """
+        occt_face = face.get_occt_face()
+        occt_incremental_mesh = BRepMesh_IncrementalMesh(occt_face, deflection)
+        occt_location = TopLoc_Location()
+        occt_triangulation = BRep_Tool.Triangulation(occt_face, occt_location)
+        
+        if occt_triangulation == None:
+            raise RuntimeError("No triangulation was produced.")
+        
+        rTriangles = []  # List to store the resulting triangles
+        numOfTriangles = occt_triangulation.NbTriangles()
+        
+        for i in range(1, numOfTriangles + 1):
+            index1, index2, index3 = occt_triangulation.Triangle(i).Get()
+            point1 = occt_triangulation.Node(index1)
+            point2 = occt_triangulation.Node(index2)
+            point3 = occt_triangulation.Node(index3)
+            
+            vertex1 = Vertex.by_point(Geom_CartesianPoint(point1))
+            vertex2 = Vertex.by_point(Geom_CartesianPoint(point2))
+            vertex3 = Vertex.by_point(Geom_CartesianPoint(point3))
+            
+            edge1 = Edge.by_start_vertex_end_vertex(vertex1, vertex2)
+            edge2 = Edge.by_start_vertex_end_vertex(vertex2, vertex3)
+            edge3 = Edge.by_start_vertex_end_vertex(vertex3, vertex1)
+            edges = [edge1, edge2, edge3]
+            
+            face = Face.by_edges(edges)
+            rTriangles.append(face)
+        
+        return rTriangles
+
+
+    @staticmethod
     def is_inside(face: 'Face', vertex: 'Vertex', tolerance: float) -> bool:
         """
         https://www.opencascade.com/content/how-find-if-point-belongs-face
@@ -354,7 +490,7 @@ class FaceUtility:
         return len(vertices) - len(rejected_vertices) > 2
 
     @staticmethod
-    def area(face: TopoDS_Face) -> float:
+    def area(face: 'TopoDS_Face') -> float:
         """
         Calculates and returns the area of a face.
         """
@@ -390,6 +526,15 @@ class FaceUtility:
         Returns:
             Tuple[float, float]: Normalized face U and V parameters
         """
+
+        surface = face.surface()
+        occ_surface_analysis = ShapeAnalysis_Surface(surface)
+        occt_uv = occ_surface_analysis.ValueOfUV(
+            vertex.get_point().Pnt(), 
+            Precision.precision_Confusion())
+        
+        (norm_u, norm_v) = FaceUtility.normalize_uv(face, occt_uv.X(), occt_uv.Y())
+        return (norm_u, norm_v)
 
     
     @staticmethod
