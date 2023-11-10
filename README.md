@@ -1,6 +1,17 @@
 # BimTopoCore
 Conceptual design library for BIM (building information management) built using Python bindings to OpenCascade libraries.
 
+## Software Architecture and Overview
+There are three components of this library. The 'Core' component contains classes and methods that directly reference the bindings provided by PyOCC. The 'Wrapper' classes provide static methods to operate on the 'Core' entities. 
+![High Level Software Architecture](./Documentation/Images/BimTopoCore.png)
+Note, the naming convention adopted here is the following:
+```python
+# For all core objects we prepend the word 'core' for clarity. 
+from Core.Topology import Topology as coreTopology 
+# for Wrapper classes that operate on core entities do not add pseudonyms
+from Wrapper.Topology import Topology
+```
+
 ## Getting Started
 Currently this setup encourages the usage of Conda because it will create the environment with the correct Python version installed. The following commands are required, if the specific environment has not yet been created.
 ```
@@ -30,3 +41,4 @@ instead of `.\env\Scripts\activate`. This solution is preferred and is the one t
 
 ## Visualization of Results
 For basic visualization of results the PyQt5 package is a necessary pre-requisite. Bear in mind this package is owned by Riverbanks Computing Ltd. and does require a license if used commercially. Thus the usage of this package should be limited to aiding local development.
+![Visualization Using the PyQT5 Package](./Documentation/Images/PyQT.PNG)
