@@ -8,7 +8,7 @@ from Core.Shell import Shell as coreShell
 from Core.Cluster import Cluster as coreCluster
 from Core.Aperture import Aperture as coreAperture
 from Core.Context import Context as coreContext
-
+from Core.Utilities import handle_exception_decorator
 from Core.Dictionary import Dictionary as coreDictionary
 from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
 
@@ -17,8 +17,31 @@ from Wrapper.Vertex import Vertex
 from Wrapper.Vector import Vector
 
 class Aperture(coreAperture):
+
     @staticmethod
-    def ApertureTopology(aperture: coreAperture) -> coreTopology:
+    @handle_exception_decorator
+    def ConstructAperture(base_topology: coreTopology, context: coreContext) -> coreAperture:
+        """
+        Constructs an aperture based on the passed in topology.
+
+        Parameters
+        ----------
+        base_topology : coreTopology
+            The input aperture.
+
+        context : coreContext
+            An optional context for the aperture.
+
+        Returns
+        -------
+        coreAperture
+            The topology of the input aperture.
+        """
+        return coreAperture(base_topology, context)
+
+    @staticmethod
+    @handle_exception_decorator
+    def GetApertureTopology(aperture: coreAperture) -> coreTopology:
         """
         Returns the topology of the input aperture.
         
@@ -36,6 +59,7 @@ class Aperture(coreAperture):
         return coreAperture.topology(aperture)
 
     @staticmethod
+    @handle_exception_decorator
     def ByTopologyContext(topology: coreTopology, context: coreContext) -> coreAperture:
         """
         Creates an aperture object represented by the input topology and one that belongs to the input context.

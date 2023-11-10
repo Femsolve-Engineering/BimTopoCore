@@ -1,5 +1,8 @@
 # Face Classes unit test
 
+# Utility
+from TestCases.Visualization import show_topology
+
 # Core
 from Core.Vertex import Vertex as coreVertex
 from Core.Edge import Edge as coreEdge
@@ -62,6 +65,7 @@ def test_04face() -> bool:
         rec3 = Wire.Rectangle(v6, .4, .4)                       # create wire
         # test 1
         intB1 = Face.AddInternalBoundaries(f1, [w1])
+        show_topology(intB1, skip_visualization=True)
         assert isinstance(intB1, coreFace), "Face.AddInternalBoundaries. Should be coreFace"
         # test 2
         intB2 = Face.AddInternalBoundaries(c1, [rec1, rec2])
@@ -115,7 +119,8 @@ def test_04face() -> bool:
 
         # Case 6 - BoundingRectangle
         starF = Face.Star(v10, 5.0, 2.0, 5)                     # create face
-        starF0 = Face.Star(v10, 6.0, 2.5, 6)                   # create face                                          
+        starF0 = Face.Star(v10, 6.0, 2.5, 6)                   # create face
+        show_topology(starF)                                      
         # test 1
         print("TestToDo-Face: Skipping test because some methods that are required are not yet available. (Cluster, Topology)")
         # bR1 = Face.BoundingRectangle(starF, 5)
@@ -246,7 +251,8 @@ def test_04face() -> bool:
         cF3 = Face.Circle(v2, 2.5, 16, fromAngle=45, toAngle=270,    # with optional inputs
                                     direction=[5, 1, -45], placement='lowerleft', tolerance= 0.01)
         assert isinstance(cF3, coreFace), "Face.Circle. Should be coreFace"
-        
+        show_topology(cF3, skip_visualization=True)
+
         # Case 16 - Compactness
         # test 1
         fC1 = Face.Compactness(f1)                                                # without optional inputs
@@ -301,6 +307,7 @@ def test_04face() -> bool:
         # test 1
         ExtB1 = Face.ExternalBoundary(intB1)
         assert isinstance(ExtB1, coreWire), "Face.ExternalBoundary. Should be coreWire"
+        show_topology(ExtB1, skip_visualization=True)
         # test 2
         ExtB2 = Face.ExternalBoundary(intB2)
         assert isinstance(ExtB2, coreWire), "Face.ExternalBoundary. Should be coreWire"
@@ -309,6 +316,7 @@ def test_04face() -> bool:
         # test 1
         IntB1 = Face.InternalBoundaries(intB1)
         assert isinstance(IntB1, list), "Face.InternalBoundaries. Should be list"
+        show_topology(IntB1, skip_visualization=True)
         # test 2
         IntB2 = Face.InternalBoundaries(intB2)
         assert isinstance(IntB2, list), "Face.InternalBoundaries. Should be list"
