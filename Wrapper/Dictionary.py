@@ -133,7 +133,7 @@ class Dictionary(coreDictionary):
                 stl_values.append(ListAttribute(l))
             else:
                 return None
-        return coreDictionary.ByKeysValues(stl_keys, stl_values)
+        return coreDictionary.by_keys_values(stl_keys, stl_values)
     
     @staticmethod
     def ByMergedDictionaries(dictionaries: List[coreDictionary]):
@@ -481,7 +481,7 @@ class Dictionary(coreDictionary):
         if isinstance(dictionary, dict):
             keys = dictionary.keys()
         elif isinstance(dictionary, coreDictionary):
-            keys = dictionary.Keys()
+            keys = dictionary.keys()
         returnList = []
         if not keys:
             return None

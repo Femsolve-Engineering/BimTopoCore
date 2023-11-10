@@ -19,7 +19,7 @@ class DoubleAttribute(Attribute):
 
 class StringAttribute(Attribute):
     def __init__(self, string: str):
-        self.attribute_value
+        self.attribute_value = string
 
 class ListAttribute(Attribute):
     def __init__(self, list_attributes: Attribute):
