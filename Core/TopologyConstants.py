@@ -12,8 +12,14 @@ class TopologyTypes(enum.Enum):
     UNDEFINED = 0
     VERTEX = 1
     EDGE = 2
-    WIRE = 3
-    FACE = 4
+    WIRE = 4
+    FACE = 8
+    SHELL = 16
+    CELL = 32
+    CELLCOMPLEX = 64
+    CLUSTER = 128
+    APERTURE = 256
+    ALL = 511
 
     TOPOLOGY_TO_GUID = {
         VERTEX : "9FE435F9-7AC9-4D94-852A-BB2FFBD3D720", # Original: c4a9b420-edaf-4f8f-96eb-c87fbcc92f2b
@@ -26,7 +32,8 @@ class TopologyTypes(enum.Enum):
         VERTEX : 0,
         EDGE : 1,
         WIRE : 1,
-        FACE : 2
+        FACE : 2,
+        APERTURE : -1
     }
 
     @staticmethod
