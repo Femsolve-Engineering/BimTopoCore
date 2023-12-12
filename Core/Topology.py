@@ -251,6 +251,11 @@ class Topology:
         Returns:
             Looks up what higher order shapes contain this topology.
         """
+
+        #-------------------------------------------------------------
+        # The argument "topology_type" is unused. Is it really needed?
+        #------------------------------------------------------------- 
+
         if host_topology.IsNull():
             raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
         
@@ -456,6 +461,13 @@ class Topology:
 		# ContentManager::GetInstance().Add(
 		# 	rkContext->Topology()->GetOcctShape(), 
 		# 	Topology::ByOcctShape(GetOcctShape(), GetInstanceGUID()));
+
+    @staticmethod
+    def occt_sew_faces(faces: List['Topology'], tolerance: float) -> List['Topology']:
+        
+        # To be implemented...
+        occt_shapes = [] # dummy list
+        return occt_shapes
 
     @staticmethod
     def fix_shape(init_shape: TopoDS_Shape) -> TopoDS_Shape:
