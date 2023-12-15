@@ -6,7 +6,7 @@ from xmlrpc.client import boolean
 
 # OCC
 from OCC.Core.Standard import Standard_Failure
-from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shell, TopoDS_Builder, topods
+from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Compound, TopoDS_Vertex, TopoDS_Edge, TopoDS_Face, TopoDS_Shell, TopoDS_Builder, topods
 from OCC.Core.TopAbs import TopAbs_VERTEX
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
@@ -107,7 +107,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def is_closed(self):
-        occt_brep_check_shell = BRepCheck_Shell(TopoDS_Shell(self.get_occt_shape()))
+        occt_brep_check_shell = BRepCheck_Shell(topods.Shell(self.get_occt_shape()))
         return occt_brep_check_shell.Closed() == BRepCheck_NoError
 
 #--------------------------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ class Shell(Topology):
             occt_builder.MakeShell(occt_shell)
 
             for occt_face in occt_shapes:
-                occt_builder.Add(occt_shell, TopoDS_Face(occt_face))
+                occt_builder.Add(occt_shell, topods.Face(occt_face))
                 if copy_attributes:
 
                     # AttributeManager not implemented yet!
@@ -154,7 +154,7 @@ class Shell(Topology):
         # Topology.occt_sew_faces not implemented yet!
         occt_shape = Topology.occt_sew_faces(occt_shapes, tolerance)
         try:
-            occt_shell = TopoDS_Shell(occt_shape)
+            occt_shell = topods.Shell(occt_shape)
             p_shell = Shell(occt_shell)
 
             faces_as_topologies: List[Topology]
@@ -206,7 +206,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_shape(self, occt_shape: TopoDS_Shape):
-        occt_shell = TopoDS_Shell(occt_shape)
+        occt_shell = topods.Shell(occt_shape)
         self.set_occt_shell(occt_shell)
 
 #--------------------------------------------------------------------------------------------------
@@ -216,11 +216,15 @@ class Shell(Topology):
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
 
-        # Topology.center_of_mass not implemented yet.
-        return super().center_of_mass(self.get_occt_shell())
+        occt_center_of_mass = Shell.make_pnt_at_center_of_mass(self.get_occt_shell())
+        
+        occt_vertex = Vertex.center_of_mass(occt_center_of_mass)
+        vertex = Topology.by_occt_shape(occt_vertex)
+        return vertex
 
 #--------------------------------------------------------------------------------------------------
-    def make_pnt_at_center_of_mass(self, occt_shell: TopoDS_Shell) -> 'Vertex':
+    @staticmethod
+    def make_pnt_at_center_of_mass(self, occt_shell: TopoDS_Shell) -> TopoDS_Vertex:
         
         occt_shape_properties = GProp_GProps()
         SurfaceProperties(occt_shell, occt_shape_properties)
@@ -234,13 +238,17 @@ class Shell(Topology):
         return "Shell"
 
 #--------------------------------------------------------------------------------------------------
-    def geometry(self, occt_geometries):
+    def geometry(self) -> List[Geom_Geometry]:
 
+        occt_geometries = []
+        
         # Returns a list of faces
         faces = self.faces()
-
+        
+        # Get Geom_Surface for the OCC surface.
         for face in faces:
-            occt_geometries.append(face.Surface())
+            occt_geometries.append(face.surface())
 
+        return occt_geometries
 
 #--------------------------------------------------------------------------------------------------
