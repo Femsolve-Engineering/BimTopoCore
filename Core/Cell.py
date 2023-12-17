@@ -141,27 +141,30 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
+
+        occt_vertex = Cell.make_pnt_at_center_of_mass(self.get_occt_solid())
+        vertex = Vertex(occt_vertex)
         
-        occt_center_of_mass = Cell.make_pnt_at_center_of_mass(self.get_occt_solid())
-        
-        occt_vertex = Vertex.center_of_mass(occt_center_of_mass)
-        vertex = Topology.by_occt_shape(occt_vertex)
+        # occt_center_of_mass = Cell.make_pnt_at_center_of_mass(self.get_occt_solid())        
+        # occt_vertex = Vertex.center_of_mass(occt_center_of_mass)
+        # vertex = Topology.by_occt_shape(occt_vertex)
+
         return vertex
 
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def make_pnt_at_center_of_mass(self, occt_solid: TopoDS_Solid) -> TopoDS_Vertex:
+    def make_pnt_at_center_of_mass(occt_solid: TopoDS_Solid) -> TopoDS_Vertex:
 
         occt_shape_properties = GProp_GProps()
         VolumeProperties(occt_solid, occt_shape_properties)
 
-        center_of_mass_point = occt_shape_properties.center_of_mass_point()
+        center_of_mass_point = occt_shape_properties.CenterOfMass()
         return BRepBuilderAPI_MakeVertex(center_of_mass_point).Vertex()
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_face(self, faces: List[Face], tolerance: float, copy_attributes: boolean):
+    def by_face(faces: List[Face], tolerance: float, copy_attributes: boolean):
         
         if tolerance <= 0.0:
             # raise RuntimeError("The tolerance must have a positive value.")
@@ -449,6 +452,7 @@ class Cell(Topology):
         occt_geometries = []
         
         # Returns a list of faces
+        faces: List[Face] = []
         faces = self.faces()
         
         # Get Geom_Surface for the OCC surface.
