@@ -133,7 +133,7 @@ class Shell(Topology):
             occt_shapes.Append(face.get_occt_shape())
 
         if occt_shapes.Size() == 1:
-            occt_shell = TopoDS_Shell()
+            occt_shell = topods.Shell()
             occt_builder = TopoDS_Builder()
             occt_builder.MakeShell(occt_shell)
 
