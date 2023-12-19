@@ -27,6 +27,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def add(self, occt_shape: TopoDS_Shape, content_topology: Topology) -> None:
+        """
+        Add content to dictionary
+        """
         
         # If the OCCT shape does not have a content, initialise it in the map
         if occt_shape not in self.occt_shape_to_contents_map:
@@ -36,6 +39,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def remove(self, occt_shape: TopoDS_Shape, occt_content_topology: TopoDS_Shape) -> None:
+        """
+        Remove content from dictionary
+        """
 
         new_list: List[TopoDS_Shape] = []
         
@@ -50,6 +56,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def find(self, occt_shape: TopoDS_Shape, contents: List[Topology]) -> boolean:
+        """
+        Find shape in dictionary and extend list of contents
+        """
         
         if occt_shape in self.occt_shape_to_contents_map:
 
@@ -60,6 +69,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def has_content(self, occt_shape: TopoDS_Shape, occt_content_topology: TopoDS_Shape) -> boolean:
+        """
+        Returns True if the OCCT shape contains the content Topology, otherwise False
+        """
         
         contents = list[Topology] = []
 
@@ -77,6 +89,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def clear_one(self, occt_shape: TopoDS_Shape) -> None:
+        """
+        Remove shape from dictionary
+        """
         
         if occt_shape in self.occt_shape_to_contents_map:
 
@@ -84,6 +99,9 @@ class ContentManager():
 
 #--------------------------------------------------------------------------------------------------
     def clear_all(self):
+        """
+        Clear dictionary
+        """
         
         self.occt_shape_to_contents_map = {}
 

@@ -72,36 +72,57 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def cells(self) -> List[Cell]:
+        """
+        Returns the Cell contituents to this CellComplex
+        """
 
         return self.downward_navigation(TopologyTypes.CELL)
 
 #--------------------------------------------------------------------------------------------------
     def faces(self) -> List[Face]:
+        """
+        Returns the Face contituents to this CellComplex
+        """
 
         return self.downward_navigation(TopologyTypes.FACE)
 
 #--------------------------------------------------------------------------------------------------
     def shells(self) -> List[Shell]:
+        """
+        Returns the Shell contituents to this CellComplex
+        """
 
         return self.downward_navigation(TopologyTypes.SHELL)
 
 #--------------------------------------------------------------------------------------------------
     def edges(self) -> List[Edge]:
+        """
+        Returns the Edge contituents to this CellComplex
+        """
 
         return self.downward_navigation(TopologyTypes.EDGE)
 
 #--------------------------------------------------------------------------------------------------
     def vertices(self) -> List[Vertex]:
+        """
+        Find vertices making up the base shape.
+        """
 
         return self.downward_navigation(TopologyTypes.VERTEX)
 
 #--------------------------------------------------------------------------------------------------
     def wires(self) -> List[Wire]:
+        """
+        Returns the Wire contituents to this CellComplex
+        """
 
         return self.downward_navigation(TopologyTypes.WIRE)
 
 #--------------------------------------------------------------------------------------------------
     def by_cells(self, cells: List[Cell], copy_attributes: boolean) -> 'CellComplex':
+        """
+        Creates a CellComplex by a set of Cells.
+        """
 
         # ByOcctSolids does the actual construction. This method extracts the OCCT structures from the input
 		# and wrap the output in a Topologic class.
@@ -144,6 +165,9 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def by_occt_solids(self, occt_solids: TopTools_ListOfShape) -> TopoDS_CompSolid:
+        """
+        Creates an OCCT CompSolid by a set of OCCT solids
+        """
 
         occt_builder = BRep_Builder()
         occt_compSolid = topods.CompSolid()
@@ -201,6 +225,9 @@ class CellComplex(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_faces(faces: List[Face], tolerance: float, copy_attributes: boolean) -> 'CellComplex':
+        """
+        Creates a CellComplex from a space enclosed by a set of Faces.
+        """
 
         occt_maker_volume = BRepAlgoAPI_Fuse()
 
@@ -270,6 +297,9 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def external_boundary(self) -> 'Cell':
+        """
+        Returns the external boundary (= Cell) of a CellComplex.
+        """
 
         # Get the Cells
         occt_cells_builders_arguments = TopTools_ListOfShape()
@@ -315,7 +345,7 @@ class CellComplex(Topology):
 
             current_solid = topods.Solid(explorer.Current())
             
-            # Itt végezd el a szükséges műveleteket a current_shape változón
+            # Perform operations:
             p_cell = Cell(current_solid)
 
             # TopologicalQuery::Downcast not implemented!
@@ -330,6 +360,9 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def internal_boundaries(self) -> List[Face]:
+        """
+        Returns the internal boundary (= Faces) of a CellComplex.
+        """
 
         internal_faces: List[Face] = []
         
@@ -364,12 +397,18 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def is_manifold(self):
+        """
+        Returns True, if this CellComplex is a manifold, otherwise a False.
+        """
 
         # Not implemented yet
         return False
 
 #--------------------------------------------------------------------------------------------------
     def non_manifold_faces(self) -> List[Face]:
+        """
+        Returns the non-manifold Faces of this CellComplex.
+        """
 
         faces: List[Face] = []
         faces = self.faces()
@@ -387,11 +426,17 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_shape(self) -> TopoDS_Shape:
+        """
+        Returns the underlying OCCT shape.
+        """
 
         return self.get_occt_compSolid()
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_compSolid(self):
+        """
+        Returns the underlying OCCT compSolid.
+        """
         
         if self.base_shape_compSolid.IsNull():
             raise RuntimeError("A null CellComplex is encountered.")
@@ -400,12 +445,17 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_shape(self, occt_shape: TopoDS_Shape):
+        """
+        Sets the underlying OCCT shape.
+        """
 
         self.set_occt_compSolid(topods.CompSolid(occt_shape))
 
 #--------------------------------------------------------------------------------------------------
     def geometry(self) -> List[Geom_Geometry]:
-        
+        """
+        Creates a geometry from this CellComplex.
+        """
 
         occt_geometries = []
         
@@ -421,12 +471,18 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def get_type_as_string(self) -> str:
+        """
+        Returns the type of this CellComplex as a string.
+        """
 
         return 'CellComplex'
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def occt_shape_fix(occt_input_compSolid: TopoDS_CompSolid) -> TopoDS_CompSolid:
+        """
+        Fixes the input OCCT compSolid.
+        """
         
         occt_compSolid_fix = ShapeFix_Shape(occt_input_compSolid)
         occt_compSolid_fix.Perform()
@@ -434,12 +490,18 @@ class CellComplex(Topology):
         return topods.CompSolid(occt_compSolid_fix.Shape())
 #--------------------------------------------------------------------------------------------------
     def set_occt_compSolid(self, occt_compSolid: TopoDS_CompSolid):
+        """
+        Sets the underlying OCCT compSolid.
+        """
         
         self.base_shape_compSolid = occt_compSolid
 
 
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
+        """
+        Returns the Vertex at the center of mass of this OCCT compSolid.
+        """
 
         occt_vertex = CellComplex.make_pnt_at_center_of_mass(self.get_occt_compSolid())
         vertex = Vertex(occt_vertex)
@@ -449,6 +511,9 @@ class CellComplex(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def make_pnt_at_center_of_mass(occt_compSolid: TopoDS_CompSolid) -> TopoDS_Vertex:
+        """
+        Returns the OCCT vertex at the center of mass of this OCCT compSolid.
+        """
         
         occt_shape_properties = GProp_GProps()
         VolumeProperties(occt_compSolid, occt_shape_properties)

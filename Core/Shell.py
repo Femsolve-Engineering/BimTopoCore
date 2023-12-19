@@ -68,13 +68,13 @@ class Shell(Topology):
         return TopologyTypes.SHELL
 
 #--------------------------------------------------------------------------------------------------
-    def cells(self, host_topology: Topology, cells: List[Cell]):
+    def cells(self, host_topology: Topology) -> List[Topology]:
         """
-
+        Returns the Cells which contain this Shell.
         """
         print('REMINDER!!! Base Topology method of upward_navigation() is not yet correctly implemented.')
         if not host_topology.is_null_shape():
-            return self.upward_navigation(host_topology.get_occt_shape(), cells)
+            return self.upward_navigation(host_topology.get_occt_shape())
         else:
             raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
 
@@ -82,7 +82,7 @@ class Shell(Topology):
     # def edges(self, host_topology: Topology, edges: List[Edge]) -> List[Edge]:
     def edges(self) -> List[Edge]:
         """
-
+        Returns the Edge contituents to this Shell
         """
         shape_type = TopologyTypes.EDGE
         return self.downward_navigation(shape_type)
@@ -91,7 +91,7 @@ class Shell(Topology):
     # def wires(self, host_topology: Topology, wires: List[Wire]) -> List[Wire]:
     def wires(self) -> List[Wire]:
         """
-        Creates a collection of all wires that belong to current shape.
+        Returns the Wire contituents to this Shell
         """
         shape_type = TopologyTypes.WIRE
         return self.downward_navigation(shape_type)
@@ -100,13 +100,16 @@ class Shell(Topology):
     # def faces(self, host_topology: Topology, faces: List[Face]) -> List[Face]:
     def faces(self) -> List[Face]:
         """
-
+        Returns the Face contituents to this Shell
         """
         shape_type = TopologyTypes.FACE
         return self.downward_navigation(shape_type)
 
 #--------------------------------------------------------------------------------------------------
     def is_closed(self):
+        """
+        Checks if the shell is fully enclosed
+        """
         occt_brep_check_shell = BRepCheck_Shell(topods.Shell(self.get_occt_shape()))
         return occt_brep_check_shell.Closed() == BRepCheck_NoError
 
@@ -114,13 +117,16 @@ class Shell(Topology):
     # def vertices(self, host_topology: Topology, vertices: List[Vertex]) -> List[Vertex]:
     def vertices(self) -> List[Vertex]:
         """
-
+        Returns the Vertex contituents to this Shell
         """
         shape_type = TopologyTypes.VERTEX
         return self.downward_navigation(shape_type)
 
 #--------------------------------------------------------------------------------------------------
     def by_faces(self, faces: List[Face], tolerance: float, copy_attributes: boolean) -> 'Shell':
+        """
+        Creates a Shell by a set of faces.
+        """
         
         if not faces:
 
@@ -175,29 +181,38 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def is_manifold(self, host_topology: Topology) -> boolean:
+        """
+        Returns True, if this Shell is a manifold, otherwise a False.
+        """
 
-            # A Shell is non-manifold if at least one of its edges is shared by more than two faces
-            edges = self.edges()
+        # A Shell is non-manifold if at least one of its edges is shared by more than two faces
+        edges = self.edges()
 
-            for edge in edges:
+        for edge in edges:
 
-                topology_type = TopologyTypes.FACE
+            topology_type = TopologyTypes.FACE
 
-                print('REMINDER!!! Base Topology method of upward_navigation() is not yet correctly implemented.')
-                faces = edge.upward_navigation(self.get_occt_shape(), topology_type)
+            print('REMINDER!!! Base Topology method of upward_navigation() is not yet correctly implemented.')
+            faces = edge.upward_navigation(self.get_occt_shape(), topology_type)
 
-                if len(faces) > 2:
-                    return False
+            if len(faces) > 2:
+                return False
 
-            return True
+        return True
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_shape(self) -> TopoDS_Shell:
+        """
+        Returns the underlying OCCT shape.
+        """
         
         return self.get_occt_shell()
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_shell(self) -> TopoDS_Shell:
+        """
+        Returns the underlying OCCT base shell.
+        """
         
         if self.base_shape_shell.IsNull():
             raise RuntimeError("A null Shell is encountered.")
@@ -206,39 +221,58 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_shape(self, occt_shape: TopoDS_Shape):
+        """
+        Sets the underlying OCCT shape.
+        """
+
         occt_shell = topods.Shell(occt_shape)
         self.set_occt_shell(occt_shell)
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_shell(self, occt_shell: TopoDS_Shell):
+        """
+        Sets the underlying OCCT shell.
+        """
+
         self.base_shape_shell = occt_shell
 
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
+        """
+        Returns the Vertex at the center of mass of this OCCT shell.
+        """
 
-        occt_center_of_mass = Shell.make_pnt_at_center_of_mass(self.get_occt_shell())
-        
-        occt_vertex = Vertex.center_of_mass(occt_center_of_mass)
-        vertex = Topology.by_occt_shape(occt_vertex)
+        occt_vertex = Shell.make_pnt_at_center_of_mass(self.get_occt_shell())
+        vertex = Vertex(occt_vertex)
+
         return vertex
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def make_pnt_at_center_of_mass(self, occt_shell: TopoDS_Shell) -> TopoDS_Vertex:
+        """
+        Returns the OCCT vertex at the center of mass of this OCCT shell.
+        """
         
         occt_shape_properties = GProp_GProps()
         SurfaceProperties(occt_shell, occt_shape_properties)
 
-        center_of_mass_point = occt_shape_properties.center_of_mass_point()
+        center_of_mass_point = occt_shape_properties.CenterOfMass()
         return BRepBuilderAPI_MakeVertex(center_of_mass_point).Vertex()
 
 #--------------------------------------------------------------------------------------------------
     def get_type_as_string(self):
+        """
+        Returns the type of this Shell as a string.
+        """
 
         return "Shell"
 
 #--------------------------------------------------------------------------------------------------
     def geometry(self) -> List[Geom_Geometry]:
+        """
+        Creates a geometry from this Shell.
+        """
 
         occt_geometries = []
         

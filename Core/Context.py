@@ -24,5 +24,8 @@ class Context:
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def topology_by_parameters(topology: Topology, param_u: float, param_v: float, param_w: float) -> 'Context':
-        
+        """
+        Create Context instance
+        """
+
         return Context(topology, param_u, param_v, param_w)

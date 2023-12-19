@@ -33,6 +33,7 @@ from Core.Edge import Edge
 from Core.Wire import Wire
 from Core.Face import Face
 from Core.Cell import Cell
+from Core.CellComplex import CellComplex
 from Core.Shell import Shell
 
 from Core.Utilities import EdgeUtility
@@ -74,6 +75,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def adjacent_cells(self, host_topology: Topology):
+        """
+        Returns the Cells adjacent to this Cell.
+        """
         
         adjacent_cells = []
 
@@ -110,37 +114,62 @@ class Cell(Topology):
         return adjacent_cells
 
 #--------------------------------------------------------------------------------------------------
-    def cell_complexes(self):
+    def cell_complexes(self, host_topology: Topology) -> List[Topology]:
+        """
+        Returns the CellComplexes which contain this Cell.
+        """
 
-        return self.downward_navigation(TopologyTypes.CELLCOMPLEX)
+        print('REMINDER!!! Base Topology method of upward_navigation() is not yet correctly implemented.')
+        if not host_topology.is_null_shape():
+            return self.upward_navigation(host_topology.get_occt_shape())
+        else:
+            raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
 
 #--------------------------------------------------------------------------------------------------
     def shells(self):
+        """
+        Returns the Shell contituents to this Cell
+        """
         
         return self.downward_navigation(TopologyTypes.SHELL)
 
 #--------------------------------------------------------------------------------------------------
     def edges(self):
+        """
+        Returns the Edge contituents to this Cell
+        """
         
         return self.downward_navigation(TopologyTypes.EDGE)
 
 #--------------------------------------------------------------------------------------------------
     def faces(self):
+        """
+        Returns the Face contituents to this Cell
+        """
         
         return self.downward_navigation(TopologyTypes.FACE)
 
 #--------------------------------------------------------------------------------------------------
     def vertices(self):
+        """
+        Returns the Vrtex contituents to this Cell
+        """
         
         return self.downward_navigation(TopologyTypes.VERTEX)
 
 #--------------------------------------------------------------------------------------------------
     def wires(self):
+        """
+        Returns the Wire contituents to this Cell
+        """
         
         return self.downward_navigation(TopologyTypes.WIRE)
 
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
+        """
+        Returns the Vertex at the center of mass of this Cell.
+        """
 
         occt_vertex = Cell.make_pnt_at_center_of_mass(self.get_occt_solid())
         vertex = Vertex(occt_vertex)
@@ -155,6 +184,9 @@ class Cell(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def make_pnt_at_center_of_mass(occt_solid: TopoDS_Solid) -> TopoDS_Vertex:
+        """
+        Returns the OCCT vertex at the center of mass of this Cell.
+        """
 
         occt_shape_properties = GProp_GProps()
         VolumeProperties(occt_solid, occt_shape_properties)
@@ -165,6 +197,9 @@ class Cell(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_face(faces: List[Face], tolerance: float, copy_attributes: boolean):
+        """
+        Creates a Cell by a set of faces.
+        """
         
         if tolerance <= 0.0:
             # raise RuntimeError("The tolerance must have a positive value.")
@@ -266,6 +301,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def by_shell(self, shell: Shell, copy_attributes: boolean):
+        """
+        Creates a Cell by a Shell.
+        """
         
         if not shell.is_closed():
             # raise RuntimeError("The input Shell is open.")
@@ -304,6 +342,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def shared_edges(self, another_cell: Cell) -> List[Edge]:
+        """
+        Identify Edges shared by two cells.
+        """
         
         occt_shape1 = self.get_occt_shape()
         occt_edges1 = TopTools_MapOfShape()
@@ -328,6 +369,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def shared_faces(self, another_cell: Cell) -> List[Face]:
+        """
+        Identify Faces shared by two cells.
+        """
 
         occt_shape1 = self.get_occt_shape()
         occt_faces1 = TopTools_MapOfShape()
@@ -352,6 +396,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def shared_vertices(self, another_cell: Cell) -> List[Vertex]:
+        """
+        Identify Vertices shared by two cells.
+        """
         
         occt_shape1 = self.get_occt_shape()
         occt_vertices1 = TopTools_MapOfShape()
@@ -376,12 +423,18 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def external_boundary(self):
+        """
+        Returns the external boundary (= Shell) of this Cell.
+        """
         
         occt_outer_shell = BRepClass3d_OuterShell(topods.Solid(self.get_occt_shape()))
         return Shell(occt_outer_shell)
 
 #--------------------------------------------------------------------------------------------------
     def internal_boundaries(self):
+        """
+        Returns the internal boundary (= Shells) of this Cell.
+        """
         
         # Identify the external boundary
         external_boundary = self.external_boundary()
@@ -400,6 +453,9 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def is_manifold(self, host_topology: Topology):
+        """
+        Returns True, if this Cell is a manifold, otherwise a False.
+        """
         
         # Create a Shell object representing the external boundary
         external_boundary = self.external_boundary()
@@ -428,10 +484,17 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_shape(self) -> TopoDS_Shape:
+        """
+        Returns the underlying OCCT shape.
+        """
+
         return self.get_occt_solid()
 
 #--------------------------------------------------------------------------------------------------
     def get_occt_solid(self) -> TopoDS_Solid:
+        """
+        Returns the underlying OCCT solid.
+        """
         
         if self.base_shape_solid.IsNull():
             raise RuntimeError("A null Solid is encountered.")
@@ -440,14 +503,25 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_shape(self, occt_shape: TopoDS_Shape):
+        """
+        Sets the underlying OCCT shape.
+        """
+        
         self.set_occt_solid(topods.Solid(occt_shape))
 
 #--------------------------------------------------------------------------------------------------
     def set_occt_solid(self, occt_solid: TopoDS_Solid):
+        """
+        Sets the underlying OCCT solid.
+        """
+
         self.base_shape_solid = occt_solid
 
 #--------------------------------------------------------------------------------------------------
     def geometry(self) -> List[Geom_Geometry]:
+        """
+        Creates a geometry from this Cell.
+        """
 
         occt_geometries = []
         
@@ -463,11 +537,17 @@ class Cell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def get_type_as_string(self):
+        """
+        Returns the type of this Cell as a string.
+        """
 
         return 'Cell'
 
 #--------------------------------------------------------------------------------------------------
     def occt_shape_fix(self, occt_input_solid: TopoDS_Solid):
+        """
+        Fixes the input OCCT solid.
+        """
         
         occt_solid_fix = ShapeFix_Solid(occt_input_solid)
         occt_solid_fix.Perform()
