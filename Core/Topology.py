@@ -434,6 +434,18 @@ class Topology:
         TODO - M3
         """
         return self.navigate(host_topology)
+
+    def clusters(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
+
+    def apertures(self, host_topology: 'Topology') -> List['Topology']:
+        """
+        TODO - M3
+        """
+        return self.navigate(host_topology)
     
     def is_container_type(self, occt_shape: TopoDS_Shape) -> bool:
         """
