@@ -10,14 +10,16 @@ from turtle import distance
 from typing import Dict
 from typing import Tuple
 from typing import List
+from xml.dom import INVALID_CHARACTER_ERR
 
 # OCC
 from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, topods
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPOUND
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_MapIteratorOfMapOfShape, TopTools_DataMapOfShapeInteger
+from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_MapIteratorOfMapOfShape, TopTools_DataMapOfShapeInteger, TopTools_DataMapOfShapeListOfShape, TopTools_DataMapIteratorOfDataMapOfShapeListOfShape
 from OCC.core.TopExp import TopExp_Explorer
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Surface, Geom_Geometry, Geom_CartesianPoint
@@ -43,11 +45,15 @@ from Core.Edge import Edge
 from Core.Wire import Wire
 from Core.Face import Face, FaceGUID
 from Core.Cell import Cell
+from Core.CellComplex import CellComplex
 from Core.Shell import Shell
 from Core.Cluster import Cluster
 
 from Core.Aperture import Aperture
+from Core.Attribute import Attribute
 from Core.AttributeManager import AttributeManager
+from Core.DoubleAttribute import DoubleAttribute
+from Core.IntAttribute import IntAttribute
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.TopologicalQuery import TopologicalQuery
@@ -1261,7 +1267,8 @@ class Graph(Topology):
         return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_wire(self, wire: Wire, direct: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+    @staticmethod
+    def by_wire(wire: Wire, direct: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
         
         vertices: List[Vertex] = []
         edges: List[Edge] = []
@@ -1289,7 +1296,7 @@ class Graph(Topology):
 
                             aperture = TopologicalQuery.downcast(content)
 
-                            content_center_of_mass = self.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
+                            content_center_of_mass = Graph.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
 
                             attribute_manager = AttributeManager.get_instance()
                             attribute_manager.copy_attributes(content.get_occt_shape(), content_center_of_mass.get_occt_shape())
@@ -1303,7 +1310,8 @@ class Graph(Topology):
         return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_face(self, face: Face, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> float:
+    @staticmethod
+    def by_face(face: Face, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> float:
         
         vertices: List[Vertex] = []
         edges: List[Edge] = []
@@ -1346,7 +1354,7 @@ class Graph(Topology):
 
                             aperture = TopologicalQuery.downcast(content)
 
-                            aperture_center_of_mass = self.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
+                            aperture_center_of_mass = Graph.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
 
                             vertices.append(aperture_center_of_mass)
                             edge = Edge.by_start_vertex_end_vertex(aperture_center_of_mass, internal_vertex)
@@ -1355,7 +1363,8 @@ class Graph(Topology):
         return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_shell(self, shell: Shell, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool,use_face_internal_vertex:bool, tolerance: bool) -> 'Graph':
+    @staticmethod
+    def by_shell(shell: Shell, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool,use_face_internal_vertex:bool, tolerance: bool) -> 'Graph':
         
         if shell == None:
             return None
@@ -1445,7 +1454,7 @@ class Graph(Topology):
                     continue
 
                 aperture = TopologicalQuery.downcast(content)
-                aperture_centroid = self.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
+                aperture_centroid = Graph.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
 
                 instance = AttributeManager.get_instance()
                 instance.copy_attributes(aperture.get_occt_shape(), aperture_centroid.get_occt_shape())
@@ -1482,49 +1491,481 @@ class Graph(Topology):
         return Graph(vertices, graph_edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_cell(self):
-        pass
+    @staticmethod
+    def by_cell(cell: Cell, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+
+        vertices: List[Vertex] = []
+        edges: List[Edge] = []
+
+        internal_vertex = TopologicUtilities.CellUtility.internal_vertex(cell, tolerance)
+        instance = AttributeManager.get_instance()
+        instance.copy_attributes(cell.get_occt_shape(), internal_vertex.get_occt_shape())
+        vertices.append(internal_vertex)
+
+        if to_exterior_topologies or to_exterior_apertures:
+
+            cell_faces: List[Face] = []
+            cell_faces = cell.faces()
+
+            for cell_face in cell_faces:
+
+                if to_exterior_topologies:
+
+                    cell_face_center_of_mass = TopologicUtilities.FaceUtility.internal_vertex(cell_face, tolerance)
+                    vertices.append(cell_face_center_of_mass)
+                    instance = AttributeManager.get_instance()
+                    instance.copy_attributes(cell_face.get_occt_shape(), cell_face_center_of_mass.get_occt_shape)
+                    edge = Edge.by_start_vertex_end_vertex(cell_face_center_of_mass, internal_vertex)
+                    edges.append(edge)
+
+                if to_exterior_apertures:
+
+                    contents: List[Topology] = []
+                    cell_face.contents_(contents)
+
+                    for content in contents:
+
+                        if content.get_shape_type() == TopologyTypes.APERTURE:
+
+                            aperture = TopologicalQuery.downcast(content)
+                            aperture_center_of_mass = Graph.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
+
+                            vertices.append(aperture_center_of_mass)
+                            edge = Edge.by_start_vertex_end_vertex(aperture_center_of_mass, internal_vertex)
+                            edges.append(edge)
+
+        return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_cellComplex(self):
-        pass
+    @staticmethod
+    def by_cellComplex(cellComplex: CellComplex, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+        
+        if cellComplex == None:
+            return None
+
+        # 1. Get the vertices mapped to their original topologies
+		#    - Cell --> centroid
+		#    Occt shapes must be used as the keys. Topologic shapes cannot be used because there can be many shapes representing the same OCCT shapes.
+		
+        cell_centroids: Dict[TopoDS_Solid, Vertex] = {}
+
+        cells: List[Cell] = []
+        cells = cellComplex.cells()
+
+        for cell in cells:
+
+            centroid = TopologicUtilities.CellUtility.internal_vertex(cell, tolerance)
+            instance = AttributeManager.get_instance()
+            instance.copy_attributes(cell.get_occt_shape(), centroid.get_occt_shape())
+            cell_centroids[cell.get_occt_solid()] = centroid
+
+        # 2. If direct = true, check cellAdjacency.
+        edges: List[Edge] = []
+
+        if direct:
+
+            occt_cell_adjacency = TopTools_DataMapOfShapeListOfShape()
+
+            for cell in cells:
+
+                # Get faces
+                faces : List[Face] = []
+                faces = cell.faces()
+
+                # Get adjacent cells. Only add here if the cell is not already added here, and 
+				# the reverse is not in occtCellAdjacency.
+
+                occt_cell_unchecked_adjacent_cells = TopTools_ListOfShape()
+
+                for face in faces:
+
+                    current_face_adjacent_cells: List[Cell] = []
+                    TopologicUtilities.FaceUtility.adjacent_cells(face, cellComplex, current_face_adjacent_cells)
+
+                    for current_face_adjacent_cell in current_face_adjacent_cells:
+
+                        # The same as this Cell? Continue.
+                        if current_face_adjacent_cell.is_same(cell):
+                            continue
+
+                        # Is Cell already added in this list (occtCellAdjacentCells)? Continue.
+                        if occt_cell_unchecked_adjacent_cells.Contains(current_face_adjacent_cell.get_occt_shape()):
+                            continue
+
+                        # Is the reverse already added in occtCellAdjacency? Continue.
+                        try:
+                            reverse_adjacency = occt_cell_adjacency.Find(current_face_adjacent_cell.get_occt_shape())
+                        
+                            if reverse_adjacency.Contains(cell.get_occt_shape()):
+                                continue
+
+                        except:
+                            pass
+
+                        # If passes the tests, add to occtCellUncheckedAdjacentCells
+                        occt_cell_unchecked_adjacent_cells.Append(current_face_adjacent_cell.get_occt_shape())
+
+                if not occt_cell_unchecked_adjacent_cells.isEmpty():
+                    occt_cell_adjacency.Bind(cell.get_occt_shape(), occt_cell_unchecked_adjacent_cells)
+
+            # Create the edges from the Cell adjacency information
+            occt_cell_adjacency_iterator = TopTools_DataMapIteratorOfDataMapOfShapeListOfShape(occt_cell_adjacency)
+
+            while occt_cell_adjacency_iterator.More():
+
+                occt_cell = topods.solid(occt_cell_adjacency_iterator.Key())
+                cell = Cell(occt_cell, "")
+
+                cell_internal_vertex: Vertex = None
+
+                try:
+                    cell_internal_vertex = cell_centroids[occt_cell]
+
+                except:
+                    # raise RuntimeError("No Cell internal vertex pre-computed.")
+                    return None
+
+                occt_adjacent_cells = occt_cell_adjacency_iterator.Value()
+
+                occt_adjacent_cell_iterator = TopTools_ListIteratorOfListOfShape(occt_adjacent_cells)
+
+                while occt_adjacent_cell_iterator.More():
+
+                    occt_adjacent_cell = topods.Solid(occt_adjacent_cell_iterator.Value())
+                    adjacent_cell = Cell(occt_adjacent_cell, "")
+
+                    adjacent_internal_vertex = None
+
+                    try:
+                        adjacent_internal_vertex = cell_centroids[occt_adjacent_cell]
+
+                    except:
+                        # raise RuntimeError("No Cell internal vertex pre-computed.")
+                        return None
+
+                    edge = Edge.by_start_vertex_end_vertex(cell_internal_vertex, adjacent_internal_vertex)
+                    edges.append(edge)
+
+                    occt_adjacent_cell_iterator.Next()
+
+                occt_cell_adjacency_iterator.Next()
+
+        faces: List[Face] = []
+        faces = cellComplex.faces()
+
+        for face in faces:
+
+            internal_vertex: Vertex = None
+
+            if use_face_internal_vertex:
+                internal_vertex = TopologicUtilities.FaceUtility.internal_vertex(face, tolerance)
+
+            else:
+                internal_vertex = face.center_of_mass()
+
+            instance = AttributeManager. get_instance()
+            instance.copy_attributes(face.get_occt_shape(), internal_vertex.get_occt_shape())
+
+            is_manifold: bool = face.is_manifold_to_topology(cellComplex)
+
+            adjacent_cells: List[Cell] = []
+            adjacent_cells = TopologicUtilities.FaceUtility.adjacent_cells(face, cellComplex, adjacent_cells)
+
+            contents: List[Topology] = []
+            face.contents_(contents)
+
+            # Get the apertures and calculate their centroids
+            aperture_centroids: List[Vertex] = []
+
+            for content in contents:
+
+                # If this is not an aperture, skip it
+                if content.get_shape_type() == TopologyTypes.APERTURE:
+                    continue
+
+                aperture: Aperture = TopologicalQuery.downcast(content)
+                aperture_centroid: Vertex = Graph.calculate_graph_vertex_from_aperture(aperture, use_face_internal_vertex, tolerance)
+                
+                instance = AttributeManager.get_instance()
+                instance.copy_attributes(aperture.get_occt_shape(), aperture_centroid.get_occt_shape())
+
+                aperture_centroids.append(aperture_centroid)
+
+            # Check
+            for adjacent_cell in adjacent_cells:
+
+                if (not is_manifold and via_shared_topologies) or (is_manifold and to_exterior_topologies):
+
+                    if adjacent_cell.get_occt_shape() not in cell_centroids.keys():
+                        continue
+
+                    edge = Edge.by_start_vertex_end_vertex(internal_vertex, cell_centroids[adjacent_cell.get_occt_shape()])
+
+                    if edge != None:
+                        edges.append(edge)
+
+                for aperture_centroid in aperture_centroids:
+
+                    if (not is_manifold and via_shared_apertures) or (is_manifold and to_exterior_apertures):
+
+                        if adjacent_cell.get_occt_solid() not in cell_centroids:
+                            continue
+
+                        edge = Edge.by_start_vertex_end_vertex(aperture_centroid, cell_centroids[adjacent_cell.get_occt_shape()])
+                
+                        if edge != None:
+                            edges.append(edge)
+
+        vertices: List[Vertex] = []
+        for edge_topology in edges:
+
+            edge_vertices: List[Vertex] = []
+            edge_vertices = edge_topology.vertices()
+
+            for vertex in edge_vertices:
+
+                vertices.append(vertex)
+
+        return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def by_cluster(self):
-        pass
+    @staticmethod
+    def by_cluster(cluster: Cluster, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+        
+        sub_topologies: List[Topology] = []
+        cluster.sub_topologies(sub_topologies)
+
+        vertices: List[Vertex] = []
+        edges: List[Edge] = []
+
+        for sub_topology in sub_topologies:
+
+            graph = Graph.by_topology(sub_topology, direct, via_shared_topologies, via_shared_apertures, to_exterior_topologies, to_exterior_apertures, use_face_internal_vertex, tolerance) 
+
+            sub_topology_vertices: List[Vertex] = []
+            sub_topology_vertices = graph.vertices()
+
+            sub_topology_edges: List[Edge] = []
+            sub_topology_edges = graph.edges()
+
+            vertices.extend(sub_topology_vertices)
+            edges.extend(sub_topology_edges)
+
+        return Graph(vertices, edges)
 
 #--------------------------------------------------------------------------------------------------
-    def construct_path(self):
-        pass
+    def construct_path(self, path_vertices: List[Vertex]) -> Wire:
+        
+        starting_time: datetime = datetime.now()
+        return self.construct_path(path_vertices, False, 0, starting_time)
 
 #--------------------------------------------------------------------------------------------------
-    def construct_path(self):
-        pass
+    def construct_path(self, path_vertices: List[Vertex], use_time_limit: bool, time_limit_in_seconds: int, starting_time: datetime) -> Wire:
+        
+        edges: List[Edge] = []
+
+        for vertex in range(len(path_vertices)-1):
+
+            if use_time_limit:
+
+                current_time: datetime = datetime.now()
+                time_difference = current_time - starting_time
+                time_difference_in_seconds = time_difference.seconds
+
+                if time_difference_in_seconds > time_limit_in_seconds:
+                    return None
+
+                current_vertex = vertex
+                i = path_vertices.index(current_vertex)
+                next_vertex = path_vertices[i + 1]
+
+                occt_edge = self.find_edge(current_vertex.get_occt_vertex(), next_vertex.get_occt_vertex())
+
+                edge = None
+                if not occt_edge.IsNull():
+                    edge = TopologicalQuery.downcast(Topology.by_occt_shape(occt_edge))
+
+                else:
+                    edge = Edge.by_start_vertex_end_vertex(current_vertex, next_vertex)
+
+                edges.append(edge)
+
+            if len(edges) == 0:
+                return None
+            
+            path_wire = Wire.by_edges(edges)
+            
+            return path_wire
 
 #--------------------------------------------------------------------------------------------------
-    def is_degree_sequence(self):
-        pass
+    def is_degree_sequence(self, sequence: List[int]) -> bool:
+        
+        for sequence_iterator in range(len(sequence) - 1):
+
+            i = sequence.index(sequence_iterator)
+
+            next_iterator = sequence[i + 1]
+
+            if next_iterator > sequence_iterator:
+                return False
+
+        return True
 
 #--------------------------------------------------------------------------------------------------
-    def get_coincident_vertex(self):
-        pass
+    def get_coincident_vertex(self, vertex: Vertex, tolerance: float) ->TopoDS_Vertex:
+        
+        pnt = BRep_Tool.Pnt(vertex)
+        point = Geom_CartesianPoint(pnt)
+
+        abs_distance_threshold = abs(tolerance)
+
+        for current_vertex in list(self.base_graph_dictionary.keys()):
+
+            current_pnt = BRep_Tool.Pnt(current_vertex)
+            current_point = Geom_CartesianPoint(current_pnt)
+
+            dx: float = current_point.X() - point.X()
+            dy: float = current_point.Y() - point.Y()
+            dz: float = current_point.Z() - point.Z()
+
+            sq_distance = dx**2 + dy**2+ dz**2
+
+            if sq_distance < abs_distance_threshold:
+                return current_vertex
+
+        return TopoDS_Vertex() # null vertex
 
 #--------------------------------------------------------------------------------------------------
-    def compute_cost(self):
-        pass
+    def compute_cost(self, vertex_1: TopoDS_Vertex, vertex_2: TopoDS_Vertex, vertex_key: str, edge_key: str) -> float:
+        
+        edge_cost = self.compute_edge_cost(vertex_1, vertex_2, edge_key)
+
+        if edge_cost >= sys.float_info.max:
+            return edge_cost
+
+        vertex_cost = self.compute_vertex_cost(vertex_2, vertex_key)
+
+        return vertex_cost + edge_cost
 
 #--------------------------------------------------------------------------------------------------
-    def compute_vertex_cost(self):
-        pass
+    def compute_vertex_cost(self, vertex: TopoDS_Vertex, vertex_key: str) -> 'Graph':
+        
+        if vertex_key == '0':
+            return 0.0
+
+        instance = AttributeManager.get_instance()
+        has_attribute: bool = instance.find_all(vertex, attribute_map)
+
+        attribute_map: Dict[str, Attribute] = {}
+
+        if not has_attribute:
+            return 0.0
+
+        if vertex_key in list(attribute_map.keys()):
+
+            attribute = attribute_map[vertex_key]
+
+        # Only add if double or int
+        double_attribute: DoubleAttribute = TopologicalQuery.dynamic_pointer_cast(attribute)
+
+        if double_attribute != None:
+            return double_attribute.double_value()
+
+        int_attribute: IntAttribute = TopologicalQuery.dynamic_pointer_cast(attribute)
+
+        if int_attribute != None:
+            return int_attribute.int_value()
+
+        return 0.0
 
 #--------------------------------------------------------------------------------------------------
-    def compute_edge_cost(self):
-        pass
+    def compute_edge_cost(self, vertex_1: TopoDS_Vertex, vertex_2: TopoDS_Vertex, edge_key: str) -> float:
+        
+        # Check: if not connected, return the largest double value
+        if not self.contains_edge(vertex_1, vertex_2, 0.0001):
+            return sys.float_info.max
+
+        else:
+            # Check edge key
+            if edge_key == '0':
+                return 1.0
+
+            else:
+                occt_edge = self.find_edge(vertex_1, vertex_2)
+
+                if occt_edge.IsNull():
+                    return sys.float_info.max
+
+                attribute_map: Dict[str, Attribute] = {}
+
+                instance = AttributeManager.get_instance()
+                has_attribute: bool = instance.find_all(occt_edge, attribute_map)
+
+                lower_case_edge_key: str = edge_key.lower()
+
+                if lower_case_edge_key not in list(attribute_map.keys()):
+
+                    if lower_case_edge_key != 'distance' or lower_case_edge_key != 'length': # no attribute with this name is found
+                        occt_distance = BRepExtrema_DistShapeShape(vertex_1, vertex_2)
+                        return occt_distance.Value()
+
+                    else:
+                        return 1.0
+
+                else:
+                    attribute = attribute_map[lower_case_edge_key]
+
+                    # Only add if double or int
+                    double_attribute: DoubleAttribute = TopologicalQuery.dynamic_pointer_cast(attribute)
+
+                    if double_attribute != None:
+                        return double_attribute.double_value()
+
+                    int_attribute: IntAttribute = TopologicalQuery.dynamic_pointer_cast(attribute)
+
+                    if int_attribute != None:
+                        return int_attribute.int_value()
+
+                    return 1.0
+
 
 #--------------------------------------------------------------------------------------------------
-    def find_edge(self):
-        pass
+    def find_edge(self, vertex_1: TopoDS_Vertex, vertex_2: TopoDS_Vertex, tolerance: float) -> TopoDS_Edge:
+
+        occt_edge_iterator = TopTools_MapIteratorOfMapOfShape(self.occt_edges)
+
+        while occt_edge_iterator.More():
+
+            occt_edge = topods.Edge(occt_edge_iterator.Value())
+            occt_shape_analysis_edge = ShapeAnalysis_Edge()
+            occt_first_vertex: TopoDS_Vertex = occt_shape_analysis_edge.FirstVertex(occt_edge)
+            occt_last_vertex: TopoDS_Vertex = occt_shape_analysis_edge.LastVertex(occt_edge)
+
+            if (self.is_coincident(occt_first_vertex, vertex_1, tolerance) and self.is_coincident(occt_last_vertex, vertex_2, tolerance)) or \
+               (self.is_coincident(occt_first_vertex, vertex_2, tolerance) and self.is_coincident(occt_last_vertex, vertex_1, tolerance)):
+
+                return occt_edge
+
+            occt_edge_iterator.Next()
+
+        return TopoDS_Edge()
 
 #--------------------------------------------------------------------------------------------------
-    def is_coincident(self):
-        pass
+    def is_coincident(self, vertex_1: TopoDS_Vertex, vertex_2: TopoDS_Vertex, tolerance: float) -> 'Graph':
+        
+        pnt_1 = BRep_Tool.Pnt(vertex_1)
+        point_1 = Geom_CartesianPoint(pnt_1)
+
+        pnt_2 = BRep_Tool.Pnt(vertex_2)
+        point_2 = Geom_CartesianPoint(pnt_2)
+
+        dx: float = point_2.X() - point_1.X()
+        dy: float = point_2.Y() - point_1.Y()
+        dz: float = point_2.Z() - point_1.Z()
+
+        sq_distance = dx**2 + dy**2 + dz**2
+
+        if sq_distance < tolerance:
+            return True
+
+        return False

@@ -607,3 +607,8 @@ class FaceUtility:
     def adjacent_faces():
         pass
 
+class CellUtility:
+
+    @staticmethod
+    def internal_vertex():
+        pass

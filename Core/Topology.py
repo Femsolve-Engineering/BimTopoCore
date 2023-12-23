@@ -627,3 +627,6 @@ class Topology:
         instance = ContentManager.get_instance()
         instance.find(occt_shape, contents)
 
+    def sub_topologies(sub_topologies: List['Topology']) -> None:
+        pass
+
