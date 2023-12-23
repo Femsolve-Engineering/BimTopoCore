@@ -3,6 +3,7 @@ import sys
 
 # OCC
 from typing import List
+from ContentManager import ContentManager
 from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.ShapeFix import ShapeFix_Shape
@@ -441,6 +442,18 @@ class Topology:
         """
         return self.navigate(host_topology)
 
+    def get_contents(self, contents: List['Topology']) -> None:
+
+        # self.get_occt_shape returns the base_shape (VERTEX, FACE, ...)
+        Topology.contents(self.get_occt_shape, contents)
+
+    @staticmethod
+    def contents(occt_shape: TopoDS_Shape, contents: List['Topology']):
+        content_manager = ContentManager.get_instance()
+
+        # Finds Topology parent classes of entities of selected type. The instances will be added to the list "contents"
+        content_manager.find(occt_shape, contents)
+
     def apertures(self, host_topology: 'Topology') -> List['Topology']:
         """
         TODO - M3
@@ -605,3 +618,12 @@ class Topology:
         """Deconstructor decrements counter.
         """
         Topology.topologic_entity_count -= 1
+
+    def contents_(self, contents: List['Topology']) -> None:
+        Topology.contents(self.get_occt_shape(), contents)
+
+    @staticmethod
+    def contents(occt_shape: TopoDS_Shape, contents: List['Topology']) -> None:
+        instance = ContentManager.get_instance()
+        instance.find(occt_shape, contents)
+

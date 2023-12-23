@@ -490,6 +490,10 @@ class FaceUtility:
         return len(vertices) - len(rejected_vertices) > 2
 
     @staticmethod
+    def internal_vertex(face: Face, tolerance: float) -> Vertex:
+        pass
+
+    @staticmethod
     def area(face: 'TopoDS_Face') -> float:
         """
         Calculates and returns the area of a face.
@@ -598,4 +602,8 @@ class FaceUtility:
         for adj_top in adjacent_topologies:
             # Here we should downcast to Cell
             ret_cells.append(Cell(adj_top.get_occt_shape()))
+
+    @staticmethod
+    def adjacent_faces():
+        pass
 

@@ -33,6 +33,13 @@ from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import FaceFactory
 
+class FaceGUID:
+
+    @staticmethod
+    def get():
+        return "3b0a6afe-af86-4d96-a30d-d235e9c98475"
+
+        
 class Face(Topology):
     """
     Represents a 2D face object. 
