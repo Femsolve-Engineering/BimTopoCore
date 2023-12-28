@@ -37,3 +37,6 @@ class TopologicalQuery(Topology):
         # Problema 1) Mi general guid-ot?
         # Problema 2) A <shape>Factory (VertexFactory, FaceFactory, ..) nem tarol semmit. Pedig rajta kellene lennie az adott spcific topology instance-nek.
         pass
+
+    def upcast():
+        pass

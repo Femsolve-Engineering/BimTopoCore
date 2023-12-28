@@ -1,8 +1,11 @@
 
+from email import contentmanager
 from graphlib import TopologicalSorter
 import sys
+from io import StringIO
 from typing import List
 from typing import Dict
+from typing_extensions import runtime
 from AttributeManager import AttributeManager
 
 # OCC
@@ -61,6 +64,8 @@ from Core.Context import Context
 from Utilities.TopologicUtilities import FaceUtility, TopologyUtility, VertexUtility
 from Vertex import Vertex
 from Attribute import Attribute
+from Dictionary import Dictionary
+from Aperture import Aperture
 
 from TopologicalQuery import TopologicalQuery
 
@@ -915,37 +920,192 @@ class Topology:
 
         return copy_topology
 
+#--------------------------------------------------------------------------------------------------
+    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dictionary], type_filter: int) -> 'Topology':
+        
+        new_dictionaries: List[Dict[str, Attribute]]
+        for i in dictionaries:
+            new_dictionaries.append(i)
 
-
-
-
-
-
+        return self.set_dictionaries(selectors, new_dictionaries, type_filter)
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self):
-        pass
+    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dictionary], type_filters: List[int], expect_duplicate_topologies: bool) -> 'Topology':
+        
+        new_dictionaries: List[Dict[str, Attribute]]
+        for i in dictionaries:
+            new_dictionaries.append(i)
 
-#--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self):
-        pass
+        return self.set_dictionaries(selectors, new_dictionaries, type_filters, expect_duplicate_topologies)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def occt_sew_faces(faces: List['Topology'], tolerance: float) -> List['Topology']:
+    def occt_sew_faces(occt_faces: TopTools_ListOfShape, tolerance: float) -> TopoDS_Shape:
         
-        # To be implemented...
-        occt_shapes = [] # dummy list
-        return occt_shapes
+        occt_sewing = BRepBuilderAPI_Sewing(tolerance, True, True, True, True)
+
+        occt_edge_iterator = TopTools_ListIteratorOfListOfShape(occt_faces)
+
+        while occt_edge_iterator.More():
+
+            occt_sewing.Add(occt_edge_iterator.Value())
+
+            occt_edge_iterator.Next()
+
+        occt_sewing.Perform()
+
+        if occt_sewing.SewedShape().IsNull():
+
+            raise RuntimeError("A null shape is created.")
+
+        type: TopAbs_ShapeEnum = occt_sewing.SewedShape().ShapeType()
+
+        while occt_edge_iterator.More():
+
+            modified_shape = occt_sewing.Modified(occt_edge_iterator.Value())
+            child_topology = Topology.by_occt_shape(modified_shape, "")
+
+            # Map the aperture to the modified shell faces.
+            contents: List[Topology] = []
+            ContentManager.get_instance().find(occt_edge_iterator.Value(), contents)
+
+            for content in contents:
+
+                if content.get_shape_type() != TopologyTypes.APERTURE:
+                    continue
+
+                aperture: Aperture = TopologicalQuery.downcast(content)
+
+                if aperture.topology().get_shape_type() != TopologyTypes.FACE:
+                    continue
+
+                aperture_face: Face = TopologicalQuery.downcast(aperture.topology())
+                upcast_aperture_face: Topology = TopologicalQuery.upcast(aperture_face)
+
+            occt_edge_iterator.Next()
+
+        return occt_sewing.SewedShape()
 
 #--------------------------------------------------------------------------------------------------
-    def boolean_transfer_dictionary(self):
-        pass
+    def boolean_transfer_dictionary(self, origin_topology_1: 'Topology', origin_topology_2: 'Topology', destination_topology: 'Topology', init_clear_dictionary: bool) -> None:
+        
+        occt_origin_shape_1 = origin_topology_1.get_occt_shape()
+        occt_origin_shape_2 = origin_topology_2.get_occt_shape()
+        occt_destination_shape = destination_topology.get_occt_shape()
+
+        # Get vertices, edges, faces, cells, cellComplexes from kpkDestinationTopology, and map them to the originTopology
+        occt_origin_shape: TopoDS_Shape
+
+        if origin_topology_1 == None and origin_topology_2 == None:
+            raise RuntimeError("Fails to transfer dictionari in a Boolean operation because the original Topologies are null.")
+
+        elif origin_topology_1 == None and origin_topology_2 != None:
+            occt_origin_shape = origin_topology_2.get_occt_shape()
+
+        elif origin_topology_1 != None and origin_topology_2 == None:
+            occt_origin_shape = origin_topology_1.get_occt_shape()
+
+        else:
+            occt_origin_shapes = TopTools_MapOfShape()
+
+            occt_origin_shapes.Add(origin_topology_1.get_occt_shape())
+            occt_origin_shapes.Add(origin_topology_2.get_occt_shape())
+            occt_origin_shape = Cluster.by_occt_topologies(occt_origin_shapes)
+
+        # Get vertices, edges, faces, cells, cellComplexes from kpkDestinationTopology, and map them to the originTopology
+        topology_types = [TopologyTypes.VERTEX, TopologyTypes.EDGE, TopologyTypes.FACE, TopologyTypes.CELL, TopologyTypes.CELLCOMPLEX]
+        occt_topology_types = [TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPSOLID]
+
+        for i in range(5):
+
+            occt_destination_members: TopTools_MapOfShape
+            occt_destination_members = destination_topology.static_downward_navigation(occt_destination_shape, occt_topology_types[i])
+
+            occt_destination_member_iterator = TopTools_MapIteratorOfMapOfShape(occt_destination_members)
+
+            while occt_destination_member_iterator.More():
+
+                occt_destination_member = occt_destination_member_iterator.Value()
+
+                if init_clear_dictionary:
+                    AttributeManager.get_instance().clear_one(occt_destination_member)
+
+                # Find the member in originTopology
+                occt_destination_member_center_of_mass = Topology.center_of_mass(occt_destination_member)
+                min_distance_1 = 0.0
+                occt_origin_member_1 = Topology.select_sub_topology(occt_origin_shape_1, occt_destination_member_center_of_mass, min_distance_1, topology_types[i], 0.0001)
+
+                min_distance_2 = 0.0
+                occt_origin_member_2 = Topology.select_sub_topology(occt_origin_shape_2, occt_destination_member_center_of_mass, min_distance_2, topology_types[i], 0.0001)
+
+                if not occt_destination_member_center_of_mass.IsNull() and not occt_origin_member_1.IsNull():
+                    AttributeManager.get_instance().copy_attributes(occt_origin_member_1, occt_destination_member, True)
+
+                if not occt_destination_member_center_of_mass.IsNull() and not occt_origin_member_2.IsNull():
+                    AttributeManager.get_instance().copy_attributes(occt_origin_member_2, occt_destination_member, True)
+
+                occt_destination_member_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def difference(self):
-        pass
+    def difference(self, other_topology: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if other_topology == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
 
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+
+        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape
+        occt_list_to_avoid = TopTools_ListOfShape
+
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+        occt_shape_iterator_B = TopTools_ListIteratorOfListOfShape(occt_arguments_B)
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+
+            while occt_shape_iterator_B.More():
+
+                occt_list_to_avoid.Append(occt_shape_iterator_B.Value())
+
+                occt_shape_iterator_B.Next()
+
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_A.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape = occt_cells_builder.Shape()
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape = occt_result_shape
+        else:
+            occt_post_processed_shape = self.post_process_boolean_operation(occt_result_shape)
+
+        post_processed_shape = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        Topology.transfer_contents(self.get_occt_shape(), post_processed_shape)
+        Topology.transfer_contents(other_topology.get_occt_shape(), post_processed_shape)
+
+        copy_post_processed_shape = post_processed_shape.deep_copy()
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, other_topology, True)
+
+        return copy_post_processed_shape
+        
 #--------------------------------------------------------------------------------------------------
     def contents_(self, contents: List['Topology']) -> None:
         Topology.contents(self.get_occt_shape(), contents)
@@ -957,134 +1117,632 @@ class Topology:
         instance.find(occt_shape, contents)
 
 #--------------------------------------------------------------------------------------------------
-    def apertures(self, host_topology: 'Topology') -> List['Topology']:
+    def apertures(self, apertures: List[Aperture]) -> None:
         """
         TODO - M3
         """
-        return self.navigate(host_topology)
+        Topology.apertures(self.get_occt_shape(), apertures)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def apertures():
-        pass
+    def apertures(occt_shape: TopoDS_Shape, apertures: List[Aperture]):
+        
+        contents: List[Topology]
+        ContentManager.get_instance().find(occt_shape, contents)
+
+        for content in contents:
+
+            if content.get_shape_type() == TopologyTypes.APERTURE:
+
+                aperture: Aperture = TopologicalQuery.downcast(content)
+                apertures.append(aperture)
 
 #--------------------------------------------------------------------------------------------------
-    def sub_contents(self) -> List['Topology']:
+    def sub_contents(self, sub_contents: List['Topology']) -> None:
         """
         Returns:
             All topologies that are stored under this topology.
         """
-        return self.static_sub_contents(self.get_occt_shape())
+        self.static_sub_contents(self.get_occt_shape(), sub_contents)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def static_sub_contents(occt_shape: TopoDS_Shape) -> List['Topology']:
+    def static_sub_contents(occt_shape: TopoDS_Shape, sub_contents: List['Topology']) -> None:
         """
         Finds all the topologies that are of lower type.
         """
-        ret_members: List['Topology'] = []
 
-        # ToDo: ContentManager
-        # Topology.contents(occt_shape, sub_contents)
+        Topology.contents(occt_shape, sub_contents)
 
-        occt_type = occt_shape.ShapeType()
-        occt_type_int = int(occt_type) + 1  # +1 for the next lower type
+        occt_type: TopAbs_ShapeEnum = occt_shape.ShapeType()
 
-        for occt_type_int_iteration in range(occt_type_int, int(TopAbs_SHAPE)):
-            occt_type_iteration = TopAbs_ShapeEnum(occt_type_int_iteration)
+        occt_type_int = occt_type + 1 # +1 for the next lower type
+
+        for  i in range(occt_type_int, int(TopAbs_SHAPE)):
+
+            # Get members in each level
+            occt_type_iteration: TopAbs_ShapeEnum = i
             occt_members = TopTools_MapOfShape()
-            ret_members.extend(
-                Topology.static_downward_navigation(occt_shape, occt_type_iteration))
+            Topology.static_downward_navigation(occt_shape, occt_type_iteration, occt_members)
 
-            # ToDo: ContentManager
-            # for occt_member in occt_members:
-            #     pass
-                # ContentManager.get_instance().find(occt_member, sub_contents)
+            # For each member, get the contents
+            occt_member_iterator = TopTools_MapIteratorOfMapOfShape()
 
-        return ret_members
-#--------------------------------------------------------------------------------------------------
-    def contexts(self):
-        pass
+            while occt_member_iterator.More():
+
+                ContentManager.get_instance().find(occt_member_iterator.Value(), sub_contents)
+
+                occt_member_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    @staticmethod
-    def contexts():
-        pass
-
-#--------------------------------------------------------------------------------------------------
-    def export_to_brep(self):
-        pass
+    def contexts(self, contexts: List[Context]) -> bool:
+        
+        return Topology.Context(self.get_occt_shape(), contexts)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_import_brep():
-        pass
+    def contexts(occt_shape: TopoDS_Shape, contexts: List[Context]) -> bool:
+        
+        return ContextManager.get_instance().find(occt_shape, contexts)
+
+#--------------------------------------------------------------------------------------------------
+    def export_to_brep(self, file_path: str, version: int = 3) -> bool:
+        
+        if version == 1:
+            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_1)
+
+        elif version == 2:
+            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_2)
+
+        elif version == 3:
+            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_3)
+
+        return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_CURRENT)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_string():
-        pass
+    def by_imported_brep(file_path: str) -> 'Topology':
+        
+        occt_shape = TopoDS_Shape()
+        occt_brep_builder = BRep_Builder()
 
-#--------------------------------------------------------------------------------------------------
-    def string(self):
-        pass
+        return_value = BRepTools.Read(occt_shape, file_path, occt_brep_builder)
+        topology = Topology.by_occt_shape(occt_shape, "")
 
-#--------------------------------------------------------------------------------------------------
-    @staticmethod
-    def filter():
-        pass
-
-#--------------------------------------------------------------------------------------------------
-    @staticmethod
-    def analyze():
-        pass
+        return topology
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def simplify():
-        pass
+    def by_string(brep_string: str) -> 'Topology':
+        
+        occt_shape  = TopoDS_Shape()
+        occt_brep_builder = BRep_Builder()
+
+        iss = StringIO(brep_string)
+
+        BRepTools.Read(occt_shape, iss, occt_brep_builder)
+
+        topology = Topology.by_occt_shape(occt_shape, "")
+
+        return topology
+
+#--------------------------------------------------------------------------------------------------
+    def string(self, version: int = 3) -> str:
+        
+        oss = StringIO()
+
+        if version == 1:
+            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_1)
+
+        elif version == 2:
+            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_2)
+
+        elif version == 3:
+            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_3)
+
+        return oss.getvalue()
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def boolean_sub_topology_containment():
-        pass
+    def filter(topologies: List['Topology'], type_filter: int, filtered_topologies: List['Topology']) -> None:
+
+        for topology in topologies:
+
+            shape_type: int = topology.get_shape_type()
+
+            if shape_type != type_filter:
+                continue
+
+            filtered_topologies.append(topology)
 
 #--------------------------------------------------------------------------------------------------
-    def analyze(self):
-        pass
+    @staticmethod
+    def analyze(shape: TopoDS_Shape, level: int) -> str:
+        
+        occt_sub_topologies = TopTools_ListOfShape()
+        Topology.sub_topologies(shape, occt_sub_topologies)
+
+        occt_shape_name_singular: List[str] = []
+
+        occt_shape_name_singular[0] = 'a_cluster'
+        occt_shape_name_singular[1] = 'a_cellComplex'
+        occt_shape_name_singular[2] = 'a_cell'
+        occt_shape_name_singular[3] = 'a_shell'
+        occt_shape_name_singular[4] = 'a_face'
+        occt_shape_name_singular[5] = 'a_wire'
+        occt_shape_name_singular[6] = 'an_edge'
+        occt_shape_name_singular[7] = 'a_vertex'
+
+        occt_shape_name_plural: List[str] = []
+        occt_shape_name_plural[0] = 'clusters'
+        occt_shape_name_plural[1] = 'cellComplexes'
+        occt_shape_name_plural[2] = 'cells'
+        occt_shape_name_plural[3] = 'shells'
+        occt_shape_name_plural[4] = 'faces'
+        occt_shape_name_plural[5] = 'wires'
+        occt_shape_name_plural[6] = 'edges'
+        occt_shape_name_plural[7] = 'vertices'
+
+        occt_shape_type: TopAbs_ShapeEnum = shape.ShapeType()
+
+        current_indent = "  " * level
+
+        number_of_sub_entities = [0,0,0,0,0,0,0,0]
+
+        member_iterator = TopTools_ListIteratorOfListOfShape(occt_sub_topologies)
+
+        while member_iterator.More():
+
+            member_topology: TopoDS_Shape = member_iterator.Value()
+
+            occt_shape_member_type: TopAbs_ShapeEnum = member_topology.ShapeType()
+            number_of_sub_entities[occt_shape_member_type] += 1
+
+            member_iterator.Next()
+
+        ss_current_result = StringIO()
+
+        # For the topmost level only, print the overall subentities result
+        if level == 0:
+
+            occt_shape_analysis = ShapeAnalysis_ShapeContents()
+            occt_shape_analysis.Perform()
+
+            # No method is provided in ShapeAnalysis_ShapeContents to compute the number of CompSolids.
+            # Do this manually.
+
+            number_compSolids = 0
+
+            occt_compSolids = TopTools_ListOfShape
+
+            occt_explorer = TopExp_Explorer(shape, TopAbs_COMPSOLID)
+
+            while occt_explorer.More():
+
+                occt_current: TopoDS_Shape = occt_explorer.Current()
+
+                if not occt_compSolids.Contains(occt_current):
+                    occt_compSolids.Append(occt_current)
+                    number_compSolids += 1
+
+                occt_explorer.Next()
+
+            ss_current_result.write(
+            f"OVERALL ANALYSIS\n"
+            f"================\n"
+            f"The shape is {occt_shape_name_singular[occt_shape_type]}.\n"
+            )
+
+            if occt_shape_type == 0: # Only for cluster
+                ss_current_result.write(f"Number of cell complexes = {number_compSolids}\n")
+
+            if occt_shape_type <= 1: # Only up to cellcomplex
+                ss_current_result.write(f"Number of cells = {occt_shape_analysis.NbSharedSolids()}\n")
+
+            if occt_shape_type <= 2: # Only up to cell
+                ss_current_result.write(f"Number of shells = {occt_shape_analysis.NbSharedShells()}\n")
+
+            if occt_shape_type <= 3: # Only up to shell
+                ss_current_result.write(f"Number of faces = {occt_shape_analysis.NbSharedFaces()}\n")
+
+            if occt_shape_type <= 4: # Only up to face
+                ss_current_result.write(f"Number of wires = {occt_shape_analysis.NbSharedWires()}\n")
+
+            if occt_shape_type <= 5: # Only up to wire
+                ss_current_result.write(f"Number of edges = {occt_shape_analysis.NbSharedEdges()}\n")
+
+            if occt_shape_type <= 6: # Only up to shell
+                ss_current_result.write(f"Number of vertices = {occt_shape_analysis.NbSharedVertices()}\n")
+
+            ss_current_result.write("\n\nINDIVIDUAL ANALYSIS\n" + "================\n")
+
+        ss_current_result.write(f"{current_indent}The shape is {occt_shape_name_singular[occt_shape_type]}.\n")
+
+        for i in range(occt_shape_type + 1, 8):
+
+            if number_of_sub_entities[i] > 0:
+
+                ss_current_result.write(f"{current_indent}Number of {occt_shape_name_plural[i]} = {number_of_sub_entities[i]}\n")
+
+        ss_current_result.write(f"{current_indent}================\n")
+
+        member_iterator = TopTools_ListIteratorOfListOfShape(occt_sub_topologies)
+
+        while member_iterator.More():
+
+            member_topology: TopoDS_Shape = member_iterator.Value()
+            str_member_analyze = Topology.analyze(member_topology, level + 1)
+            ss_current_result.write(str_member_analyze)
+
+            member_iterator.Next()
+
+        return ss_current_result.getvalue() 
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def simplify(occt_shape: TopoDS_Shape) -> TopoDS_Shape:
+        
+        # Simplify needs to do the following.
+		# 1. The input is a container type, otherwise return itself.
+		# 2. If the input is an empty cluster: return null
+		# 3. Else if the input just contains one container element: recursively dive deeper until a non-container element OR
+		#    a container with more than one elements is found.
+		# 4. Else if the input contains more than elements:
+		#    a. For a non-container element: leave it.
+		#    b. For a container element: recursively dive deeper until a non-container element OR
+		#       a container with more than one elements is found.
+
+        if not Topology.is_container_type(occt_shape):
+            return occt_shape
+
+        occt_sub_topologies = TopTools_ListOfShape()
+        Topology.sub_topologies(occt_shape, occt_sub_topologies)
+
+        if occt_sub_topologies.Size() == 0:
+            return TopoDS_Shape()
+
+        elif occt_sub_topologies.Size() == 1:
+
+            occt_current_shape = occt_shape
+
+            occt_shapes = TopTools_ListOfShape()
+            occt_shapes_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+            is_simplest_shape_found = False
+
+            while not is_simplest_shape_found:
+
+                # Only do this for wire, shell, cellcomplex, cluster
+                if not Topology.is_container_type(occt_current_shape):
+                    break
+
+                Topology.sub_topologies(occt_current_shape, occt_shapes)
+
+                num_of_sub_topologies: int = occt_shapes.Size()
+
+                if num_of_sub_topologies != 1:
+
+                    # occtCurrentShape does not change.
+                    is_simplest_shape_found = True
+
+                else: # if (occtShapes.Size() == 1)
+                    # Go deeper
+                    occt_current_shape = occt_shapes_iterator.Next()
+
+                occt_shapes.Clear()
+
+            return occt_current_shape
+
+        else: # occtSubTopologies.Size() > 1
+
+            occt_shapes_to_remove = TopTools_ListOfShape()
+            occt_shapes_to_add = TopTools_ListOfShape()
+
+            occt_sub_topology_iterator = TopTools_ListIteratorOfListOfShape()
+
+            while occt_sub_topology_iterator.More():
+
+                occt_sub_shape: TopoDS_Shape = occt_sub_topology_iterator.Value()
+
+                if not Topology.is_container_type(occt_sub_shape):
+                    continue
+
+                occt_current_shape: TopoDS_Shape = occt_sub_shape
+
+                occt_shapes = TopTools_ListOfShape()
+                occt_shapes_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+                is_simplest_shape_found = False
+
+                while not is_simplest_shape_found:
+
+                    # Only do this for wire, shell, cellcomplex, cluster
+                    if not Topology.is_container_type(occt_current_shape):
+                        break
+
+                    Topology.sub_topologies(occt_current_shape, occt_shapes)
+
+                    num_of_sub_topologies = occt_shapes.Size()
+
+                    if num_of_sub_topologies != 1:
+
+                        # occtCurrentShape does not change.
+                        is_simplest_shape_found = True
+
+                    else: # if (occtShapes.Size() == 1)
+
+                        # Go deeper
+                        occt_current_shape = occt_shapes_iterator.Next()
+
+                    occt_shapes.Clear()
+
+                if not occt_current_shape.IsSame(occt_sub_shape):
+
+                    # Do this so as to not modify the list in the iteration.
+                    occt_shapes_to_remove.Append(occt_sub_shape)
+                    occt_shapes_to_add.Append(occt_current_shape)
+
+            occt_sub_topology_to_remove_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes_to_remove)
+
+            while occt_sub_topology_to_remove_iterator.More():
+
+                occt_builder = TopoDS_Builder()
+
+                try:
+                    occt_builder.Remove(occt_shape, occt_sub_topology_to_remove_iterator.Value())
+
+                except:
+                    raise RuntimeError("Topology is locked, cannot remove subtopology. Please contact the developer.")
+
+                occt_sub_topology_to_remove_iterator.Next()
+
+            
+            occt_sub_topology_to_add_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes_to_add)
+
+            while occt_sub_topology_to_add_iterator.More():
+
+                try:
+                    occt_builder.Add(occt_shape, occt_sub_topology_to_add_iterator.Value())
+
+                except:
+                    raise RuntimeError("Cannot add incompatible subtopology.")
+
+                occt_sub_topology_to_add_iterator.Next()
+
+        return occt_shape
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def boolean_sub_topology_containment(occt_shape: TopoDS_Shape) -> TopoDS_Shape:
+        
+        # 1. Only for cluster
+		# 2. If the input is an empty cluster: return null
+		# 3. For each subtopology A, check against each other subtopology B. If A is inside B, remove A.
+
+        if occt_shape.ShapeType() != TopAbs_COMPOUND:
+            return occt_shape
+
+        occt_sub_topologies = TopTools_ListOfShape()
+        Topology.sub_topologies(occt_shape, occt_sub_topologies)
+
+        if occt_sub_topologies.Size() == 0:
+            return TopoDS_Shape()
+
+        occt_shapes_to_remove = TopTools_MapOfShape()
+
+        occt_sub_topology_iterator_A = TopTools_ListIteratorOfListOfShape(occt_sub_topologies)
+
+        while occt_sub_topology_iterator_A.More():
+
+            occt_sub_topology_A: TopoDS_Shape = occt_sub_topology_iterator_A.Value()
+
+            is_shapeA_to_remove = False
+
+            occt_sub_topology_iterator_B = TopTools_ListIteratorOfListOfShape(occt_sub_topologies)
+
+            while occt_sub_topology_iterator_B.More():
+
+                occt_sub_topology_B = occt_sub_topology_iterator_B.Value()
+
+                if occt_sub_topology_A.IsSame(occt_sub_topology_B):
+                    continue
+
+                # Does B contain A?
+                occt_sub_topologies_B = TopTools_MapOfShape()
+                Topology.static_downward_navigation(occt_sub_topology_B, occt_sub_topology_A.ShapeType(), occt_sub_topologies_B)
+
+                if occt_sub_topologies_B.Contains(occt_sub_topology_A):
+                    is_shapeA_to_remove = True
+                    occt_shapes_to_remove.Add(occt_sub_topology_A)
+
+                occt_sub_topology_iterator_B.Next()
+
+            occt_sub_topology_iterator_A.Next()
+
+        # Remove the shapes
+        occt_shapes_to_remove_iterator = TopTools_MapIteratorOfMapOfShape(occt_shapes_to_remove)
+
+        while occt_shapes_to_remove_iterator.Move():
+
+            occt_builder = TopoDS_Builder()
+
+            try:
+                occt_builder.Remove(occt_shape, occt_shapes_to_remove_iterator.Value())
+            
+            except:
+                raise RuntimeError("Topology is locked, cannot remove subtopology. Please contact the developer.")
+
+            occt_shapes_to_remove_iterator.Next()
+
+        return occt_shape
+
+#--------------------------------------------------------------------------------------------------
+    def analyze(self) -> str:
+
+        return Topology.analyze(self.get_occt_shape(), 0)
 
 #--------------------------------------------------------------------------------------------------
     def non_regular_boolean_operation(self):
         pass
 
 #--------------------------------------------------------------------------------------------------
-    @staticmethod
-    def non_regular_boolean_operation():
-        pass
+    def non_regular_boolean_operation(self, other_topology: 'Topology',\
+                                      occt_cells_builder: BOPAlgo_CellsBuilder,\
+                                      occt_cells_builders_operands_A: TopTools_ListOfShape,\
+                                      occt_cells_builders_operands_B: TopTools_ListOfShape,\
+                                      occt_map_face_to_fixed_face_A: TopTools_DataMapOfShapeShape,\
+                                      occt_map_face_to_fixed_face_B: TopTools_DataMapOfShapeShape) -> None:
+        
+        self.add_boolean_operands(other_topology, occt_cells_builder, occt_cells_builders_operands_A, occt_cells_builders_operands_B, occt_map_face_to_fixed_face_A, occt_map_face_to_fixed_face_B)
+
+        # Split the arguments and tools
+        try:
+            occt_cells_builder.Perform()
+
+        except:
+            raise RuntimeError("Some error occured.")
+
+        if occt_cells_builder.HasErrors():
+            error_stream = StringIO()
+            occt_cells_builder.DumpErrors(error_stream)
+            error_message = error_stream.getvalue()
+            raise RuntimeError(error_message)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def transfer_contents():
-        pass
+    def non_regular_boolean_operation(occt_arguments_A: TopTools_ListOfShape, occt_arguments_B: TopTools_ListOfShape, occt_cells_builder: BOPAlgo_CellsBuilder):
+        
+        occt_arguments = TopTools_ListOfShape()
+
+        occt_argument_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+        occt_argument_iterator_B = TopTools_ListIteratorOfListOfShape(occt_arguments_B)
+
+        while occt_argument_iterator_A.More():
+
+            occt_arguments.append(occt_argument_iterator_A.Value())
+
+            occt_argument_iterator_A.Next()
+
+        while occt_argument_iterator_B.More():
+
+            occt_arguments.Append(occt_argument_iterator_B.Value())
+
+            occt_argument_iterator_B.Next()
+
+        occt_cells_builder.SetArguments(occt_arguments)
+
+        # Split the arguments and tools
+        try:
+            occt_cells_builder.Perform()
+
+        except:
+            raise RuntimeError("Some error occured.")
+
+        if occt_cells_builder.HasErrors():
+            error_stream = StringIO()
+            occt_cells_builder.DumpErrors(error_stream)
+            error_message = error_stream.getvalue()
+            raise RuntimeError(error_message)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def transfer_contents():
-        pass 
+    def transfer_contents(occt_shape_1: TopoDS_Shape, topology_2: 'Topology') -> None:
+        
+        sub_contents: List[Topology] = []
+        Topology.sub_contents(occt_shape_1, sub_contents)
+
+        for sub_content in sub_contents:
+
+            # Attach to the same context type
+            context_type = 0
+            contexts: List[Context] = []
+            sub_content.contexts(contexts)
+
+            for context in contexts:
+
+                context_topology: Topology = context.topology()
+                context_topology_type = context_topology.get_shape_type()
+
+                context_type = context_type or context_topology_type
+
+                # Remove content from current contexts
+                context_topology.remove_content(sub_content)
+                sub_content.remove_context(context)
+
+            topology_2.add_content(sub_content, context_type)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def regular_boolean_operation():
-        pass
+    def transfer_contents(occt_shape_1: TopoDS_Shape, topology_2: 'Topology', occt_delete_sub_shapes: TopTools_ListOfShape) -> None:
 
-#--------------------------------------------------------------------------------------------------
-    def post_process_boolean_operation(self):
-        pass
+         sub_contents: List[Topology] = []
+         Topology.sub_contents(occt_shape_1, sub_contents)
+
+         for sub_content in sub_contents:
+
+            # Check if the context topology is part of kpTopology2. Use OCCT IsDeleted()
+            all_contexts_dissappear = True
+            contexts: list[Context] = []
+            sub_content.Contexts(contexts)
+
+            for context in contexts:
+
+                if not occt_delete_sub_shapes.Contains(context.topology().get_occt_shape()):
+                    
+                    all_contexts_dissappear = False
+                    break
+
+            if all_contexts_dissappear:
+                continue
+
+            # Attach to the same context type
+            context_type = 0
+
+            for context in contexts:
+
+                context_topology: Topology = context.topology()
+                context_topology_type = context_topology.get_shape_type()
+
+                context_type = context_type or context_topology_type
+
+                # Remove content from current contexts
+                context_topology.remove_content(sub_content)
+                sub_content.remove_context(context)
+
+            topology_2.add_content(sub_content, context_type)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def transfer_make_shape_contents():
-        pass
+    def regular_boolean_operation(occt_arguments_A: TopTools_ListOfShape, occt_arguments_B: TopTools_ListOfShape, occt_boolean_operation: BRepAlgoAPI_BooleanOperation) -> None:
+        
+        occt_boolean_operation.SetArguments(occt_arguments_A)
+        occt_boolean_operation.SetTools(occt_arguments_B)
+        occt_boolean_operation.SetNonDestructive(True)
+        occt_boolean_operation.Build()
+
+#--------------------------------------------------------------------------------------------------
+    def post_process_boolean_result(self, occt_boolean_result: TopoDS_Shape) -> TopoDS_Shape:
+        
+        occt_post_processed_shape: TopoDS_Shape = Topology.simplify(occt_boolean_result)
+
+        if not occt_post_processed_shape.IsNull():
+            occt_post_processed_shape = Topology.boolean_sub_topology_containment(occt_post_processed_shape)
+
+        if not occt_post_processed_shape.IsNull():
+            occt_post_processed_shape = Topology.simplify(occt_post_processed_shape)
+
+        return occt_post_processed_shape
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def transfer_make_shape_contents(occt_make_shape: BRepBuilderAPI_MakeShape, shapes: List['Topology']) -> None:
+        
+        occt_shapes = TopTools_ListOfShape()
+
+        for shape in shapes:
+            occt_shapes.Append(shape.get_occt_shape())
+
+        Topology.transfer_make_shape_contents(occt_make_shape, occt_shapes)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
@@ -1106,8 +1764,8 @@ class Topology:
             occt_generated_shapes = occt_make_shape.Modified(occt_original_shape)
 
             # 2. Transfer the contents from the original shape to the generated shapes
-            # ToDo: Implement this when working on ContentManager
-            # contents = original_shape.contents()
+            contents: List['Topology'] = []
+            contents = original_shape.contents_(contents)
 
             generated_shape_iterator = TopTools_ListIteratorOfListOfShape(occt_generated_shapes)
 
@@ -1115,17 +1773,91 @@ class Topology:
                 occt_generated_shape = generated_shape_iterator.Value()
                 generated_shape = Topology.by_occt_shape(occt_generated_shape, "")
 
-                # ToDo: Implement this when working on ContentManager
-                # for content in contents:
-                #     generated_shape.add_content(content)
+                for content in contents:
+                    generated_shape.add_content(content)
 
                 generated_shape_iterator.Next()
 
             shape_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def impose(self):
-        pass
+    def impose(self, tool: 'Topology', transfer_dictionary: bool) -> 'Topology':
+
+        if tool == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+
+        self.add_boolean_operands(tool, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape()
+        occt_list_to_avoid = TopTools_ListOfShape()
+
+        # Get part of A not in B
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+        occt_shape_iterator_B = TopTools_ListIteratorOfListOfShape(occt_arguments_B)
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+
+            while occt_shape_iterator_B.More():
+
+                occt_list_to_avoid.Append(occt_shape_iterator_B.Value())
+
+                occt_shape_iterator_B.Next()
+            
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_A.Next()
+
+        # Add B
+        i = 1
+        while occt_shape_iterator_B.More():
+
+            i += 1
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+
+            occt_list_to_take.Append(occt_shape_iterator_B.Value())
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid, i, True)
+
+            occt_shape_iterator_B.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape: TopoDS_Shape = occt_cells_builder.Shape()
+
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape: TopoDS_Shape = occt_result_shape
+        
+        else:
+            self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape: Topology = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+        Topology.transfer_contents(tool.get_occt_shape(), copy_post_processed_shape)
+
+
+        if transfer_dictionary:
+
+            self.boolean_transfer_dictionary(self, tool, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
     def imprint(self):

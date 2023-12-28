@@ -1409,7 +1409,7 @@ class Graph(Topology):
                 adjacent_faces = List[Face]
 
                 # FaceUtility.adjacent_faces not implemented yet!
-                TopologicUtilities.FaceUtility.adjacent_faces(face.get_class_guid(), shell, adjacent_faces)
+                TopologicUtilities.FaceUtility.adjacent_faces(face, shell, adjacent_faces)
 
                 for adjacent_face in adjacent_faces:
 
