@@ -2401,46 +2401,319 @@ class Topology:
         return occt_new_shape
 
 #--------------------------------------------------------------------------------------------------
-    def add_union_internal_structure(self):
-        pass
+    def add_union_internal_structure(self, occt_shape: TopoDS_Shape, union_arguments: TopTools_ListOfShape) -> None:
+        
+        occt_shape_type: TopAbs_ShapeEnum = occt_shape.ShapeType()
+        topology = Topology.by_occt_shape(occt_shape)
+        faces: List[Face] = []
+
+        # Cell complex -> faces not part of the envelope
+        # Cell -> inner shells
+        # Shell --> inner wires of the faces
+        # Face --> inner wires
+        # Wire --> n/a
+        # Edge --> n/a
+        # Vertex --> n/a
+
+        if occt_shape_type == TopAbs_COMPOUND:
+
+            cluster: Cluster = TopologicalQuery.downcast(topology)
+            immediate_members: List['Topology'] = []
+            cluster.sub_topologies(immediate_members)
+
+            for immediate_member in immediate_members:
+                self.add_union_internal_structure(immediate_member.get_occt_shape(), union_arguments)
+
+        elif occt_shape_type == TopAbs_COMPSOLID:
+            cellComplex: CellComplex = TopologicalQuery.downcast(topology)
+            cellComplex.internal_boundaries(faces)
+
+            for internal_face in faces:
+                union_arguments.Append(internal_face.get_occt_shape())
+
+        elif occt_shape_type == TopAbs_SOLID:
+            cell: Cell = TopologicalQuery.downcast(topology)
+            shells: List[Shell] = []
+            cell.internal_boundaries(shells)
+
+            for internal_shell in shells:
+                union_arguments.Append(internal_shell.get_occt_shape())
+
+        elif occt_shape_type == TopAbs_SHELL:
+
+            occt_shell_explorer = TopExp_Explorer(occt_shape, TopAbs_FACE)
+            occt_face_explorer = TopExp_Explorer(occt_shape, TopAbs_WIRE)
+
+            while occt_shell_explorer.More():
+
+                # ???? occt_current_face ????
+                occt_current_face = occt_shell_explorer.Current()
+
+                # ???? occt_current_wire ????
+                occt_outer_wire = BRepTools.OuterWire(topods.face(occt_current_face))
+
+                while occt_face_explorer.More():
+
+                    occt_current_face = occt_face_explorer.Current()
+
+                    if not union_arguments.Contains(occt_current_face) and not occt_current_face.IsSame(occt_outer_wire):
+                        union_arguments.Append(occt_current_face)
+
+                    occt_face_explorer.Next()
+
+                occt_shell_explorer.Next()
+
+        elif occt_shape_type == TopAbs_FACE:
+
+            occt_outer_wire = BRepTools.OuterWire(topods.face(occt_shape))
+
+            occt_explorer = TopExp_Explorer(occt_shape, TopAbs_WIRE)
+
+            while occt_explorer.More():
+
+                occt_current = occt_explorer.Current()
+
+                if not union_arguments.Contains(occt_current) and not occt_current.IsSame(occt_outer_wire):
+                    union_arguments.Append(occt_current_face)
+
+                occt_explorer.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def fix_boolean_operand_shell(self):
-        pass
+    def fix_boolean_operand_shell(self, occt_shape: TopoDS_Shape) -> TopoDS_Shape:
+        
+        occt_cells = TopTools_ListOfShape()
+        occt_new_shape = TopoDS_Shape(occt_shape)
+
+        occt_explorer = TopExp_Explorer(occt_shape, TopAbs_SHELL)
+
+        while occt_explorer.More():
+
+            occt_current_shell = topods.shell(occt_explorer.Current())
+
+            # create tools for fixing a face
+            occt_shape_fix_shell = ShapeFix_Shell()
+
+            # create tool for rebuilding a shape and initialize it by shape
+            occt_context = ShapeBuild_ReShape()
+            occt_context.Apply(occt_new_shape)
+
+            # set a tool for rebuilding a shape in the tool for fixing 
+            occt_shape_fix_shell.SetContext(occt_context)
+
+            # initialize the fixing tool by one face
+            occt_shape_fix_shell.Init(occt_current_shell)
+
+            # fix the set face
+            occt_shape_fix_shell.Perform()
+
+            # get the result 
+            occt_new_shape = occt_context.Apply(occt_new_shape)
+
+            occt_explorer.Next()
+
+        return occt_new_shape
 
 #--------------------------------------------------------------------------------------------------
-    def fix_boolean_operand_face(self):
-        pass
+    def fix_boolean_operand_face(self, occt_shape: TopoDS_Shape, map_face_to_fixed_face: TopTools_DataMapOfShapeShape) -> TopoDS_Shape:
+        
+        occt_cells = TopTools_MapOfShape()
+        occt_new_shape = TopoDS_Shape(occt_shape)
+
+        occt_explorer = TopExp_Explorer(occt_shape, TopAbs_FACE)
+
+        while occt_explorer.More():
+
+            occt_current_face = topods.face(occt_explorer.Current())
+
+            # create tools for fixing a face 
+            occt_shape_fix_face = ShapeFix_Face()
+
+            # create tool for rebuilding a shape and initialize it by shape
+            occt_context = ShapeBuild_ReShape()
+            occt_context.Apply(occt_new_shape)
+
+            # set a tool for rebuilding a shape in the tool for fixing
+            occt_shape_fix_face.SetContext(occt_context)
+
+            # initialize the fixing tool by one face
+            occt_shape_fix_face.Init(occt_current_face)
+
+            # fix the set face
+            occt_shape_fix_face.Perform()
+
+            # Map occtCurrentFace and occtShapeFixFace.Shape()
+            map_face_to_fixed_face.Bind(occt_current_face, occt_shape_fix_face.Face())
+
+            # get the result
+            occt_new_shape = occt_context.Apply(occt_new_shape)
+
+            occt_explorer.Next()
+
+        return occt_new_shape
 
 #--------------------------------------------------------------------------------------------------
-    def fix_boolean_operand_face(self):
-        pass
+    def fix_boolean_operand_face(self, occt_shape: TopoDS_Shape) -> TopoDS_Shape:
+        
+        map_face_to_fixed_face = TopTools_DataMapOfShapeShape()
+        return self.fix_boolean_operand_face(occt_shape, map_face_to_fixed_face)
 
 #--------------------------------------------------------------------------------------------------
-    def get_deleted_boolean_sub_topologies(self):
-        pass
+    def get_deleted_boolean_sub_topologies(self, occt_shape: TopoDS_Shape, occt_cells_builder: BOPAlgo_CellsBuilder, occt_deleted_shapes: TopTools_ListOfShape) -> None:
+        
+        sub_shape_types = [TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE] 
+
+        for i in range(3):
+
+            if occt_shape.ShapeType() == sub_shape_types[i]:
+
+                if occt_cells_builder.IsDeleted(occt_shape):
+
+                    occt_deleted_shapes.Append(occt_shape)
+
+                occt_modified_shapes: TopTools_ListOfShape = occt_cells_builder.Modified(occt_shape)
+
+                if not occt_modified_shapes.IsEmpty():
+                    occt_deleted_shapes.Append(occt_shape)
+
+            occt_sub_shapes = TopTools_MapOfShape()
+
+            Topology.static_downward_navigation(occt_shape, sub_shape_types[i], occt_sub_shapes)
+
+            occt_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
+
+            while occt_sub_shape_iterator.More():
+
+                if occt_cells_builder.IsDeleted(occt_sub_shape_iterator.Value()):
+                    occt_deleted_shapes.Append(occt_sub_shape_iterator.Value())
+
+                occt_modified_shapes: TopTools_ListOfShape = occt_cells_builder.Modified(occt_sub_shape_iterator.Value())
+
+                if not occt_modified_shapes.IsEmpty():
+                    occt_deleted_shapes.Append(occt_sub_shape_iterator.Value())
+
+                occt_sub_shape_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def get_deleted_boolean_sub_topologies(self):
-        pass
+    def get_deleted_boolean_sub_topologies(self, occt_shape: TopoDS_Shape, occt_boolean_operation: BRepAlgoAPI_BooleanOperation, occt_deleted_shapes: TopTools_ListOfShape) -> None:
+        
+        sub_shape_types = [TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE]
+
+        for i in range(3):
+
+            if occt_shape.ShapeType() == sub_shape_types[i]:
+
+                if occt_boolean_operation.IsDeleted(occt_shape):
+
+                    occt_deleted_shapes.Append(occt_shape)
+
+            occt_sub_shapes = TopTools_MapOfShape()
+
+            Topology.static_downward_navigation(occt_shape, sub_shape_types[i], occt_sub_shapes)
+
+            occt_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
+
+            while occt_sub_shapes.More():
+
+                if occt_boolean_operation.IsDeleted(occt_sub_shape_iterator.Value()):
+                    occt_deleted_shapes.Append(occt_sub_shape_iterator.Value())
+
+                occt_sub_shapes.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def track_context_ancestor(self):
-        pass
+    def track_context_ancestor(self) -> 'Topology':
+        
+        contexts: List[Context] = []
+        self.contexts(contexts)
+
+        if len(contexts) == 1:
+
+            # Go farther
+            return contexts[0].topology.track_context_ancestor()
+
+        # if empty or > 2
+        return self
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_shell():
-        pass
+    def intersect_edge_shell(edge: Edge, shell: Shell) -> 'Topology':
+        
+        faces: List[Face] = []
+        faces = shell.faces()
 
-#--------------------------------------------------------------------------------------------------
-    def is_in_list(self):
-        pass
+        intersection_vertices: List[Topology] = []
+
+        for face in faces:
+
+            merge_topology: Topology = edge.merge(face)
+
+            cluster: Topology = Topology.intersect_edge_face(merge_topology, edge, face)
+
+            if cluster == None:
+                continue
+
+            cluster_vertices: List[Vertex] = []
+            vertices = cluster.vertices()
+
+            intersection_vertices.extend(cluster_vertices)
+
+        cluster: Cluster = Cluster.by_topologies(intersection_vertices)
+        merged_cluster: Topology = cluster.self_merge()
+
+        return merged_cluster
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_edge_face():
-        pass
+    def is_in_list(new_vertex: Vertex, old_vertices: List[Vertex], tolerance: float) -> bool:
+        
+        for old_vertex in old_vertices:
+
+            occt_edge_distance = BRepExtrema_DistShapeShape(old_vertex.get_occt_shape(), new_vertex.get_occt_shape(), Extrema_ExtFlag_MINMAX)
+            distance = occt_edge_distance.Value()
+
+            if distance < tolerance:
+                return True
+
+        return False
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def intersect_edge_face(merge_topology: 'Topology', edge: Edge, face: Face) -> 'Topology':
+        
+        tolerance = 0.0001
+        edge_vertices: List[Vertex] = []
+        edge_vertices = edge.vetices()
+
+        face_vertices: List[Vertex] = []
+        face_vertices = face.vertices()
+
+        merge_vertices: List[Vertex] = []
+        merge_vertices = merge_topology.vertices()
+
+        intersection_vertices = List[Topology] = []
+
+        for merge_vertex in merge_vertices:
+
+            is_in_edge_vertices: bool = Topology.is_in_list(merge_vertex, edge_vertices, tolerance)
+            is_in_face_vertices: bool = Topology.is_in_list(merge_vertex, face_vertices, tolerance)
+
+            if (not is_in_edge_vertices and not is_in_face_vertices) or \
+               (is_in_edge_vertices and is_in_face_vertices):
+
+               intersection_vertices.append(merge_vertex)
+
+            else:
+                occt_edge_distance = BRepExtrema_DistShapeShape(merge_vertex.get_occt_shape(), edge.get_occt_edge(), Extrema_ExtFlag_MINMAX)
+                edge_distance = occt_edge_distance.Value()
+                
+                occt_face_distance = BRepExtrema_DistShapeShape(merge_vertex.get_occt_shape(), face.get_occt_face(), Extrema_ExtFlag_MINMAX)
+                face_distance = occt_face_distance.Value()
+
+                if edge_distance < tolerance and face_distance < tolerance:
+                    intersection_vertices.append(merge_vertex)
+
+        cluster: Cluster = Cluster.by_topologies(intersection_vertices)
+
+        return cluster
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
