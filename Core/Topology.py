@@ -1860,32 +1860,545 @@ class Topology:
         return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def imprint(self):
-        pass
+    def imprint(self, tool: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if tool == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(tool, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape()
+        occt_list_to_avoid = TopTools_ListOfShape()
+
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+        occt_shape_iterator_B = TopTools_ListIteratorOfListOfShape(occt_arguments_B)
+
+        while occt_shape_iterator_A.More():
+
+            while occt_shape_iterator_B.More():
+
+                occt_list_to_take.Clear()
+                occt_list_to_avoid.Clear()
+                occt_list_to_take.Append(occt_shape_iterator_A.Value())
+                occt_list_to_take.Append(occt_shape_iterator_B.Value())
+                occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+                occt_shape_iterator_B.Next()
+
+            occt_shape_iterator_A.Next()
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+            occt_list_to_avoid.Append(occt_arguments_B)
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_A.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape = occt_cells_builder.Shape()
+        
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape = occt_result_shape
+
+        else:
+            self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape: Topology = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+        Topology.transfer_contents(tool.get_occt_shape(). copy_post_processed_shape)
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, tool, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def intersect(self):
-        pass
+    def intersect(self, other_topology: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if other_topology == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        # Intersect = Common + Section
+		# - Common gives intersection component with at least the same dimension
+		# - Section gives the Vertices and Edges
+		# NOTE: potential pitfall: 2 Cells intersecting on a Face
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+
+        occt_common = BRepAlgo_Common()
+        Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_common)
+
+        occt_section = BRepAlgo_Section()
+        Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_section)
+
+        # Create topology
+        common_topology: Topology = Topology.by_occt_shape(occt_common)
+        section_topology: Topology = Topology.by_occt_shape(occt_section)
+
+        # Check isPracticallyEmpty: either nullptr, or (not a Vertex and there is no subtopologies)
+        is_common_practically_empty = common_topology is None or (common_topology.num_of_sub_topologies() == 0)
+        is_section_practically_empty = section_topology is None or (section_topology.num_of_sub_topologies() == 0)
+
+        # Cases
+        merge_topology: Topology = None
+
+        if is_common_practically_empty:
+
+            if is_section_practically_empty:
+                return None
+
+            else:
+                merge_topology = section_topology
+
+        else:
+
+            if is_section_practically_empty:
+                merge_topology = common_topology
+
+            else:
+                merge_topology = common_topology.merge(section_topology)
+
+        if merge_topology == None:
+            return None
+
+        occt_result_merge_shape = merge_topology.get_occt_shape()
+        
+        if occt_result_merge_shape.IsNull():
+            occt_post_processed_shape = occt_result_merge_shape
+
+        else:
+            occt_post_processed_shape = self.post_process_boolean_result(occt_result_merge_shape)
+
+        post_processed_shape = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+        Topology.transfer_contents(other_topology.get_occt_shape(), copy_post_processed_shape)
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, other_topology, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def merge(self):
-        pass
+    def merge(self, other_topology: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if other_topology == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape()
+        occt_list_to_avoid = TopTools_ListOfShape()
+
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+        occt_shape_iterator_B = TopTools_ListIteratorOfListOfShape(occt_arguments_B)
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_A.Next()
+
+        while occt_shape_iterator_B.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_B.Value())
+            occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_B.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape: TopoDS_Shape = occt_cells_builder.Shape()
+
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape = occt_result_shape
+
+        else:
+            occt_post_processed_shape = self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+        Topology.transfer_contents(other_topology.get_occt_shape(), copy_post_processed_shape)
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, other_topology, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def self_merge(self):
-        pass
+    def self_merge(self) ->'Topology':
+        
+        # 1
+        occt_shapes = TopTools_ListOfShape()
+        Topology.sub_topologies(self.get_occt_shape(), occt_shapes)
+
+        # 2
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        occt_cells_builder.SetArguments(occt_shapes)
+
+        try:
+            occt_cells_builder.Perform()
+
+        except:
+            raise RuntimeError("Some error occured.")
+
+        if occt_cells_builder.HasErrors() or occt_cells_builder.HasWarnings():
+
+            error_stream = StringIO()
+            occt_cells_builder.DumpErrors(error_stream)
+
+            warning_stream = StringIO()
+            occt_cells_builder.DumpWarnings(warning_stream)
+
+            # Exit here and return occtShapes as a cluster.
+            occt_compound = TopoDS_Compound()
+            occt_builder = BRep_Builder()
+            occt_builder.MakeCompound(occt_compound)
+
+            occt_shape_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+            while occt_shape_iterator.More():
+
+                occt_builder.Add(occt_compound, occt_shape_iterator.Value())
+
+                occt_shape_iterator.Next()
+
+            return Topology.by_occt_shape(occt_compound, "")
+
+        occt_cells_builder.AddAllToResult()
+
+        # 2b. Get discarded faces from Cells Builder
+        occt_discarded_faces = TopTools_ListOfShape()
+        occt_compound = TopoDS_Compound()
+        occt_builder = BRep_Builder()
+        occt_builder.MakeCompound(occt_compound)
+
+        occt_face_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+        while occt_face_iterator.More():
+
+            current: TopoDS_Shape = occt_face_iterator.Value()
+
+            if occt_cells_builder.IsDeleted(current):
+                occt_builder.Add(occt_compound, current)
+                occt_discarded_faces.Append(current)
+
+            occt_face_iterator.Next()
+
+        # 3. Get Face[] from Topology[]
+        occt_faces = TopTools_ListOfShape()
+        occt_compound_3 = TopoDS_Compound()
+        occt_builder_3 = BRep_Builder()
+        occt_builder_3.MakeCompound(occt_compound_3)
+
+        occt_explorer = TopExp_Explorer(occt_cells_builder.Shape(), TopAbs_SHAPE)
+
+        while occt_explorer.More():
+
+            occt_current = occt_explorer.Current()
+
+            if not occt_faces.Contains(occt_current):
+                occt_faces.Append(occt_current)
+                occt_builder_3.Add(occt_compound_3, occt_current)
+
+            occt_explorer.Next()
+
+        # 5. Topology = VolumeMaker(Face[])--> first result
+        occt_volume_maker = BOPAlgo_MakerVolume()
+        run_parallel: bool = False # parallel or single mode (the default value is FALSE)
+        intersect: bool = True # intersect or not the arguments (the default value is TRUE)
+        tol: float = 0.0 # fuzzy option (default value is 0)
+
+        occt_volume_maker.SetArguments(occt_faces)
+        occt_volume_maker.SetRunParallel(run_parallel)
+        occt_volume_maker.SetIntersect(intersect)
+        occt_volume_maker.SetFuzzyValue(tol)
+
+        occt_volume_maker.Perform() # perform the operation
+
+        if occt_volume_maker.HasErrors() or occt_volume_maker.HasWarnings(): # check error status
+            pass
+
+        else:
+
+            # 6. Get discarded faces from VolumeMaker--> second result
+            occt_compound_2 = TopoDS_Compound()
+            occt_builder_2 = BRep_Builder()
+
+            occt_builder_2.MakeCompound(occt_compound_2)
+
+            occt_face_iterator = TopTools_ListIteratorOfListOfShape(occt_faces)
+
+            while occt_face_iterator.More():
+
+                current: TopoDS_Shape = occt_face_iterator.Value()
+
+                if occt_volume_maker.IsDeleted(current):
+                    occt_discarded_faces.Append(current)
+                    occt_builder_2.Add(occt_compound_2, current)
+
+                occt_face_iterator.Next()
+
+        # 7. Get the rest from Topology[] --> third result
+        occt_other_shapes = TopTools_ListOfShape() # for step #7
+
+        occt_shape_iterator = TopTools_ListIteratorOfListOfShape(occt_shapes)
+
+        while occt_shape_iterator.More():
+
+            if occt_shape_iterator.Value().ShapeType() != TopAbs_FACE:
+                occt_other_shapes.Append(occt_shape_iterator.Value())
+
+            occt_shape_iterator.Next()
+
+        # 8. Merge results #1 #2 #3
+        occt_final_arguments = TopTools_ListOfShape()
+
+        if not occt_volume_maker.HasErrors() and not occt_volume_maker.HasWarnings():
+            occt_final_arguments.Append(occt_volume_maker.Shape())
+
+        occt_final_arguments.Append(occt_discarded_faces)
+        occt_final_arguments.Append(occt_other_shapes)
+
+        if occt_final_arguments.Size() == 1:
+            return Topology.by_occt_shape(occt_volume_maker.Shape(), "")
+
+        occt_cells_builder_2 = BOPAlgo_CellsBuilder()
+        occt_cells_builder_2.SetArguments(occt_final_arguments)
+
+        try:
+            occt_cells_builder_2.Perform()
+        
+        except:
+            raise RuntimeError("Some error occured.")
+
+        if occt_cells_builder_2.HasErrors():
+            error_stream = StringIO()
+            occt_cells_builder_2.DumpErrors(error_stream)
+            raise RuntimeError(error_stream.getvalue())
+
+        occt_cells_builder_2.AddAllToResult()
+        occt_cells_builder_2.MakeContainers()
+
+        # 9. If there is still a discarded face, add to merge2Topology as a cluster.
+        cluster_candidates = TopTools_ListOfShape()
+        merge_2_topologies = TopTools_ListIteratorOfListOfShape(occt_final_arguments)
+
+        while merge_2_topologies.more():
+
+            if occt_cells_builder_2.IsDeleted(merge_2_topologies.Value()) and \
+               merge_2_topologies.Value().ShapeType() == TopAbs_FACE: # currently only face
+
+               modified_shapes: TopTools_ListOfShape = occt_cells_builder_2.Modified(merge_2_topologies.Value())
+               generated_shapes: TopTools_ListOfShape = occt_cells_builder_2.Generated(merge_2_topologies.Value())
+               cluster_candidates.Append(merge_2_topologies.Value())
+
+            merge_2_topologies.Next()
+
+        occt_final_result = TopoDS_Shape()
+
+        if cluster_candidates.Size() > 0:
+
+            Topology.sub_topologies(occt_cells_builder_2.Shape(), cluster_candidates)
+            occt_final_compound = TopoDS_Compound()
+            occt_final_builder = BRep_Builder()
+            occt_final_builder.MakeCompound(occt_final_compound)
+
+            cluster_candidate_iterator = TopTools_ListIteratorOfListOfShape(cluster_candidates)
+
+            while cluster_candidate_iterator.More():
+
+                occt_final_builder.Add(occt_final_compound, cluster_candidate_iterator.Value())
+
+                cluster_candidate_iterator.Next()
+
+            occt_final_result = occt_final_compound
+
+        else:
+
+            occt_current_shape: TopoDS_Shape = occt_cells_builder_2.Shape()
+
+            if occt_current_shape.IsNull():
+                occt_post_processed_shape: TopoDS_Shape = occt_current_shape
+            else:
+                self.post_process_boolean_result(occt_current_shape)
+
+            occt_final_result = occt_post_processed_shape
+
+        # Shape fix
+        occt_shape_fix = ShapeFix_Shape(occt_final_result)
+        occt_shape_fix.Perform()
+
+        fixed_final_shape: TopoDS_Shape = occt_shape_fix.Shape()
+
+        final_topology: Topology = Topology.by_occt_shape(fixed_final_shape, "")
+
+        # Copy dictionaries
+        AttributeManager.get_instance().deep_copy_attributes(self.get_occt_shape(), final_topology.get_occt_shape())
+
+        # Copy contents
+        Topology.transfer_contents(self.get_occt_shape(), final_topology)
+
+        return final_topology
 
 #--------------------------------------------------------------------------------------------------
-    def slice(self):
-        pass
+    def slice(self, tool: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if tool == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(tool, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape()
+        occt_list_to_avoid = TopTools_ListOfShape()
+
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape(occt_arguments_A)
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+            occt_cells_builder.AddAllToResult(occt_list_to_take, occt_list_to_avoid)
+
+            occt_shape_iterator_A.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape: TopoDS_Shape = occt_cells_builder.Shape()
+
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape = occt_result_shape
+
+        else:
+            occt_post_processed_shape = self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, tool, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def union(self):
-        pass
+    def union(self, other_topology: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if other_topology == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+
+        occt_fuse = BRepAlgoAPI_Fuse()
+        Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_fuse)
+
+        occt_result_shape: TopoDS_Shape = occt_fuse.Shape()
+
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape = occt_result_shape
+
+        else:
+            occt_post_processed_shape = self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape = Topology.by_occt_shape(occt_post_processed_shape, "")
+
+        if post_processed_shape == None:
+            return None
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+        Topology.transfer_contents(self.get_occt_shape(), copy_post_processed_shape)
+        Topology.transfer_contents(other_topology.get_occt_shape(), copy_post_processed_shape)
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, other_topology, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def fix_boolean_operand_cell(self):
-        pass
+    def fix_boolean_operand_cell(self, occt_shape: TopoDS_Shape) -> TopoDS_Shape:
+        
+        occt_cells = TopTools_ListOfShape()
+        occt_new_shape = TopoDS_Shape(occt_shape)
+
+        occt_explorer = TopExp_Explorer(occt_shape, TopAbs_SOLID)
+
+        while occt_explorer.More():
+
+            occt_current_solid: TopoDS_Solid = topods.Solid(occt_explorer.Current())
+
+            # create tools for fixing a face 
+            occt_shape_fix_solid: ShapeFix_Solid = ShapeFix_Solid()
+
+            # create tool for rebuilding a shape and initialize it by shape
+            occt_context: ShapeBuild_ReShape = ShapeBuild_ReShape()
+            occt_context.Apply(occt_new_shape)
+
+            # set a tool for rebuilding a shape in the tool for fixing 
+            occt_shape_fix_solid.SetContext(occt_context)
+
+            # initialize the fixing tool by one face 
+            occt_shape_fix_solid.Init(occt_current_solid)
+
+            # fix the set face
+            occt_shape_fix_solid.Perform()
+
+            # get the result
+            occt_new_shape = occt_context.Apply(occt_new_shape)
+
+            occt_explorer.Next()
+
+        return occt_new_shape
 
 #--------------------------------------------------------------------------------------------------
     def add_union_internal_structure(self):
@@ -2227,7 +2740,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
 
-# Additional methods, that are not inluded in Topology.cpp:
+# Additional methods, that are not included in Topology.cpp:
 
 #--------------------------------------------------------------------------------------------------
 

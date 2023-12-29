@@ -59,5 +59,8 @@ class AttributeManager():
     def copy_attributes():
         pass
 
+    def deep_copy_attributes():
+        pass
+
     def add():
         pass
