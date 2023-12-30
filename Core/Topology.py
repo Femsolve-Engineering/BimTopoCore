@@ -7,7 +7,7 @@ from io import StringIO
 from typing import List
 from typing import Dict
 from typing_extensions import runtime
-from AttributeManager import AttributeManager
+from Core.AttributeManager import AttributeManager
 
 # OCC
 from ContentManager import ContentManager
