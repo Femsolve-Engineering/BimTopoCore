@@ -62,7 +62,7 @@ from Core.InstanceGUIDManager import InstanceGUIDManager
 from Core.Factories.TopologyFactory import TopologyFactory
 from Core.Factories.TopologyFactoryManager import TopologyFactoryManager
 from Core.Context import Context
-from Utilities.TopologicUtilities import FaceUtility, TopologyUtility, VertexUtility
+from Utilities.TopologicUtilities import CellUtility, FaceUtility, TopologyUtility, VertexUtility
 from Vertex import Vertex
 from Attribute import Attribute
 from Dictionary import Dictionary
@@ -3209,34 +3209,71 @@ class Topology:
 
         sub_contents: List['Topology'] = []
 
+        Topology.sub_contents(occt_shape, sub_contents)
 
+        for sub_content in sub_contents:
+            occt_shape_copy = TopoDS_Shape()
+            is_content_copied = occt_shape_copy_shape_map.Find(sub_content.get_occt_shape(), occt_copy_shape)
 
+            copy_content_topology = Topology()
 
+            if is_content_copied:
+                copy_content_topology = Topology.by_occt_shape(occt_copy_shape, Topology.get_instance_guid(sub_content.get_occt_shape()))
+
+            else:
+                copy_content_topology = self.deep_copy_impl(sub_content.get_occt_shape(), occt_shape_copy_shape_map)
+
+            filter_type = 0
+            contexts: List[Context] = []
+            sub_content = self.contexts(contexts)
+
+            for context in contexts:
+                context_type = context.topology().get_shape_type()
+                filter_type = filter_type | context_type
+
+        return shape_copy
 
 #--------------------------------------------------------------------------------------------------
-    def deep_copy(self):
-        pass
+    def deep_copy(self) -> 'Topology':
+        
+        occt_shape_copy_shape_map = TopTools_DataMapOfShapeShape()
+        shape_copy: Topology = self.deep_copy_impl(self.get_occt_shape(), occt_shape_copy_shape_map)
 
 #--------------------------------------------------------------------------------------------------
-    def shallow_copy(self):
-        pass
+    def shallow_copy(self) -> 'Topology':
+        
+        occt_shape_copier = BRepBuilderAPI_Copy(self.get_occt_shape())
+        AttributeManager.get_instance().deep_copy_attributes(self.get_occt_shape(), occt_shape_copier.Shape())
+        return Topology.by_occt_shape(occt_shape_copier.Shape(), self.get_instance_guid())
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def copy_occt():
-        pass
+    def copy_occt(occt_shape: TopoDS_Shape)-> TopoDS_Shape:
+        
+        occt_shape_copy = BRepBuilderAPI_Copy()
+        occt_copy_shape: TopoDS_Shape = occt_shape_copy.Shape()
+
+        return occt_copy_shape
 
 #--------------------------------------------------------------------------------------------------
-    def replace_sub_entity(self):
-        pass
+    def replace_sub_entity(self, original_sub_shape: 'Topology', new_sub_shape: 'Topology') -> None:
+        
+        self.replace_sub_entity(original_sub_shape.get_occt_shape(), new_sub_shape.get_occt_shape())
 
 #--------------------------------------------------------------------------------------------------
-    def is_same(self, test_topology: 'Topology') -> bool:
+    def replace_sub_entity(self, occt_original_sub_shape: TopoDS_Shape, occt_new_sub_shape: TopoDS_Shape) -> None:
+        
+        occt_reshaper = ShapeBuild_ReShape()
+        occt_reshaper.Replace(occt_original_sub_shape, occt_new_sub_shape)
+        new_shape = occt_reshaper.Apply(self.get_occt_shape())
+
+#--------------------------------------------------------------------------------------------------
+    def is_same(self, topology: 'Topology') -> bool:
         """
         Returns:
             bool: True if the test_topology is identical to this topology.
         """
-        is_same = self.get_occt_shape().IsSame(test_topology.get_occt_shape())
+        is_same = self.get_occt_shape().IsSame(topology.get_occt_shape())
         return is_same
     
 #--------------------------------------------------------------------------------------------------
@@ -3244,32 +3281,110 @@ class Topology:
         """
         Checks the shape orientation.
         """
-        occt_orientation = self.get_occt_shape().Orientation()
+        occt_orientation: TopAbs_Orientation = self.get_occt_shape().Orientation()
         return occt_orientation == TopAbs_REVERSED
 
 #--------------------------------------------------------------------------------------------------
-    def deep_copy_attributes_from(self):
-        pass
+    def deep_copy_attributes_from(self, origin_topologies: List['Topology']) -> 'Topology':
+        
+        # 1. Get all dictionaries stored in rkOcctOriginShape
+        # NOTE: this map will map the subshapes to the attributes
+        
+        attribute_map: Dict[str, Attribute] = {}
+        
+        origin_attribute_map: Dict[TopoDS_Shape, Dict[str, Attribute]] = {}
+
+        type_filters: List[int] = []
+
+        for origin_topology in origin_topologies:
+
+            AttributeManager.get_instance().get_attributes_in_sub_shapes(origin_topology.get_occt_shape(), origin_attributes_map)
+
+        selectors: List[Vertex] = []
+        dictionaries: List[Dict[str, Attribute]] = []
+        occt_processed_sub_shapes = TopTools_MapOfShape()
+
+        occt_sub_shapes = origin_attribute_map.keys()
+
+        for occt_sub_shape in occt_sub_shapes:
+
+            reference_vertex: Vertex = None
+
+            # Check if already processed
+            occt_processed_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_processed_sub_shapes)
+
+            while occt_processed_sub_shape_iterator.More():
+
+                if occt_sub_shape.IsSame(occt_processed_sub_shape_iterator.Value()):
+                    continue
+
+                occt_processed_sub_shape_iterator.Next()
+
+            occt_processed_sub_shapes.Add(occt_sub_shape)
+
+            if occt_sub_shape.ShapeType() == TopAbs_SOLID:
+                reference_vertex = CellUtility.internal_vertex(Cell(topods.Solid(occt_sub_shape)))
+
+            elif occt_sub_shape.ShapeType() == TopAbs_FACE:
+                reference_vertex = FaceUtility.internal_vertex(Cell(topods.Face(occt_sub_shape)))
+            
+            else:
+                reference_vertex = TopologicalQuery.downcast(Topology.by_occt_shape(self.center_of_mass(occt_sub_shape)))
+
+            selectors.append(reference_vertex)
+
+            dictionary = origin_attribute_map[occt_sub_shape]
+            dictionaries.append(dictionary)
+            type_filters.append(Topology.get_topology_type(occt_sub_shape.ShapeType()))
+
+        copy_topology: Topology = self.set_dictionaries(selectors, dictionaries, type_filters, True)
+        return copy_topology
 
 #--------------------------------------------------------------------------------------------------
-    def members(self):
-        pass
+    def members(self, occt_members: TopTools_ListOfShape) -> None:
+        
+        occt_shape: TopoDS_Shape = self.get_occt_shape()
+        Topology.members(occt_shape, occt_members)
 
 #--------------------------------------------------------------------------------------------------
-    def members(self):
-        pass
+    def members(self, members: List['Topology']) -> None:
+        
+        occt_members = TopTools_ListOfShape()
+        self.members(occt_members)
+
+        occt_member_iterator = TopTools_ListIteratorOfListOfShape(occt_members)
+
+        while occt_member_iterator.More():
+
+            members.append(Topology.by_occt_shape(occt_member_iterator.Value(), ""))
+
+            occt_member_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def members():
-        pass
+    def members(occt_shape: TopoDS_Shape, occt_members: TopTools_ListOfShape) -> None:
+        
+        # Store the children
+        for i in range(occt_shape.ShapeType() + 1, TopAbs_SHAPE):
+            
+            occt_shape_enum: TopAbs_ShapeEnum = i
+            occt_members = TopTools_MapOfShape()
+            occt_members = Topology.static_downward_navigation(occt_shape, occt_shape_enum)
+
+            occt_members_iterator = TopTools_MapIteratorOfMapOfShape(occt_members)
+
+            while occt_members_iterator.More():
+
+                occt_members.Append(occt_members_iterator.Value())
+
+                occt_members_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
     def get_instance_guid(self) -> str:
         """
         Instance-bound method to call static GUID getter.
         """
-        return Topology.s_get_instance_guid(self.get_occt_shape())
+        return Topology.static_get_instance_guid(self.get_occt_shape())
 
 #--------------------------------------------------------------------------------------------------
     def set_instance_guid(self, shape: TopoDS_Shape, guid: str) -> None:
@@ -3281,21 +3396,36 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def s_get_instance_guid(search_shape: TopoDS_Shape) -> str:
+    def static_get_instance_guid(occt_shape: TopoDS_Shape) -> str:
         """
         Looks up if the shape already exists, if so, its GUID will be returned.
         """
         instance_guid_manager = InstanceGUIDManager.get_instance_manager()
-        found_guid: str = instance_guid_manager.find(search_shape)
-        return found_guid
+        guid: str = instance_guid_manager.find(occt_shape)
+        return guid
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionary(self):
-        pass
+    def set_dictionary(self, attributes: Dict[str, Attribute]) -> None:
+        
+        occt_shape = self.get_occt_shape()
+        attr_manager = AttributeManager.get_instance()
+
+        attr_manager.clear_one(occt_shape)
+
+        keys = attributes.keys()
+
+        for string in keys:
+
+            attr_manager.Add(occt_shape, string, attributes[string])
 
 #--------------------------------------------------------------------------------------------------
-    def get_dictionary(self):
-        pass
+    def get_dictionary(self) -> Dictionary:
+        
+        dict = Dictionary()
+
+        AttributeManager.get_instance().find_all(self.get_occt_shape(), dict)
+
+        return dict
 
 #--------------------------------------------------------------------------------------------------
 

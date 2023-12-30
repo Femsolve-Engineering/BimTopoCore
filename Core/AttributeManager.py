@@ -64,3 +64,6 @@ class AttributeManager():
 
     def add():
         pass
+
+    def get_attributes_in_sub_shapes():
+        pass
