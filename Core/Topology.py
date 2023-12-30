@@ -1,4 +1,5 @@
 
+from ast import Return
 from email import contentmanager
 from graphlib import TopologicalSorter
 import sys
@@ -2717,61 +2718,251 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_face_face():
-        pass
+    def intersect_face_face(merge_topology: 'Topology', face: Face, other_face: Face) -> 'Topology':
+        
+        # OCCT does not seem to have a robust Face-Face 
+        raise RuntimeError("Not yet implemented")
 
 #--------------------------------------------------------------------------------------------------
-    def add_boolean_operands():
-        pass
+    def add_boolean_operands(self, other_topology: 'Topology', \
+                                   occt_cells_builder: BOPAlgo_CellsBuilder, \
+                                   occt_cells_builders_operands_A: TopTools_ListOfShape, \
+                                   occt_cells_builders_operands_B: TopTools_ListOfShape, \
+                                   occt_map_face_to_fixed_face_A: TopTools_DataMapOfShapeShape, \
+                                   occt_map_face_to_fixed_face_B: TopTools_DataMapOfShapeShape) -> None:
+        
+        # Buffer lists are currently provided for cell complexes to be processed per cells.
+        occt_cells_builders_arguments = TopTools_ListOfShape()
+
+        type_A: TopologyTypes = self.get_shape_type()
+
+        if type_A == TopologyTypes.CELLCOMPLEX or type_A == TopologyTypes.CLUSTER:
+            members: List[Topology] = []
+            self.sub_topologies(members)
+
+            for member in members:
+                occt_cells_builders_operands_A.Append(member.get_occt_shape())
+                occt_cells_builders_arguments.Append(member.get_occt_shape())
+
+        else:
+            occt_cells_builders_operands_A.Append(self.get_occt_shape())
+            occt_cells_builders_arguments.Append(self.get_occt_shape())
+
+        type_B: TopologyTypes = other_topology.get_shape_type()
+
+        if type_B == TopologyTypes.CELLCOMPLEX or type_B == TopologyTypes.CLUSTER:
+            members: List[Topology] = []
+            self.sub_topologies(members)
+
+            for member in members:
+                occt_cells_builders_operands_B.Append(member.get_occt_shape())
+                occt_cells_builders_arguments.Append(member.get_occt_shape())
+
+        else:
+            occt_cells_builders_operands_B.Append(other_topology.get_occt_shape())
+            occt_cells_builders_arguments.Append(other_topology.get_occt_shape())
+
+        occt_cells_builder.SetArguments(occt_cells_builders_arguments)
 
 #--------------------------------------------------------------------------------------------------
-    def add_boolean_operands():
-        pass
+    def add_boolean_operands(self, other_topology: 'Topology', occt_cells_builders_operands_A: TopTools_ListOfShape, occt_cells_builders_operands_B: TopTools_ListOfShape) -> None:
+        
+        # TopTools_ListOfShape occtOperandsA;
+        if self.is_container_type():
+            sub_topologies: List[Topology] = []
+            self.sub_topologies(sub_topologies)
+
+            for topology in sub_topologies:
+                occt_cells_builders_operands_A.Append(topology.get_occt_shape())
+
+        else:
+            occt_cells_builders_operands_A.Append(self.get_occt_shape())
+
+        # TopTools_ListOfShape occtOperandsB;
+        if other_topology.is_container_type():
+            sub_topologies: List[Topology] = []
+            other_topology.sub_topologies(sub_topologies)
+
+            for topology in sub_topologies:
+                occt_cells_builders_operands_B.Append(topology.get_occt_shape())
+
+        else:
+            occt_cells_builders_operands_B.Append(other_topology.get_occt_shape())
 
 #--------------------------------------------------------------------------------------------------
-    def xor(self):
-        pass
+    def xor(self, other_topology: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if other_topology == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        occt_arguments_A = TopTools_ListOfShape()
+        occt_arguments_B = TopTools_ListOfShape()
+        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+
+        occt_cells_builder = BOPAlgo_CellsBuilder()
+        Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
+
+        # 2. Select the parts to be included in the final result.
+        occt_list_to_take = TopTools_ListOfShape()
+        occt_list_to_avoid = TopTools_ListOfShape()
+
+        occt_shape_iterator_A = TopTools_ListIteratorOfListOfShape()
+        occt_shape_iterator_B = TopTools_ListIteratorOfListOfShape()
+
+        while occt_shape_iterator_A.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_A.Value())
+
+            while occt_shape_iterator_B.More():
+
+                occt_list_to_avoid.Append(occt_shape_iterator_B.Value())
+
+                occt_shape_iterator_B.Next()
+
+            occt_shape_iterator_A.Next()
+
+        while occt_shape_iterator_B.More():
+
+            occt_list_to_take.Clear()
+            occt_list_to_avoid.Clear()
+            occt_list_to_take.Append(occt_shape_iterator_B.Value())
+
+            while occt_shape_iterator_A.More():
+
+                occt_list_to_avoid.Append(occt_shape_iterator_A.Value())
+
+                occt_shape_iterator_A.Next()
+
+            occt_shape_iterator_B.Next()
+
+        occt_cells_builder.MakeContainers()
+
+        occt_result_shape: TopoDS_Shape = occt_cells_builder.Shape()
+        
+        if occt_result_shape.IsNull():
+            occt_post_processed_shape: TopoDS_Shape = occt_result_shape
+        else:
+            occt_post_processed_shape: TopoDS_Shape = self.post_process_boolean_result(occt_result_shape)
+
+        post_processed_shape: Topology = Topology.by_occt_shape(occt_post_processed_shape, "")
+        
+        if post_processed_shape == None:
+            return None
+
+        Topology.transfer_contents(self.get_occt_shape(), post_processed_shape)
+        Topology.transfer_contents(other_topology.get_occt_shape(), post_processed_shape)
+
+        copy_post_processed_shape: Topology = post_processed_shape.deep_copy()
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, other_topology, copy_post_processed_shape, True)
+
+        return copy_post_processed_shape
 
 #--------------------------------------------------------------------------------------------------
-    def divide(self):
-        pass
+    def divide(self, tool: 'Topology', transfer_dictionary: bool) -> 'Topology':
+        
+        if tool == None:
+            return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
+
+        # For now, only works if this topology is a cell
+        topology_type: TopologyTypes = self.get_shape_type()
+
+        if topology_type != TopologyTypes.CELL and topology_type != TopologyTypes.FACE and topology_type != TopologyTypes.EDGE:
+            return None
+
+        sliced_topology: Topology = self.slice(tool)
+
+        if topology_type == TopologyTypes.CELL:
+
+            cells: List[Cell] = []
+            cells = sliced_topology.downward_navigation() # arg: TopAbs_ShapeEnum missing !!!
+
+            for cell in cells:
+                self.add_content(cell)
+
+        elif topology_type == TopologyTypes.FACE:
+
+            faces: List[Face] = []
+            faces = sliced_topology.downward_navigation() # arg: TopAbs_ShapeEnum missing !!!
+
+            for face in faces:
+                self.add_content(face)
+
+        else: # topology_type == TopologyTypes.EDGE:
+            edges: List[Edge] = []
+            edges = sliced_topology.downward_navigation() # arg: TopAbs_ShapeEnum missing !!!
+
+            for edge in edges:
+                self.add_content(edge)
+
+        farthest_topology: Topology = self.track_context_ancestor()
+        final_topology: Topology = farthest_topology.deep_copy()
+
+        if transfer_dictionary:
+            self.boolean_transfer_dictionary(self, None, final_topology, True)
+
+        return final_topology
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def sub_topologies():
-        pass
+    def sub_topologies(shape: TopoDS_Shape, sub_topologies: TopoDS_Shape) -> None:
+        
+        occt_shape_iterator = TopoDS_Iterator(shape)
+
+        while occt_shape_iterator.More():
+
+            sub_topologies.Append(occt_shape_iterator.Value())
+
+            occt_shape_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def sub_topologies(sub_topologies: List['Topology']) -> None:
-        pass
+    def sub_topologies(self, sub_topologies: List['Topology']) -> None:
+        
+        occt_list_members = TopTools_ListOfShape()
+        Topology.sub_topologies(self.get_occt_shape(), occt_list_members)
+
+        occt_iterator = TopTools_ListIteratorOfListOfShape(occt_list_members)
+
+        while occt_iterator.More():
+
+            member_topology: Topology = Topology.by_occt_shape(occt_iterator.Value(), "")
+            sub_topologies.append(member_topology)
+
+            occt_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def num_of_sub_topologies(self):
-        pass
+    def num_of_sub_topologies(self) -> int:
+        
+        sub_topologies: List[Topology] = []
+        self.sub_topologies(sub_topologies)
+        return len(sub_topologies)
 
 #--------------------------------------------------------------------------------------------------
-    def shells(self, host_topology: 'Topology') -> List['Topology']:
+    def shells(self, host_topology: 'Topology') -> List[Shell]:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def edges(self, host_topology: 'Topology') -> List['Topology']:
+    def edges(self, host_topology: 'Topology') -> List[Edge]:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def faces(self, host_topology: 'Topology') -> List['Topology']:
+    def faces(self, host_topology: 'Topology') -> List[Face]:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def vertices(self, host_topology: 'Topology') -> List['Topology']:
+    def vertices(self, host_topology: 'Topology') -> List[Vertex]:
         """
         Gets all vertices associated with the host topology.
         """
@@ -2780,21 +2971,21 @@ class Topology:
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def wires(self, host_topology: 'Topology') -> List['Topology']:
+    def wires(self, host_topology: 'Topology') -> List[Wire]:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def cells(self, host_topology: 'Topology') -> List['Topology']:
+    def cells(self, host_topology: 'Topology') -> List[Cell]:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def cell_complexes(self, host_topology: 'Topology') -> List['Topology']:
+    def cell_complexes(self, host_topology: 'Topology') -> List[CellComplex]:
         """
         TODO - M3
         """
@@ -2816,57 +3007,88 @@ class Topology:
             return False
 
 #--------------------------------------------------------------------------------------------------
-    def global_cluster_sub_topologies(self):
-        pass
+    def global_cluster_sub_topologies(self, sub_topologies: List['Topology']) -> None:
+        
+        occt_list_members = TopTools_ListOfShape()
+        Topology.sub_topologies(GlobalCluster.get_instance().get_occt_compound(), occt_list_members)
+
+        occt_iterator = TopTools_ListIteratorOfListOfShape(occt_list_members)
+
+        while occt_iterator.More():
+
+            member_topology = Topology.by_occt_shape(occt_iterator.Value())
+            sub_topologies.append(member_topology)
+
+            occt_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def upward_navigation(self, 
-                          host_topology: TopoDS_Shape,
-                          topology_type: TopologyTypes) -> 'List[Topology]':
+    # def upward_navigation(self, host_topology: TopoDS_Shape, topology_type: int) -> List['Topology']:
+
+    #     ancestors: List['Topology'] = [] 
+
+    #     if topology_type == TopologyTypes.VERTEX:
+    #         return # no lower dimensional topology
+
+    #     elif topology_type == TopologyTypes.EDGE:
+    #         edges: List[Edge] = []
+    #         edges = self.upward_navigation_(host_topology, topology_type)
+
+    #         for n in edges:
+    #             ancestors.append(n)
+
+    #         return ancestors
+
+    #     # ...   
+
+#--------------------------------------------------------------------------------------------------
+    def upward_navigation_(self, host_topology: TopoDS_Shape, topology_type: int) -> List['Topology']:
         """
         Returns:
             Looks up what higher order shapes contain this topology.
         """
 
-        #-------------------------------------------------------------
-        # The argument "topology_type" is unused. Is it really needed?
-        #------------------------------------------------------------- 
+        ancestors: List['Topology'] = []
+
+        occt_shape_type: TopAbs_ShapeEnum = topology_type # ??? int = TopAbs_shapeEnum ???
 
         if host_topology.IsNull():
             raise RuntimeError("Host Topology cannot be None when searching for ancestors.")
         
-        ret_ancestors: List[Topology] = []
-        occt_shape_type = self.get_shape_type()
-        occt_ancestor_map: TopTools_MapOfShape = None
+        occt_ancestor_map = TopTools_MapOfShape()
         occt_shape_map = TopTools_IndexedDataMapOfShapeListOfShape()
+
         topexp.MapShapesAndUniqueAncestors(
             host_topology,
             self.get_occt_shape().ShapeType(),
-            TopAbs_ShapeEnum(occt_shape_type.value),
+            occt_shape_type,
             occt_shape_map)
         
         occt_ancestors = TopTools_ListOfShape()
-        is_in_shape = occt_shape_map.FindFromKey(self.get_occt_shape(), occt_ancestors)
-        if not is_in_shape: return []
 
-        shape_iterator = TopTools_ListIteratorOfListOfShape(occt_ancestors)
-        while shape_iterator.More():
-            occt_ancestor = shape_iterator.Value()
+        is_in_shape = occt_shape_map.FindFromKey(self.get_occt_shape(), occt_ancestors)
+        if not is_in_shape:
+            return
+
+        occt_ancestor_iterator = TopTools_ListIteratorOfListOfShape(occt_ancestors)
+
+        while occt_ancestor_iterator.More():
+
+            occt_ancestor = occt_ancestor_iterator.Value()
             is_ancestor_added = occt_ancestor_map.Contains(occt_ancestor)
 
             if occt_ancestor.ShapeType() == occt_shape_type and not is_ancestor_added:
                 occt_ancestor_map.Add(occt_ancestor)
 
-                p_topology = Topology.by_occt_shape(occt_ancestor, "")
-                ret_ancestors.append(p_topology)
+                topology = Topology.by_occt_shape(occt_ancestor, "")
+                ancestors.append(topology)
 
-            shape_iterator.Next()
+            occt_ancestor_iterator.Next()
 
-        return ret_ancestors
+        return ancestors
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> List['Topology']:
+    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_MapOfShape:
         """
         Navigates downward through the sub-shapes of a given shape and retrieves
         the ones of a specified type.
@@ -2878,22 +3100,29 @@ class Topology:
         Returns:
             TopTools_MapOfShape: Map containing the retrieved sub-shapes.
         """
-        ret_members: List['Topology'] = []
+        # ret_members: List['Topology'] = []
 
         occt_members = TopTools_MapOfShape()
+
         occt_explorer = TopExp_Explorer(occt_shape, shape_enum)
+
         while occt_explorer.More():
-            occt_current_shape = occt_explorer.Current()
-            if not occt_members.Contains(occt_current_shape):
-                occt_members.Add(occt_current_shape)
-                child_topology = Topology.by_occt_shape(occt_current_shape, "")
-                ret_members.append(child_topology)
+
+            occt_current = occt_explorer.Current()
+
+            if not occt_members.Contains(occt_current):
+                occt_members.Add(occt_current)
+
+                # child_topology = Topology.by_occt_shape(occt_current_shape, "")
+                # ret_members.append(child_topology)
+
             occt_explorer.Next()
 
-        return ret_members
+        # return ret_members
+        return occt_members
 
 #--------------------------------------------------------------------------------------------------
-    # EZT MIERT??? - A C++ KODBAN NINCS BENNE!!!!
+    # downward_navigation from Toplogy.h
     def downward_navigation(self, topabs_shape_enum: TopAbs_ShapeEnum=None) -> List['Topology']:
         """
         Appends collection of topology members that belong to current shape.
@@ -2920,12 +3149,69 @@ class Topology:
         return ret_members
 
 #--------------------------------------------------------------------------------------------------
-    def deep_copy_explode_shape(self):
-        pass
+    def deep_copy_explode_shape(self, occt_original_shape: TopoDS_Shape, occt_copy: BRepBuilderAPI_Copy, occt_shape_copy_shape_map: TopTools_DataMapOfShapeShape) -> None:
+        
+        occt_shape_copy_shape_map.Bind(occt_original_shape, occt_copy.Shape())
+        occt_shape_copy_shape_map.Bind(occt_copy.Shape(), occt_original_shape)
+
+        occt_members = TopTools_ListOfShape()
+
+        Topology.Members(occt_original_shape, occt_members)
+
+        occt_member_iterator = TopTools_ListIteratorOfListOfShape(occt_members)
+
+        while occt_member_iterator.More():
+
+            occt_member = occt_member_iterator.Value()
+
+            try:
+                occt_member_copy = occt_copy.ModifiedShape(occt_member)
+                occt_shape_copy_shape_map.Bind(occt_member, occt_member_copy)
+                occt_shape_copy_shape_map.Bind(occt_member_copy, occt_member)
+
+                AttributeManager.get_instance().copy_attributes(occt_member, occt_member_copy)
+            
+            except:
+                pass
+
+            occt_member_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def deep_copy_impl(self):
-        pass
+    def deep_copy_impl(self, occt_shape: TopoDS_Shape, occt_shape_copy_shape_map: TopTools_DataMapOfShapeShape) -> 'Topology':
+        
+        occt_shape_copier = BRepBuilderAPI_Copy(occt_shape)
+        occt_shape_copy: TopoDS_Shape = occt_shape_copier.Shape()
+
+        AttributeManager.get_instance().copy_attributes(occt_shape, occt_shape_copy)
+        self.deep_copy_explode_shape(occt_shape, occt_shape_copier, occt_shape_copy_shape_map)
+
+        # Explode
+        shape_copy: Topology = Topology.by_occt_shape(occt_shape_copy, Topology.get_instance_guid(occt_shape))
+
+        contexts: List[Context] = []
+        Topology.contexts(occt_shape, contexts)
+
+        for context in contexts:
+            
+            context_topology = context.topology()
+
+            occt_copy_shape = TopoDS_Shape()
+
+            is_context_copied = occt_shape_copy_shape_map.Find(context_topology.get_occt_shape(), occt_shape_copy)
+            copy_context_topology = Topology()
+
+            if is_context_copied:
+                copy_context_topology = Topology.by_occt_shape(occt_copy_shape, Topology.get_instance_guid(context_topology.get_occt_shape()))
+            else:
+                copy_context_topology = self.deep_copy_impl(context_topology.get_occt_shape(), occt_shape_copy_shape_map)
+
+            copy_context_topology.add_content(shape_copy)
+
+        sub_contents: List['Topology'] = []
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------
     def deep_copy(self):
@@ -3024,7 +3310,7 @@ class Topology:
         """
         return self.base_shape
     
-    def navigate(self, host_topology: 'Topology') -> 'List[Topology]':
+    def navigate(self, host_topology: 'Topology') -> List['Topology']:
         """
         TODO: Review logic!
         Either navigates upward or downward based on the current type.   
