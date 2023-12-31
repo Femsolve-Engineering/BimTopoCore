@@ -53,9 +53,13 @@ class Face(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(occt_face, TopologyTypes.FACE)
+        instance_topology = super().__init__(occt_face, TopologyTypes.FACE)
         self.base_shape_face = occt_face
         self.register_factory(self.get_class_guid(), FaceFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
     def adjacent_faces(self, host_topology: Topology):
         """

@@ -24,15 +24,15 @@ class ContentManager():
     instance = None
 
     def __init__(self) -> None:
-        
-        ContentManager.instance = self
 
         self.occt_shape_to_contents_map = {}
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def get_instance():
-        return ContentManager.instance
+
+        instance = ContentManager()
+        return instance
 
 #--------------------------------------------------------------------------------------------------
     def add(self, occt_shape: TopoDS_Shape, content_topology: Topology) -> None:

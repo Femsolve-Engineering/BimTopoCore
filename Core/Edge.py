@@ -40,9 +40,13 @@ class Edge(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(occt_edge, TopologyTypes.EDGE)
+        instance_topology = super().__init__(occt_edge, TopologyTypes.EDGE)
         self.base_shape_edge = occt_edge
         self.register_factory(self.get_class_guid(), EdgeFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
     def adjacent_edges(self, host_topology: Topology) -> 'List[Edge]':
         """Calculates and returns the edges adjacent to this edge.

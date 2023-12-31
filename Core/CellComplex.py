@@ -53,9 +53,13 @@ class CellComplex(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(occt_compSolid, TopologyTypes.CELLCOMPLEX)
+        instance_topology = super().__init__(occt_compSolid, TopologyTypes.CELLCOMPLEX)
         self.base_shape_compSolid = occt_compSolid
         self.register_factory(self.get_class_guid(), CellComplexFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
     def is_container_type(self) -> bool:
         """

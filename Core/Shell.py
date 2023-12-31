@@ -48,9 +48,13 @@ class Shell(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(occt_shell, TopologyTypes.SHELL)
+        instance_topology = super().__init__(occt_shell, TopologyTypes.SHELL)
         self.base_shape_shell = occt_shell
         self.register_factory(self.get_class_guid(), ShellFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
 #--------------------------------------------------------------------------------------------------
     def is_container_type(self) -> bool:

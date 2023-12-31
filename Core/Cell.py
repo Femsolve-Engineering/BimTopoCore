@@ -54,9 +54,13 @@ class Cell(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
 
-        super().__init__(occt_solid, TopologyTypes.CELL)
+        instance_topology = super().__init__(occt_solid, TopologyTypes.CELL)
         self.base_shape_solid = occt_solid
         self.register_factory(self.get_class_guid(), CellFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
 #--------------------------------------------------------------------------------------------------
     def is_container_type(self) -> bool:

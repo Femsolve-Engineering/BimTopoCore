@@ -54,6 +54,10 @@ class AttributeManager():
         self.occt_shape_to_attributes_map: Dict[TopoDS_Shape, Attribute] = {}
 
     def get_instance():
+        instance = AttributeManager()
+        return instance
+
+    def add():
         pass
 
     def copy_attributes():
@@ -62,8 +66,7 @@ class AttributeManager():
     def deep_copy_attributes():
         pass
 
-    def add():
-        pass
+
 
     def get_attributes_in_sub_shapes():
         pass

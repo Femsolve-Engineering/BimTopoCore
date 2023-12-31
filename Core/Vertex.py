@@ -32,9 +32,13 @@ class Vertex(Topology):
             guid (str, optional): Shape specific guid. Defaults to "".
         """
         # ctor_guid = self.get_class_guid() if guid == "" else guid
-        super().__init__(occt_vertex, TopologyTypes.VERTEX)
+        instance_topology = super().__init__(occt_vertex, TopologyTypes.VERTEX)
         self.base_shape_vertex = occt_vertex
         self.register_factory(self.get_class_guid(), VertexFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
     @staticmethod
     def by_point(occt_geom_point: Geom_Point) -> 'Vertex':

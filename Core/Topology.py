@@ -12,15 +12,21 @@ from Core.AttributeManager import AttributeManager
 # OCC
 from ContentManager import ContentManager
 from ContextManager import ContextManager
-from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, TopoDS_Compound, topods
+from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, TopoDS_Compound, topods, TopoDS_Builder, TopoDS_Iterator
 from OCC.Core.gp import gp_Pnt
-from OCC.Core.ShapeFix import ShapeFix_Shape
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
+from OCC.Core.Extrema import Extrema_ExtFlag_MINMAX
+from OCC.Core.ShapeFix import ShapeFix_Shape, ShapeFix_Solid, ShapeFix_Shell, ShapeFix_Face
+from OCC.Core.ShapeAnalysis import ShapeAnalysis_ShapeContents
+from OCC.Core.ShapeBuild import ShapeBuild_ReShape
+from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape, TopTools_FormatVersion_VERSION_1, TopTools_FormatVersion_VERSION_2, TopTools_FormatVersion_VERSION_3, TopTools_FormatVersion_CURRENT, TopTools_DataMapOfShapeShape
 from OCC.Core.TopAbs import TopAbs_ShapeEnum
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
+from OCC.Core.BRepTools import breptools
+from OCC.Core.BRepAlgo import BRepAlgo_Common, BRepAlgo_Section, BOPAlgo_MakerVolume, BRepAlgoAPI_Fuse
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_BooleanOperation
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire, BRepBuilderAPI_WireDone, BRepBuilderAPI_MakeFace, BRepBuilderAPI_FaceDone
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire, BRepBuilderAPI_WireDone, BRepBuilderAPI_MakeFace, BRepBuilderAPI_FaceDone, BRepBuilderAPI_Sewing
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopExp import topexp
 from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
@@ -41,6 +47,7 @@ from OCC.Core.TopAbs import (
     TopAbs_COMPSOLID,
     TopAbs_IN, TopAbs_ON, TopAbs_State
 )
+from OCC.Core.BOPAlgo import BOPAlgo_CellsBuilder
 from OCC.Core.Geom import Geom_Geometry
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
@@ -56,6 +63,7 @@ from Core.Cell import Cell
 from Core.CellComplex import CellComplex
 from Core.Shell import Shell
 from Core.Cluster import Cluster
+from Core.GlobalCluster import GlobalCluster
 
 from Core.TopologyConstants import TopologyTypes
 from Core.InstanceGUIDManager import InstanceGUIDManager
@@ -76,6 +84,9 @@ class Topology:
     """
 
     topologic_entity_count: int = 0
+
+    topology_to_subshape: Dict['Topology', 'Topology'] = {} # used to mimic the function 'downcast'
+    subshape_to_topology: Dict['Topology', 'Topology'] = {} # used to mimic the function 'upcast'
 
     def __init__(self,
                  base_shape: TopoDS_Shape, 
@@ -99,6 +110,8 @@ class Topology:
         self.guid = self.get_class_guid()
 
         Topology.topologic_entity_count += 1
+
+        return self
 
 #--------------------------------------------------------------------------------------------------
     def closest_simplest_subshape(self, topology: 'Topology') -> 'Topology':
@@ -1190,15 +1203,15 @@ class Topology:
     def export_to_brep(self, file_path: str, version: int = 3) -> bool:
         
         if version == 1:
-            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_1)
+            return breptools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormatVersion_VERSION_1)
 
         elif version == 2:
-            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_2)
+            return breptools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormatVersion_VERSION_2)
 
         elif version == 3:
-            return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_3)
+            return breptools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormatVersion_VERSION_3)
 
-        return BRepTools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormanVersion_CURRENT)
+        return breptools.Write(self.get_occt_shape(), file_path, False, True, TopTools_FormatVersion_CURRENT)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
@@ -1207,7 +1220,7 @@ class Topology:
         occt_shape = TopoDS_Shape()
         occt_brep_builder = BRep_Builder()
 
-        return_value = BRepTools.Read(occt_shape, file_path, occt_brep_builder)
+        return_value = breptools.Read(occt_shape, file_path, occt_brep_builder)
         topology = Topology.by_occt_shape(occt_shape, "")
 
         return topology
@@ -1221,7 +1234,7 @@ class Topology:
 
         iss = StringIO(brep_string)
 
-        BRepTools.Read(occt_shape, iss, occt_brep_builder)
+        breptools.Read(occt_shape, iss, occt_brep_builder)
 
         topology = Topology.by_occt_shape(occt_shape, "")
 
@@ -1233,13 +1246,13 @@ class Topology:
         oss = StringIO()
 
         if version == 1:
-            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_1)
+            breptools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormatVersion_VERSION_1)
 
         elif version == 2:
-            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_2)
+            breptools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormatVersion_VERSION_2)
 
         elif version == 3:
-            BRepTools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormanVersion_3)
+            breptools.Write(self.get_occt_shape(), oss, False, True, TopTools_FormatVersion_VERSION_3)
 
         return oss.getvalue()
 
@@ -2451,7 +2464,7 @@ class Topology:
                 occt_current_face = occt_shell_explorer.Current()
 
                 # ???? occt_current_wire ????
-                occt_outer_wire = BRepTools.OuterWire(topods.face(occt_current_face))
+                occt_outer_wire = breptools.OuterWire(topods.face(occt_current_face))
 
                 while occt_face_explorer.More():
 
@@ -2466,7 +2479,7 @@ class Topology:
 
         elif occt_shape_type == TopAbs_FACE:
 
-            occt_outer_wire = BRepTools.OuterWire(topods.face(occt_shape))
+            occt_outer_wire = breptools.OuterWire(topods.face(occt_shape))
 
             occt_explorer = TopExp_Explorer(occt_shape, TopAbs_WIRE)
 
@@ -3298,7 +3311,7 @@ class Topology:
 
         for origin_topology in origin_topologies:
 
-            AttributeManager.get_instance().get_attributes_in_sub_shapes(origin_topology.get_occt_shape(), origin_attributes_map)
+            AttributeManager.get_instance().get_attributes_in_sub_shapes(origin_topology.get_occt_shape(), origin_attribute_map)
 
         selectors: List[Vertex] = []
         dictionaries: List[Dict[str, Attribute]] = []

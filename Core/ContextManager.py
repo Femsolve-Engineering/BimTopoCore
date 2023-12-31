@@ -23,15 +23,15 @@ from Core.TopologyConstants import TopologyTypes
 class ContextManager():
 
     def __init__(self) -> None:
-
-        ContextManager.instance = self
         
         self.occt_shape_to_contexts_map = {}
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def get_instance():
-        return ContextManager.instance
+
+        instance = ContextManager()
+        return instance
 
 #--------------------------------------------------------------------------------------------------
     def add(self, occt_shape: TopoDS_Shape, context: Context) -> None:

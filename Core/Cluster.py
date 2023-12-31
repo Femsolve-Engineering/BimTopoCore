@@ -55,9 +55,13 @@ class Cluster(Topology):
         """
 
         # This constructor does not initialise the compound with MakeCompound.
-        super().__init__(occt_compound, TopologyTypes.CLUSTER)
+        instance_topology = super().__init__(occt_compound, TopologyTypes.CLUSTER)
         self.base_shape_compound = occt_compound
         self.register_factory(self.get_class_guid(), ClusterFactory())
+
+        # Register the instances
+        Topology.topology_to_subshape[instance_topology] = self
+        Topology.subshape_to_topology[self] = instance_topology
 
         self.occt_builder = BRep_Builder() 
 
