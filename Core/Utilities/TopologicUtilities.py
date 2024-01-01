@@ -2,6 +2,9 @@
 from typing import List
 from typing import Tuple
 from math import pi
+from enum import Enum
+
+import sys
 
 # OCC
 from OCC.Core import Precision
@@ -22,22 +25,31 @@ from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.Poly import Poly_Triangulation
 from OCC.Core.TopAbs import (
     TopAbs_EDGE,
+    TopAbs_FACE,
     TopAbs_SHAPE,
     TopAbs_WIRE,
-    TopAbs_VERTEX
+    TopAbs_VERTEX,
+    TopAbs_IN,
+    TopAbs_OUT,
+    TopAbs_ON,
+    TopAbs_State
 )
 
 from OCC.Core.TopoDS import (
     TopoDS_Face,
-    TopoDS_Wire
+    TopoDS_Wire,
+    TopoDS_Solid,
 )
 
-from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_IndexedDataMapOfShapeListOfShape, TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
+
+from OCC.Core.TopExp import topexp, TopExp_Explorer
 
 from OCC.Core.GeomLib import GeomLib_Tool
 from OCC.Core.ShapeAnalysis import shapeanalysis, ShapeAnalysis_Surface
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRep import BRep_Tool
+from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 from OCC.Core.BRepBuilderAPI import (
     brepbuilderapi,
@@ -52,6 +64,9 @@ from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
 from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.TopoDS import topods, TopoDS_Face
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRepBndLib import brepbndlib
 
 # BimTopoCore
 from Core.Topology import Topology
@@ -604,11 +619,180 @@ class FaceUtility:
             ret_cells.append(Cell(adj_top.get_occt_shape()))
 
     @staticmethod
-    def adjacent_faces():
-        pass
+    def adjacent_faces(face: Face, parent_topology: Topology, core_adjacent_faces: List[Face]) -> None:
+        
+        # Iterate through the edges and find the incident faces which are not this face.
+        occt_edge_face_map = TopTools_IndexedDataMapOfShapeListOfShape()
+        topexp.MapShapesAndUniqueAncestors(parent_topology.get_occt_shape(), TopAbs_EDGE, TopAbs_FACE, occt_edge_face_map)
 
+        # Find the constituent faces
+        occt_edges = TopTools_MapOfShape()
+
+        occt_explorer = TopExp_Explorer(face.get_occt_shape(), TopAbs_EDGE)
+
+        while occt_explorer.More():
+
+            occt_current = occt_explorer.Current()
+
+            if not occt_edges.Contains(occt_current):
+                occt_edges.Add(occt_current)
+
+            occt_explorer.Next()
+
+        occt_face: TopoDS_Face = face.get_occt_face()
+
+        occt_adjacent_faces = TopTools_MapOfShape()
+        occt_edges_iterator = TopTools_MapIteratorOfMapOfShape(occt_edges)
+
+        while occt_edges_iterator.More():
+
+            occt_edge = occt_edges_iterator.Value()
+
+            incident_faces: TopTools_ListOfShape = occt_edge_face_map.FindFromKey(occt_edge)
+
+            incident_faces_iterator = TopTools_ListIteratorOfListOfShape(incident_faces)
+
+            while incident_faces_iterator.More():
+
+                incident_face = incident_faces_iterator.Value()
+
+                if not occt_face.IsSame(incident_face):
+                    occt_adjacent_faces.Add(incident_face)
+
+                incident_faces_iterator.Next()
+
+            occt_edges_iterator.Next()
+
+        occt_adjacent_face_iterator = TopTools_MapIteratorOfMapOfShape(occt_adjacent_faces)
+
+        while occt_adjacent_face_iterator.More(topods.Face(occt_adjacent_face_iterator.Value())):
+
+            core_adjacent_faces.append()
+
+            occt_adjacent_face_iterator.Next()
+
+#--------------------------------------------------------------------------------------------------
+class CellcontainmentState(Enum):
+    INSIDE = 0
+    ON_BOUNDARY = 1
+    OUTSIDE = 2
+    UNKNOWN = 3
+
+#--------------------------------------------------------------------------------------------------
 class CellUtility:
 
     @staticmethod
-    def internal_vertex():
-        pass
+    def internal_vertex(occt_solid: TopoDS_Solid, tolerance: float) -> Vertex:
+        return CellUtility.internal_vertex(Cell(occt_solid, ""), tolerance)
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def internal_vertex(cell: Cell, tolerance: float) -> Vertex:
+        
+        # Check the centroid first
+        center_of_mass: Vertex = cell.center_of_mass()
+
+        if CellUtility.contains(cell, center_of_mass, tolerance) == CellcontainmentState.INSIDE:
+            return center_of_mass
+
+        # This methods accepts as input a Cell and outputs a Vertex guaranteed to be inside the Cell. 
+        # This method relies on #3 to first choose a Vertex on a random Face of the Cell, 
+        # then it shoots a Ray in the opposite direction of its normal and finds the closest intersection. 
+        # The midpoint is returned as a Vertex guaranteed to be inside the Cell.
+
+        # Pick random Face
+        faces: List[Face] = []
+        faces = cell.faces()
+
+        for face in faces:
+
+            vertex_in_face = FaceUtility.internal_vertex(face, tolerance)
+
+            # Get the bounding box diagonal length
+            min_x = 0.0
+            max_x = 0.0
+            min_y = 0.0
+            max_y = 0.0
+            min_z = 0.0
+            max_z = 0.0
+
+            CellUtility.get_min_max(min_x, max_x, min_y, max_y, min_z, max_z)
+
+            corner_1: Vertex = Vertex.by_coordinates(min_x, min_y, min_z)
+            corner_2: Vertex = Vertex.by_coordinates(max_x, max_y, max_z)
+
+            diagonal_length = VertexUtility.distance(corner_1, corner_2)
+
+            # Get the normal at vertexInFace
+            u = 0.0
+            v = 0.0
+
+            FaceUtility.parameters_at_vertex(face, vertex_in_face, u, v)
+            occt_normal: gp_Dir = FaceUtility.normal_at_parameters(face, u, v)
+            occt_reversed_normal: gp_Dir = occt_normal.Reversed()
+
+            occt_ray_end: gp_Pnt = vertex_in_face.Point().Pnt().Translated(diagonal_length * occt_reversed_normal)
+            ray_end: Vertex = Vertex.by_point(Geom_CartesianPoint(occt_ray_end))
+
+            # Shoot the ray = edge vs cell intersection
+            ray: Edge = Edge.by_start_vertex_end_vertex(vertex_in_face, ray_end)
+            ray_shot: Topology = cell.intersect(ray)
+
+            # Get the vertices of the ray
+            ray_vertices: List[Vertex] = []
+            ray_vertices = ray_shot.vertices()
+
+            # Get the closest intersection (but not the original vertex in face)
+            min_distance = sys.float_info.max
+            closest_vertex: Vertex = None
+
+            for ray_vertex in ray_vertices:
+
+                distance = VertexUtility.distance(ray_vertex, vertex_in_face)
+
+                if distance < tolerance: # the same vertex
+                    continue
+
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_vertex = ray_vertex
+
+            if distance == None:
+                raise RuntimeError("Ray casting fails to identify the closest vertex from a random point.")
+
+            # Create a line between the closest vertex and vertex in Face, then get the midpoint (center of mass)
+            shortest_edge: Edge = Edge.by_start_vertex_end_vertex(vertex_in_face, closest_vertex)
+            shortest_edge_center_of_mass: Vertex = shortest_edge.center_of_mass()
+
+            return shortest_edge_center_of_mass
+
+        return None
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def contains(cell: Cell, vertex: Vertex, tolerance: float) -> CellcontainmentState:
+        
+        occt_solid_classifier = BRepClass3d_SolidClassifier(cell.get_occt_solid(), vertex.Point().Pnt(), Precision.precision_Confusion())
+
+        occt_state: TopAbs_State = occt_solid_classifier.State()
+
+        if occt_state == TopAbs_IN:
+            return CellcontainmentState.INSIDE
+
+        elif occt_state == TopAbs_ON:
+            return CellcontainmentState.ON_BOUNDARY
+
+        elif occt_state == TopAbs_OUT:
+            return CellcontainmentState.OUTSIDE
+        
+        else:
+            return CellcontainmentState.UNKNOWN
+
+#--------------------------------------------------------------------------------------------------
+    @staticmethod
+    def get_min_max(cell: Cell, min_x: float, max_x: float, min_y: float, max_y: float, min_z: float, max_z: float) -> None:
+        
+        occt_bounding_box = Bnd_Box()
+
+        brepbndlib.Add(cell.get_occt_shape(), occt_bounding_box)
+        occt_bounding_box.Get(min_x, min_y, min_z, max_x, max_y, max_z)
