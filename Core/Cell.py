@@ -9,8 +9,8 @@ from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, topods
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPOUND
 from OCC.Core.BRep import BRep_Tool
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape, TopTools_ListOfShape, TopTools_IndexedDataMapOfShapeListOfShape
-from OCC.core.TopExp import TopExp_MapShapesAndAncestors, TopExp_Explorer
+from OCC.Core.TopTools import toptools, TopTools_MapOfShape, TopTools_ListOfShape, TopTools_IndexedDataMapOfShapeListOfShape
+from OCC.Core.TopExp import topexp, TopExp_Explorer
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Surface, Geom_Geometry
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Edge
@@ -21,21 +21,13 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_NotPlanar
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_CurveProjectionFailed
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_ParametersOutOfRange
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepGProp import brepgprop_LinearProperties, SurfaceProperties, VolumeProperties
+from OCC.Core.BRepGProp import brepgprop, brepgprop_LinearProperties
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeSolid
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
-from OCC.Core.BRepClass3d import BRepClass3d_OuterShell
+from OCC.Core.BRepClass3d import brepclass3d
 from OCC.Core.BOPAlgo import BOPAlgo_MakerVolume
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
-from Core.CellComplex import CellComplex
-from Core.Shell import Shell
-
 from Core.Utilities import EdgeUtility
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
@@ -87,7 +79,7 @@ class Cell(Topology):
 
         # Get a map of Face->Solid[]
         occt_face_solid_map = TopTools_IndexedDataMapOfShapeListOfShape()
-        TopExp_MapShapesAndAncestors(host_topology.get_occt_shape(), TopAbs_FACE, TopAbs_SOLID, occt_face_solid_map)
+        topexp.TopExp_MapShapesAndAncestors(host_topology.get_occt_shape(), TopAbs_FACE, TopAbs_SOLID, occt_face_solid_map)
 
         # Find the constituent Faces
         occt_faces = TopTools_MapOfShape() # Create an empty list for shapes
@@ -175,6 +167,9 @@ class Cell(Topology):
         Returns the Vertex at the center of mass of this Cell.
         """
 
+        from Core.Vertex import Vertex
+        from Core.Cell import Cell
+
         occt_vertex = Cell.make_pnt_at_center_of_mass(self.get_occt_solid())
         vertex = Vertex(occt_vertex)
         
@@ -193,14 +188,14 @@ class Cell(Topology):
         """
 
         occt_shape_properties = GProp_GProps()
-        VolumeProperties(occt_solid, occt_shape_properties)
+        brepgprop.VolumeProperties(occt_solid, occt_shape_properties)
 
         center_of_mass_point = occt_shape_properties.CenterOfMass()
         return BRepBuilderAPI_MakeVertex(center_of_mass_point).Vertex()
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_face(faces: List[Face], tolerance: float, copy_attributes: boolean):
+    def by_face(faces: List['Face'], tolerance: float, copy_attributes: boolean):
         """
         Creates a Cell by a set of faces.
         """
@@ -266,7 +261,7 @@ class Cell(Topology):
                 occt_solid = topods.Solid(occt_shape)
 
         # Shape fix the solid
-        occt_fixed_solid = self.occt_shape_fix(occt_solid)
+        occt_fixed_solid = Cell.occt_shape_fix(occt_solid)
         fixed_cell = Cell(occt_fixed_solid)
 
         # Deep copy the Cell
@@ -304,7 +299,7 @@ class Cell(Topology):
         return copy_fixed_cell
 
 #--------------------------------------------------------------------------------------------------
-    def by_shell(self, shell: Shell, copy_attributes: boolean):
+    def by_shell(self, shell: 'Shell', copy_attributes: boolean):
         """
         Creates a Cell by a Shell.
         """
@@ -345,11 +340,13 @@ class Cell(Topology):
         return copy_fixed_cell
 
 #--------------------------------------------------------------------------------------------------
-    def shared_edges(self, another_cell: Cell) -> List[Edge]:
+    def shared_edges(self, another_cell: 'Cell') -> List['Edge']:
         """
         Identify Edges shared by two cells.
         """
         
+        from Core.Edge import Edge
+
         occt_shape1 = self.get_occt_shape()
         occt_edges1 = TopTools_MapOfShape()
         occt_edges1 = Topology.static_downward_navigation(occt_shape1, TopAbs_EDGE)
@@ -360,9 +357,9 @@ class Cell(Topology):
 
         shared_edges_list = []
 
-        for occt_edge_iterator1 in TopTools_MapIteratorOfMapOfShape(occt_edges1):
+        for occt_edge_iterator1 in toptools.TopTools_MapIteratorOfMapOfShape(occt_edges1):
 
-            for occt_edge_iterator2 in TopTools_MapIteratorOfMapOfShape(occt_edges2):
+            for occt_edge_iterator2 in toptools.TopTools_MapIteratorOfMapOfShape(occt_edges2):
 
                 if occt_edge_iterator1.Value().IsSame(occt_edge_iterator2.Value()):
 
@@ -372,10 +369,12 @@ class Cell(Topology):
         return shared_edges_list
 
 #--------------------------------------------------------------------------------------------------
-    def shared_faces(self, another_cell: Cell) -> List[Face]:
+    def shared_faces(self, another_cell: 'Cell') -> List['Face']:
         """
         Identify Faces shared by two cells.
         """
+
+        from Core.Face import Face
 
         occt_shape1 = self.get_occt_shape()
         occt_faces1 = TopTools_MapOfShape()
@@ -387,9 +386,9 @@ class Cell(Topology):
 
         shared_faces_list = []
 
-        for occt_face_iterator1 in TopTools_MapIteratorOfMapOfShape(occt_faces1):
+        for occt_face_iterator1 in toptools.TopTools_MapIteratorOfMapOfShape(occt_faces1):
 
-            for occt_face_iterator2 in TopTools_MapIteratorOfMapOfShape(occt_faces2):
+            for occt_face_iterator2 in toptools.TopTools_MapIteratorOfMapOfShape(occt_faces2):
 
                 if occt_face_iterator1.Value().IsSame(occt_face_iterator2.Value()):
 
@@ -399,10 +398,12 @@ class Cell(Topology):
         return shared_faces_list
 
 #--------------------------------------------------------------------------------------------------
-    def shared_vertices(self, another_cell: Cell) -> List[Vertex]:
+    def shared_vertices(self, another_cell: 'Cell') -> List['Vertex']:
         """
         Identify Vertices shared by two cells.
         """
+
+        from Core.Vertex import Vertex
         
         occt_shape1 = self.get_occt_shape()
         occt_vertices1 = TopTools_MapOfShape()
@@ -414,9 +415,9 @@ class Cell(Topology):
 
         shared_vertices_list = []
 
-        for occt_vertex_iterator1 in TopTools_MapIteratorOfMapOfShape(occt_vertices1):
+        for occt_vertex_iterator1 in toptools.TopTools_MapIteratorOfMapOfShape(occt_vertices1):
 
-            for occt_vertex_iterator2 in TopTools_MapIteratorOfMapOfShape(occt_vertices2):
+            for occt_vertex_iterator2 in toptools.TopTools_MapIteratorOfMapOfShape(occt_vertices2):
 
                 if occt_vertex_iterator1.Value().IsSame(occt_vertex_iterator2.Value()):
 
@@ -430,8 +431,10 @@ class Cell(Topology):
         """
         Returns the external boundary (= Shell) of this Cell.
         """
+
+        from Core.Shell import Shell
         
-        occt_outer_shell = BRepClass3d_OuterShell(topods.Solid(self.get_occt_shape()))
+        occt_outer_shell = brepclass3d.OuterShell(topods.Solid(self.get_occt_shape()))
         return Shell(occt_outer_shell)
 
 #--------------------------------------------------------------------------------------------------
@@ -526,6 +529,8 @@ class Cell(Topology):
         """
         Creates a geometry from this Cell.
         """
+
+        from Core.Face import Face
 
         occt_geometries = []
         

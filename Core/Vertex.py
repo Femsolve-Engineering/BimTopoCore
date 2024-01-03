@@ -12,14 +12,17 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape, TopTools_ListOfShape
 from OCC.Core.gp import gp_Pnt
-from Core.Edge import Edge
+
 
 # BimTopoCore
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import VertexFactory
 
+from Core.Edge import Edge
+
 class Vertex(Topology):
+
     """
     Represents a 1D vertex object. Serves as a wrapper around 
     TopoDS_VERTEX entity of OCC.

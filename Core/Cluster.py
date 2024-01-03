@@ -3,7 +3,6 @@
 from typing import Tuple
 from typing import List
 from xmlrpc.client import boolean
-from CellComplex import CellComplex
 
 # OCC
 from OCC.Core.Standard import Standard_Failure
@@ -11,8 +10,8 @@ from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPOUND
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_MapIteratorOfMapOfShape
-from OCC.core.TopExp import TopExp_Explorer
+from OCC.Core.TopTools import toptools, TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
+from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Surface, Geom_Geometry
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Edge
@@ -23,7 +22,7 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_NotPlanar
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_CurveProjectionFailed
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_ParametersOutOfRange
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepGProp import brepgprop_LinearProperties, VolumeProperties
+from OCC.Core.BRepGProp import brepgprop_LinearProperties
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex, BRepBuilderAPI_MakeFace
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
 from OCC.Core.BOPAlgo import BOPAlgo_CellsBuilder
@@ -32,17 +31,13 @@ from OCC.Core.IntTools import IntTools_Context
 from OCC.Core.BOPTools import BOPTools_AlgoTools
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
-from Core.Shell import Shell
-from Core.Cluster import Cluster
+from Core.CellComplex import CellComplex
 
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import ClusterFactory
+
+from Core.AttributeManager import AttributeManager
 
 class Cluster(Topology):
     
@@ -73,7 +68,8 @@ class Cluster(Topology):
         if not topologies:
             return None
 
-        occt_compound = topods.Compound()
+        occt_compound = TopoDS_Compound()
+        topods.Compound(occt_compound)
         occt_builder = BRep_Builder()
         occt_builder.MakeCompound(occt_compound)
 
@@ -83,7 +79,13 @@ class Cluster(Topology):
             cluster.add_topology(topology)
 
         # Deep copy
-        copy_cluster = cluster.deep_copy_shape()
+        copy_cluster = cluster.deep_copy()
+
+        # Register shapes in Topology.topology_to_subshape and Topology.subshape_to_topology
+        # ...
+
+        # dynamic pointer cast -> convert TopoDS_Compound to Cluster
+        # ...
 
         # Transfer the attributes
         if copy_attributes:
@@ -97,8 +99,8 @@ class Cluster(Topology):
                 # AttributeManager::GetInstance().DeepCopyAttributes(kpTopology->GetOcctShape(), pCopyCluster->GetOcctCompound());
 
                 # Python code:
-                # instance = AttributeManager.get_instance()
-                # instance.deep_copy_attributes(topology.get_occt_shape(), copy_cluster.get_occt_compound())
+                instance = AttributeManager.get_instance()
+                instance.deep_copy_attributes(topology.get_occt_shape(), copy_cluster.get_occt_compound())
 
             # Topology.DeepCopyAttributesFrom not implemented!
 
@@ -114,7 +116,7 @@ class Cluster(Topology):
         occt_builder = BRep_Builder()
         occt_builder.MakeCompound(occt_compound)
 
-        occt_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_map_of_shapes)
+        occt_shape_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_map_of_shapes)
 
         while occt_shape_iterator.More():
 
@@ -180,32 +182,32 @@ class Cluster(Topology):
         raise RuntimeError("No implementation for Cluster entity.")
 
 #--------------------------------------------------------------------------------------------------
-    def shells(self) -> List[Shell]:
+    def shells(self) -> List['Shell']:
         
         return self.downward_navigation(TopologyTypes.SHELL)
 
 #--------------------------------------------------------------------------------------------------
-    def edges(self) -> List[Edge]:
+    def edges(self) -> List['Edge']:
         
         return self.downward_navigation(TopologyTypes.EDGE)
 
 #--------------------------------------------------------------------------------------------------
-    def faces(self) -> List[Face]:
+    def faces(self) -> List['Face']:
         
         return self.downward_navigation(TopologyTypes.FACE)
 
 #--------------------------------------------------------------------------------------------------
-    def vertices(self) -> List[Vertex]:
+    def vertices(self) -> List['Vertex']:
         
         return self.downward_navigation(TopologyTypes.VERTEX)
 
 #--------------------------------------------------------------------------------------------------
-    def wires(self) -> List[Wire]:
+    def wires(self) -> List['Wire']:
         
         return self.downward_navigation(TopologyTypes.WIRE)
 
 #--------------------------------------------------------------------------------------------------
-    def cells(self) -> List[Cell]:
+    def cells(self) -> List['Cell']:
         
         return self.downward_navigation(TopologyTypes.CELL)
 
@@ -235,6 +237,9 @@ class Cluster(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def center_of_mass(self) -> 'Vertex':
+
+        from Core.Vertex import Vertex
+        from Core.Cluster import Cluster
         
         occt_vertex = Cluster.make_pnt_at_center_of_mass(self.get_occt_compound())
         vertex = Vertex(occt_vertex)

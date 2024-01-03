@@ -41,7 +41,8 @@ from OCC.Core.TopoDS import (
     TopoDS_Solid,
 )
 
-from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_IndexedDataMapOfShapeListOfShape, TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape
+from OCC.Core.TopTools import toptools
+from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape, TopTools_IndexedDataMapOfShapeListOfShape, TopTools_MapOfShape
 
 from OCC.Core.TopExp import topexp, TopExp_Explorer
 
@@ -642,7 +643,7 @@ class FaceUtility:
         occt_face: TopoDS_Face = face.get_occt_face()
 
         occt_adjacent_faces = TopTools_MapOfShape()
-        occt_edges_iterator = TopTools_MapIteratorOfMapOfShape(occt_edges)
+        occt_edges_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_edges)
 
         while occt_edges_iterator.More():
 
@@ -663,7 +664,7 @@ class FaceUtility:
 
             occt_edges_iterator.Next()
 
-        occt_adjacent_face_iterator = TopTools_MapIteratorOfMapOfShape(occt_adjacent_faces)
+        occt_adjacent_face_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_adjacent_faces)
 
         while occt_adjacent_face_iterator.More(topods.Face(occt_adjacent_face_iterator.Value())):
 

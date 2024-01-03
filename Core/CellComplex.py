@@ -11,7 +11,7 @@ from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLI
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
-from OCC.core.TopExp import TopExp_Explorer
+from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Surface, Geom_Geometry
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Edge
@@ -22,7 +22,7 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_NotPlanar
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_CurveProjectionFailed
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_ParametersOutOfRange
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepGProp import brepgprop_LinearProperties, VolumeProperties
+from OCC.Core.BRepGProp import brepgprop, brepgprop_LinearProperties
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex, BRepBuilderAPI_MakeFace
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
 from OCC.Core.BOPAlgo import BOPAlgo_CellsBuilder
@@ -31,14 +31,6 @@ from OCC.Core.IntTools import IntTools_Context
 from OCC.Core.BOPTools import BOPTools_AlgoTools
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
-from Core.Shell import Shell
-from Core.Cluster import Cluster
-
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import CellComplexFactory
@@ -75,7 +67,7 @@ class CellComplex(Topology):
         return TopologyTypes.CELLCOMPLEX
 
 #--------------------------------------------------------------------------------------------------
-    def cells(self) -> List[Cell]:
+    def cells(self) -> List['Cell']:
         """
         Returns the Cell contituents to this CellComplex
         """
@@ -83,7 +75,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.CELL)
 
 #--------------------------------------------------------------------------------------------------
-    def faces(self) -> List[Face]:
+    def faces(self) -> List['Face']:
         """
         Returns the Face contituents to this CellComplex
         """
@@ -91,7 +83,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.FACE)
 
 #--------------------------------------------------------------------------------------------------
-    def shells(self) -> List[Shell]:
+    def shells(self) -> List['Shell']:
         """
         Returns the Shell contituents to this CellComplex
         """
@@ -99,7 +91,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.SHELL)
 
 #--------------------------------------------------------------------------------------------------
-    def edges(self) -> List[Edge]:
+    def edges(self) -> List['Edge']:
         """
         Returns the Edge contituents to this CellComplex
         """
@@ -107,7 +99,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.EDGE)
 
 #--------------------------------------------------------------------------------------------------
-    def vertices(self) -> List[Vertex]:
+    def vertices(self) -> List['Vertex']:
         """
         Find vertices making up the base shape.
         """
@@ -115,7 +107,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.VERTEX)
 
 #--------------------------------------------------------------------------------------------------
-    def wires(self) -> List[Wire]:
+    def wires(self) -> List['Wire']:
         """
         Returns the Wire contituents to this CellComplex
         """
@@ -123,7 +115,7 @@ class CellComplex(Topology):
         return self.downward_navigation(TopologyTypes.WIRE)
 
 #--------------------------------------------------------------------------------------------------
-    def by_cells(self, cells: List[Cell], copy_attributes: boolean) -> 'CellComplex':
+    def by_cells(self, cells: List['Cell'], copy_attributes: boolean) -> 'CellComplex':
         """
         Creates a CellComplex by a set of Cells.
         """
@@ -172,6 +164,9 @@ class CellComplex(Topology):
         """
         Creates an OCCT CompSolid by a set of OCCT solids
         """
+
+        from Core.CellComplex import CellComplex
+        from Core.Cluster import Cluster
 
         occt_builder = BRep_Builder()
         occt_compSolid = topods.CompSolid()
@@ -228,10 +223,13 @@ class CellComplex(Topology):
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_faces(faces: List[Face], tolerance: float, copy_attributes: boolean) -> 'CellComplex':
+    def by_faces(faces: List['Face'], tolerance: float, copy_attributes: boolean) -> 'CellComplex':
         """
         Creates a CellComplex from a space enclosed by a set of Faces.
         """
+
+        from Core.Cell import Cell
+        from Core.CellComplex import CellComplex
 
         occt_maker_volume = BRepAlgoAPI_Fuse()
 
@@ -305,6 +303,8 @@ class CellComplex(Topology):
         Returns the external boundary (= Cell) of a CellComplex.
         """
 
+        from Core.Cell import Cell
+
         # Get the Cells
         occt_cells_builders_arguments = TopTools_ListOfShape()
         cells: List[Cell] = []
@@ -363,10 +363,12 @@ class CellComplex(Topology):
         return None
 
 #--------------------------------------------------------------------------------------------------
-    def internal_boundaries(self) -> List[Face]:
+    def internal_boundaries(self) -> List['Face']:
         """
         Returns the internal boundary (= Faces) of a CellComplex.
         """
+
+        from Core.Face import Face
 
         internal_faces: List[Face] = []
         
@@ -409,10 +411,13 @@ class CellComplex(Topology):
         return False
 
 #--------------------------------------------------------------------------------------------------
-    def non_manifold_faces(self) -> List[Face]:
+    def non_manifold_faces(self) -> List['Face']:
         """
         Returns the non-manifold Faces of this CellComplex.
         """
+
+        from Core.Face import Face
+        from Core.CellComplex import CellComplex
 
         faces: List[Face] = []
         faces = self.faces()
@@ -461,6 +466,8 @@ class CellComplex(Topology):
         Creates a geometry from this CellComplex.
         """
 
+        from Core.Face import Face
+
         occt_geometries = []
         
         # Returns a list of faces
@@ -507,6 +514,9 @@ class CellComplex(Topology):
         Returns the Vertex at the center of mass of this OCCT compSolid.
         """
 
+        from Core.Vertex import Vertex
+        from Core.CellComplex import CellComplex
+
         occt_vertex = CellComplex.make_pnt_at_center_of_mass(self.get_occt_compSolid())
         vertex = Vertex(occt_vertex)
         
@@ -520,7 +530,7 @@ class CellComplex(Topology):
         """
         
         occt_shape_properties = GProp_GProps()
-        VolumeProperties(occt_compSolid, occt_shape_properties)
+        brepgprop.VolumeProperties(occt_compSolid, occt_shape_properties)
 
         center_of_mass_point = occt_shape_properties.CenterOfMass()
         return BRepBuilderAPI_MakeVertex(center_of_mass_point).Vertex()

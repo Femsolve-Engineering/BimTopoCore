@@ -19,6 +19,7 @@ from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUt
 # Wrapper
 from Wrapper.Vertex import Vertex
 from Wrapper.Vector import Vector
+from Wrapper.Cluster import Cluster
 from Wrapper.Topology import Topology
 
 class Shell(Topology):
@@ -45,7 +46,7 @@ class Shell(Topology):
         faceList = [x for x in faces if isinstance(x, coreFace)]
         if len(faceList) < 1:
             return None
-        shell = coreShell.ByFaces(faceList, tolerance)
+        shell = coreShell.by_faces(faceList, tolerance, True)
         if not shell:
             result = faceList[0]
             remainder = faceList[1:]
@@ -78,7 +79,7 @@ class Shell(Topology):
             The created shell.
 
         """
-        if not isinstance(cluster, coreCluster):
+        if not isinstance(cluster, Cluster):
             return None
         faces = []
         _ = cluster.Faces(None, faces)

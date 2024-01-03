@@ -37,23 +37,15 @@ from OCC.Core.IntTools import IntTools_Context
 from OCC.Core.BOPTools import BOPTools_AlgoTools
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
-from Core.Shell import Shell
-from Core.Cluster import Cluster
-
-from Attribute import Attribute
-from Topology import Topology
-from Utilities.TopologicUtilities import CellUtility
+from Core.Attribute import Attribute
+# from Core.Topology import Topology
+# from Core.Utilities.TopologicUtilities import CellUtility
 
 class AttributeManager():
 
     def __init__(self):
-        self.occt_shape_to_attributes_map: Dict[TopoDS_Shape, Attribute] = {}
-        # self.occt_shape_to_attributes_map: Dict[TopoDS_Shape, Dict[str, Attribute]] = {}
+        # self.occt_shape_to_attributes_map: Dict[TopoDS_Shape, Attribute_Map] = {}
+        self.occt_shape_to_attributes_map: Dict[TopoDS_Shape, Dict[str, Attribute]] = {}
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
@@ -62,7 +54,7 @@ class AttributeManager():
         return instance
 
 #--------------------------------------------------------------------------------------------------
-    def add(self, topology: Topology, attribute_name: str, attribute: Attribute) -> None:
+    def add(self, topology: 'Topology', attribute_name: str, attribute: Attribute) -> None:
         
         self.add(topology.get_occt_shape(), attribute_name, attribute)
 
@@ -80,7 +72,7 @@ class AttributeManager():
         self.occt_shape_to_attributes_map[occt_shape][attribute_name] = attribute
 
 #--------------------------------------------------------------------------------------------------
-    def remove(self, topology: Topology, attribute_name: str) -> None:
+    def remove(self, topology: 'Topology', attribute_name: str) -> None:
         
         self.remove(topology.get_occt_shape(), attribute_name)
 
@@ -194,6 +186,9 @@ class AttributeManager():
 
 #--------------------------------------------------------------------------------------------------
     def deep_copy_attributes(self, occt_shape_1: TopoDS_Shape, occt_shape_2: TopoDS_Shape) -> None:
+
+        from Core.Topology import Topology
+        from Core.Utilities.TopologicUtilities import CellUtility
         
         # For parent topology
         attributes: Dict[str, Attribute] = {}
@@ -260,21 +255,21 @@ class AttributeManager():
             shapes_to_attributes_map[occt_shape] = parent_attribute_map
 
         # Get all subtopologies
-            for occt_shape_type_int in range(int(occt_shape.ShapeType() + 1), int(TopAbs_SHAPE)):
+        for occt_shape_type_int in range(int(occt_shape.ShapeType() + 1), int(TopAbs_SHAPE)):
 
-                occt_shape_type = TopAbs_ShapeEnum(occt_shape_type_int)
+            occt_shape_type = TopAbs_ShapeEnum(occt_shape_type_int)
 
-                occt_explorer = TopExp_Explorer(occt_shape, occt_shape_type)
+            occt_explorer = TopExp_Explorer(occt_shape, occt_shape_type)
 
-                while occt_explorer.More():
+            while occt_explorer.More():
 
-                    occt_sub_shape = occt_explorer.Current()
+                occt_sub_shape = occt_explorer.Current()
 
-                    child_attribute_map: Dict[str, Attribute] = {}
+                child_attribute_map: Dict[str, Attribute] = {}
 
-                    is_found: bool = self.find_all(occt_sub_shape, child_attribute_map)
+                is_found: bool = self.find_all(occt_sub_shape, child_attribute_map)
 
-                    if len(list(child_attribute_map.keys())) != 0:
-                        shapes_to_attributes_map[occt_sub_shape] = child_attribute_map
+                if len(list(child_attribute_map.keys())) != 0:
+                    shapes_to_attributes_map[occt_sub_shape] = child_attribute_map
 
-                    occt_explorer.Next()
+                occt_explorer.Next()

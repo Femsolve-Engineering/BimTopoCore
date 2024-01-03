@@ -7,14 +7,6 @@ from xmlrpc.client import boolean
 from OCC.Core.TopoDS import TopoDS_Shape
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
-from Core.Shell import Shell
-from Core.Cluster import Cluster
-
 from Core.Context import Context
 from Topology import Topology
 from Core.TopologyConstants import TopologyTypes

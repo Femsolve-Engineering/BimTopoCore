@@ -1,7 +1,7 @@
 
 
-from Topology import Topology
-from TopologyConstants import TopologyTypes
+from Core.Topology import Topology
+from Core.TopologyConstants import TopologyTypes
 
 class TopologicalQuery(Topology):
 

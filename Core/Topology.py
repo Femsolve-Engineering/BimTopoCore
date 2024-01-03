@@ -7,22 +7,20 @@ from io import StringIO
 from typing import List
 from typing import Dict
 from typing_extensions import runtime
-from Core.AttributeManager import AttributeManager
+# from Core.AttributeManager import AttributeManager
 
 # OCC
-from ContentManager import ContentManager
-from ContextManager import ContextManager
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, TopoDS_Compound, topods, TopoDS_Builder, TopoDS_Iterator
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Extrema import Extrema_ExtFlag_MINMAX
 from OCC.Core.ShapeFix import ShapeFix_Shape, ShapeFix_Solid, ShapeFix_Shell, ShapeFix_Face
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_ShapeContents
 from OCC.Core.ShapeBuild import ShapeBuild_ReShape
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_MapIteratorOfMapOfShape, TopTools_FormatVersion_VERSION_1, TopTools_FormatVersion_VERSION_2, TopTools_FormatVersion_VERSION_3, TopTools_FormatVersion_CURRENT, TopTools_DataMapOfShapeShape
-from OCC.Core.TopAbs import TopAbs_ShapeEnum
+from OCC.Core.TopTools import toptools, TopTools_MapOfShape, TopTools_FormatVersion_VERSION_1, TopTools_FormatVersion_VERSION_2, TopTools_FormatVersion_VERSION_3, TopTools_FormatVersion_CURRENT, TopTools_DataMapOfShapeShape
+from OCC.Core.TopAbs import TopAbs_ShapeEnum, TopAbs_Orientation
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
 from OCC.Core.BRepTools import breptools
-from OCC.Core.BRepAlgo import BRepAlgo_Common, BRepAlgo_Section, BOPAlgo_MakerVolume, BRepAlgoAPI_Fuse
+from OCC.Core.BRepAlgo import brepalgo
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_BooleanOperation
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_NoError
@@ -51,32 +49,24 @@ from OCC.Core.BOPAlgo import BOPAlgo_CellsBuilder
 from OCC.Core.Geom import Geom_Geometry
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
-from OCC.Core.GeomAbs import precision_Confusion
+from OCC.Core.Precision import precision
 
 # BimTopoCore
-
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face, FaceGUID
-from Core.Cell import Cell
-from Core.CellComplex import CellComplex
-from Core.Shell import Shell
-from Core.Cluster import Cluster
-from Core.GlobalCluster import GlobalCluster
-
+# from Core.ContentManager import ContentManager
+# from Core.ContextManager import ContextManager
 from Core.TopologyConstants import TopologyTypes
 from Core.InstanceGUIDManager import InstanceGUIDManager
 from Core.Factories.TopologyFactory import TopologyFactory
 from Core.Factories.TopologyFactoryManager import TopologyFactoryManager
-from Core.Context import Context
-from Utilities.TopologicUtilities import CellUtility, FaceUtility, TopologyUtility, VertexUtility
-from Vertex import Vertex
-from Attribute import Attribute
-from Dictionary import Dictionary
-from Aperture import Aperture
+# from Core.Context import Context
+# from Core.Utilities.TopologicUtilities import CellUtility, FaceUtility, TopologyUtility, VertexUtility
+from Core.Attribute import Attribute
+from Core.AttributeManager import AttributeManager
+from Core.Dictionary import Dictionary
+# from Core.Aperture import Aperture
+# from Core.GlobalCluster import GlobalCluster
 
-from TopologicalQuery import TopologicalQuery
+# from Core.TopologicalQuery import TopologicalQuery
 
 class Topology:
     """Placeholder class for all logic that is shared between
@@ -87,6 +77,9 @@ class Topology:
 
     topology_to_subshape: Dict['Topology', 'Topology'] = {} # used to mimic the function 'downcast'
     subshape_to_topology: Dict['Topology', 'Topology'] = {} # used to mimic the function 'upcast'
+
+    attribute_manager = AttributeManager()
+    counter = 0
 
     def __init__(self,
                  base_shape: TopoDS_Shape, 
@@ -110,6 +103,14 @@ class Topology:
         self.guid = self.get_class_guid()
 
         Topology.topologic_entity_count += 1
+
+        # Add shape to dict "occt_shape_to_attributes_map" in AttributeManager.py
+        # Topology.counter += 1
+        # name = f'Shape_{Topology.counter}'
+        
+        # attribute = Attribute()
+
+        # Topology.attribute_manager.add(base_shape, name, attribute)
 
         return self
 
@@ -143,7 +144,7 @@ class Topology:
                         min_distance = distance
                         closest_subshape = current_child_shape
                     # larger value = lower dimension
-                    elif min_distance <= distance <= min_distance + precision_Confusion() \
+                    elif min_distance <= distance <= min_distance + precision.Confusion() \
                         and current_child_shape.ShapeType() > closest_subshape.ShapeType():
                         min_distance = distance
                         closest_subshape = current_child_shape
@@ -156,7 +157,9 @@ class Topology:
         return Topology.by_occt_shape(closest_subshape)
 
 #--------------------------------------------------------------------------------------------------
-    def select_sub_topology(self, selector: Vertex, type_filter: int) -> 'Topology':
+    def select_sub_topology(self, selector: 'Vertex', type_filter: int) -> 'Topology':
+
+        from Core.Utilities.TopologicUtilities import VertexUtility
         
         occt_closest_sub_shape: TopoDS_Shape
         min_distance: sys.float_info.max
@@ -190,7 +193,7 @@ class Topology:
                     occt_closest_sub_shape = current_child_shape
 
                 elif (min_distance <= distance) and \
-                     (distance <= min_distance + precision_Confusion()) and \
+                     (distance <= min_distance + precision.Confusion()) and \
                      (current_child_shape.ShapeType() > occt_closest_sub_shape.ShapeType()):
 
                      closest_shape_type = occt_closest_sub_shape.ShapeType()
@@ -217,6 +220,9 @@ class Topology:
     @staticmethod
     def select_sub_topology(self, occt_shape: TopoDS_Shape, occt_selector_shape: TopoDS_Shape, min_distance: float, type_filter: int, distance_threshold: float):
         
+        from Core.Utilities.TopologicUtilities import VertexUtility
+        from Core.TopologicalQuery import TopologicalQuery
+
         occt_closest_sub_shape: TopoDS_Shape
 
         topology = Topology.by_occt_shape(occt_selector_shape)
@@ -249,7 +255,7 @@ class Topology:
                     occt_closest_sub_shape = current_child_shape
 
                 elif (min_distance <= distance) and \
-                     (distance <= min_distance + precision_Confusion) and \
+                     (distance <= min_distance + precision.Confusion()) and \
                      (current_child_shape.ShapeType() > occt_closest_sub_shape.ShapeType()):
 
                     closest_shape_type = occt_closest_sub_shape.ShapeType()
@@ -272,6 +278,14 @@ class Topology:
         """
         TODO: Implement for all types.
         """
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Wire import Wire
+        from Core.Face import Face
+        from Core.Shell import Shell
+        from Core.Cell import Cell
+        from Core.CellComplex import CellComplex
+        from Core.Cluster import Cluster
 
         shape_type = occt_shape.ShapeType()
 
@@ -435,12 +449,17 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_context(context: Context) -> 'Topology':
+    def by_context(context: 'Context') -> 'Topology':
         return None
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_vertex_index(vertices: List[Vertex], vertex_indices: List[int], topologies: List['Topology']) -> None:
+    def by_vertex_index(vertices: List['Vertex'], vertex_indices: List[int], topologies: List['Topology']) -> None:
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Wire import Wire
+        from Core.Face import Face
         
         if len(vertices) == 0 or len(vertex_indices) == 0:
             return
@@ -511,7 +530,9 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def by_faces(faces: List[Face], tolerance: float) -> 'Topology':
+    def by_faces(faces: List['Face'], tolerance: float) -> 'Topology':
+
+        from Core.TopologicalQuery import TopologicalQuery
         
         if len(faces) == 0:
             return None
@@ -536,6 +557,11 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def add_content(self, topology: 'Topology') -> None:
+
+        from Core.ContentManager import ContentManager
+        from Core.ContextManager import ContextManager
+        from Core.Context import Context
+        from Core.TopologicalQuery import TopologicalQuery
         
         has_content = ContentManager.get_instance().has_content(self.get_occt_shape, topology.get_occt_shape())
 
@@ -565,6 +591,16 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def add_contents(self, content_topologies: List['Topology'], type_filter: int) -> 'Topology':
+
+        from Core.Vertex import Vertex
+        from Core.Face import Face
+        from Core.Cell import Cell
+        from Core.ContentManager import ContentManager
+        from Core.ContextManager import ContextManager
+        from Core.Context import Context
+        from Core.TopologicalQuery import TopologicalQuery
+
+        from Core.Utilities.TopologicUtilities import FaceUtility
         
         # Deep copy this topology
         copy_topology = TopologicalQuery.dynamic_pointer_cast(self.deep_copy())
@@ -666,6 +702,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def remove_content(self, topology: 'Topology') -> None:
+
+        from Core.ContentManager import ContentManager
         
         ContentManager.get_instance().remove(self.get_occt_shape(), topology.get_occt_shape())
         ContentManager.get_instance().remove(topology.get_occt_shape(), self.get_occt_shape())
@@ -728,10 +766,14 @@ class Topology:
         return copy_topology
 
 #--------------------------------------------------------------------------------------------------
-    def add_context(self, context: Context) -> None:
+    def add_context(self, context: 'Context') -> None:
         """
         TODO
         """
+
+        from Core.ContentManager import ContentManager
+        from Core.ContextManager import ContextManager
+        from Core.Context import Context
 
         # 1. Register to ContextManager
         ContextManager.get_instance().add(self.get_occt_shape(), context)
@@ -740,7 +782,12 @@ class Topology:
         ContentManager.get_instance().add(context.topology().get_occt_shape(), Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid()))
 
 #--------------------------------------------------------------------------------------------------
-    def add_contexts(self, contexts: List[Context]) -> 'Topology':
+    def add_contexts(self, contexts: List['Context']) -> 'Topology':
+
+        from Core.ContentManager import ContentManager
+        from Core.ContextManager import ContextManager
+        from Core.Context import Context
+        from Core.TopologicalQuery import TopologicalQuery
         
         copy_topology: Topology = TopologicalQuery.dynamic_pointer_cast(self.deep_copy())
 
@@ -773,7 +820,10 @@ class Topology:
 
 
 #--------------------------------------------------------------------------------------------------
-    def remove_context(self, context: Context) -> 'Topology':
+    def remove_context(self, context: 'Context') -> 'Topology':
+
+        from Core.ContentManager import ContentManager
+        from Core.ContextManager import ContextManager
         
         # 1. Remove from ContextManager
         ContextManager.get_instance().remove(self.get_occt_shape(), context.topology().get_occt_shape())
@@ -782,7 +832,9 @@ class Topology:
         ContentManager.get_instance().remove(context.topology().get_occt_shape(), self.get_occt_shape())
 
 #--------------------------------------------------------------------------------------------------
-    def remove_contexts(self, contexts: List[Context]) -> 'Topology':
+    def remove_contexts(self, contexts: List['Context']) -> 'Topology':
+
+        from Core.Context import Context
         
         copy_topology = self.shallow_copy()
 
@@ -823,8 +875,8 @@ class Topology:
             occt_sub_topologies_2 = TopTools_MapOfShape
             occt_sub_topologies_2 = Topology.static_downward_navigation(occt_shape_2, occt_sub_topology_type)
 
-            occt_sub_topology_iterator_1 = TopTools_MapIteratorOfMapOfShape(occt_sub_topologies_1)
-            occt_sub_topology_iterator_2 = TopTools_MapIteratorOfMapOfShape(occt_sub_topologies_2)
+            occt_sub_topology_iterator_1 = toptools.TopTools_MapIteratorOfMapOfShape(occt_sub_topologies_1)
+            occt_sub_topology_iterator_2 = toptools.TopTools_MapIteratorOfMapOfShape(occt_sub_topologies_2)
 
             while occt_sub_topology_iterator_1.More():
 
@@ -836,7 +888,7 @@ class Topology:
                         shared_topologies.append(topology)
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dict[str, Attribute]], type_filter: int) -> 'Topology':
+    def set_dictionaries(self, selectors: List['Vertex'], dictionaries: List[Dict[str, Attribute]], type_filter: int) -> 'Topology':
         
         selector_size: int = len(selectors)
 
@@ -845,7 +897,13 @@ class Topology:
         return self.set_dictionaries(selectors, dictionaries, type_filters)
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dict[str, Attribute]], type_filters: List[int], expect_duplicate_topologies: bool) -> 'Topology':
+    def set_dictionaries(self, selectors: List['Vertex'], dictionaries: List[Dict[str, Attribute]], type_filters: List[int], expect_duplicate_topologies: bool) -> 'Topology':
+
+        from Core.Face import Face
+        from Core.Cell import Cell
+        from Core.AttributeManager import AttributeManager
+        from Core.Utilities.TopologicUtilities import FaceUtility
+        from Core.TopologicalQuery import TopologicalQuery
         
         if len(selectors) != len(dictionaries):
             raise RuntimeError("The lists of selectors and dictionaries do not have the same length.")
@@ -935,7 +993,7 @@ class Topology:
         return copy_topology
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dictionary], type_filter: int) -> 'Topology':
+    def set_dictionaries(self, selectors: List['Vertex'], dictionaries: List[Dictionary], type_filter: int) -> 'Topology':
         
         new_dictionaries: List[Dict[str, Attribute]]
         for i in dictionaries:
@@ -944,9 +1002,9 @@ class Topology:
         return self.set_dictionaries(selectors, new_dictionaries, type_filter)
 
 #--------------------------------------------------------------------------------------------------
-    def set_dictionaries(self, selectors: List[Vertex], dictionaries: List[Dictionary], type_filters: List[int], expect_duplicate_topologies: bool) -> 'Topology':
+    def set_dictionaries(self, selectors: List['Vertex'], dictionaries: List[Dictionary], type_filters: List[int], expect_duplicate_topologies: bool) -> 'Topology':
         
-        new_dictionaries: List[Dict[str, Attribute]]
+        new_dictionaries: List[Dict[str, Attribute]] = []
         for i in dictionaries:
             new_dictionaries.append(i)
 
@@ -955,6 +1013,11 @@ class Topology:
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def occt_sew_faces(occt_faces: TopTools_ListOfShape, tolerance: float) -> TopoDS_Shape:
+
+        from Core.ContentManager import ContentManager
+        from Core.Face import Face
+        from Core.Aperture import Aperture
+        from Core.TopologicalQuery import TopologicalQuery
         
         occt_sewing = BRepBuilderAPI_Sewing(tolerance, True, True, True, True)
 
@@ -1002,6 +1065,9 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def boolean_transfer_dictionary(self, origin_topology_1: 'Topology', origin_topology_2: 'Topology', destination_topology: 'Topology', init_clear_dictionary: bool) -> None:
+
+        from Core.Cluster import Cluster
+        from Core.AttributeManager import AttributeManager
         
         occt_origin_shape_1 = origin_topology_1.get_occt_shape()
         occt_origin_shape_2 = origin_topology_2.get_occt_shape()
@@ -1035,7 +1101,7 @@ class Topology:
             occt_destination_members: TopTools_MapOfShape
             occt_destination_members = destination_topology.static_downward_navigation(occt_destination_shape, occt_topology_types[i])
 
-            occt_destination_member_iterator = TopTools_MapIteratorOfMapOfShape(occt_destination_members)
+            occt_destination_member_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_destination_members)
 
             while occt_destination_member_iterator.More():
 
@@ -1127,11 +1193,14 @@ class Topology:
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def contents(occt_shape: TopoDS_Shape, contents: List['Topology']) -> None:
+
+        from Core.ContentManager import ContentManager
+
         instance = ContentManager.get_instance()
         instance.find(occt_shape, contents)
 
 #--------------------------------------------------------------------------------------------------
-    def apertures(self, apertures: List[Aperture]) -> None:
+    def apertures(self, apertures: List['Aperture']) -> None:
         """
         TODO - M3
         """
@@ -1139,7 +1208,11 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def apertures(occt_shape: TopoDS_Shape, apertures: List[Aperture]):
+    def apertures(occt_shape: TopoDS_Shape, apertures: List['Aperture']):
+
+        from Core.ContentManager import ContentManager
+        from Core.Aperture import Aperture
+        from Core.TopologicalQuery import TopologicalQuery
         
         contents: List[Topology]
         ContentManager.get_instance().find(occt_shape, contents)
@@ -1166,6 +1239,8 @@ class Topology:
         Finds all the topologies that are of lower type.
         """
 
+        from Core.ContentManager import ContentManager
+
         Topology.contents(occt_shape, sub_contents)
 
         occt_type: TopAbs_ShapeEnum = occt_shape.ShapeType()
@@ -1180,7 +1255,7 @@ class Topology:
             Topology.static_downward_navigation(occt_shape, occt_type_iteration, occt_members)
 
             # For each member, get the contents
-            occt_member_iterator = TopTools_MapIteratorOfMapOfShape()
+            occt_member_iterator = toptools.TopTools_MapIteratorOfMapOfShape()
 
             while occt_member_iterator.More():
 
@@ -1189,13 +1264,15 @@ class Topology:
                 occt_member_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def contexts(self, contexts: List[Context]) -> bool:
+    def contexts(self, contexts: List['Context']) -> bool:
         
         return Topology.Context(self.get_occt_shape(), contexts)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def contexts(occt_shape: TopoDS_Shape, contexts: List[Context]) -> bool:
+    def contexts(occt_shape: TopoDS_Shape, contexts: List['Context']) -> bool:
+
+        from Core.ContextManager import ContextManager
         
         return ContextManager.get_instance().find(occt_shape, contexts)
 
@@ -1574,7 +1651,7 @@ class Topology:
             occt_sub_topology_iterator_A.Next()
 
         # Remove the shapes
-        occt_shapes_to_remove_iterator = TopTools_MapIteratorOfMapOfShape(occt_shapes_to_remove)
+        occt_shapes_to_remove_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_shapes_to_remove)
 
         while occt_shapes_to_remove_iterator.Move():
 
@@ -1661,6 +1738,8 @@ class Topology:
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def transfer_contents(occt_shape_1: TopoDS_Shape, topology_2: 'Topology') -> None:
+
+        from Core.Context import Context
         
         sub_contents: List[Topology] = []
         Topology.sub_contents(occt_shape_1, sub_contents)
@@ -1689,10 +1768,12 @@ class Topology:
     @staticmethod
     def transfer_contents(occt_shape_1: TopoDS_Shape, topology_2: 'Topology', occt_delete_sub_shapes: TopTools_ListOfShape) -> None:
 
-         sub_contents: List[Topology] = []
-         Topology.sub_contents(occt_shape_1, sub_contents)
+        from Core.Context import Context
 
-         for sub_content in sub_contents:
+        sub_contents: List[Topology] = []
+        Topology.sub_contents(occt_shape_1, sub_contents)
+
+        for sub_content in sub_contents:
 
             # Check if the context topology is part of kpTopology2. Use OCCT IsDeleted()
             all_contexts_dissappear = True
@@ -1957,10 +2038,10 @@ class Topology:
         occt_arguments_B = TopTools_ListOfShape()
         self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
 
-        occt_common = BRepAlgo_Common()
+        occt_common = brepalgo.BRepAlgo_Common()
         Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_common)
 
-        occt_section = BRepAlgo_Section()
+        occt_section = brepalgo.BRepAlgo_Section()
         Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_section)
 
         # Create topology
@@ -2079,6 +2160,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def self_merge(self) ->'Topology':
+
+        from Core.AttributeManager import AttributeManager
         
         # 1
         occt_shapes = TopTools_ListOfShape()
@@ -2156,7 +2239,7 @@ class Topology:
             occt_explorer.Next()
 
         # 5. Topology = VolumeMaker(Face[])--> first result
-        occt_volume_maker = BOPAlgo_MakerVolume()
+        occt_volume_maker = brepalgo.BOPAlgo_MakerVolume()
         run_parallel: bool = False # parallel or single mode (the default value is FALSE)
         intersect: bool = True # intersect or not the arguments (the default value is TRUE)
         tol: float = 0.0 # fuzzy option (default value is 0)
@@ -2354,7 +2437,7 @@ class Topology:
         occt_arguments_B = TopTools_ListOfShape()
         self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
 
-        occt_fuse = BRepAlgoAPI_Fuse()
+        occt_fuse = brepalgo.BRepAlgoAPI_Fuse()
         Topology.regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_fuse)
 
         occt_result_shape: TopoDS_Shape = occt_fuse.Shape()
@@ -2416,6 +2499,13 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def add_union_internal_structure(self, occt_shape: TopoDS_Shape, union_arguments: TopTools_ListOfShape) -> None:
+
+        from Core.Face import Face
+        from Core.Shell import Shell
+        from Core.Cell import Cell
+        from Core.CellComplex import CellComplex
+        from Core.Cluster import Cluster
+        from Core.TopologicalQuery import TopologicalQuery
         
         occt_shape_type: TopAbs_ShapeEnum = occt_shape.ShapeType()
         topology = Topology.by_occt_shape(occt_shape)
@@ -2593,7 +2683,7 @@ class Topology:
 
             Topology.static_downward_navigation(occt_shape, sub_shape_types[i], occt_sub_shapes)
 
-            occt_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
+            occt_sub_shape_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
 
             while occt_sub_shape_iterator.More():
 
@@ -2624,7 +2714,7 @@ class Topology:
 
             Topology.static_downward_navigation(occt_shape, sub_shape_types[i], occt_sub_shapes)
 
-            occt_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
+            occt_sub_shape_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_sub_shapes)
 
             while occt_sub_shapes.More():
 
@@ -2635,6 +2725,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def track_context_ancestor(self) -> 'Topology':
+
+        from Core.Context import Context
         
         contexts: List[Context] = []
         self.contexts(contexts)
@@ -2649,7 +2741,11 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_edge_shell(edge: Edge, shell: Shell) -> 'Topology':
+    def intersect_edge_shell(edge: 'Edge', shell: 'Shell') -> 'Topology':
+
+        from Core.Vertex import Vertex
+        from Core.Face import Face
+        from Core.Cluster import Cluster
         
         faces: List[Face] = []
         faces = shell.faces()
@@ -2677,7 +2773,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def is_in_list(new_vertex: Vertex, old_vertices: List[Vertex], tolerance: float) -> bool:
+    def is_in_list(new_vertex: 'Vertex', old_vertices: List['Vertex'], tolerance: float) -> bool:
         
         for old_vertex in old_vertices:
 
@@ -2691,7 +2787,10 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_edge_face(merge_topology: 'Topology', edge: Edge, face: Face) -> 'Topology':
+    def intersect_edge_face(merge_topology: 'Topology', edge: 'Edge', face: 'Face') -> 'Topology':
+
+        from Core.Vertex import Vertex
+        from Core.Cluster import Cluster
         
         tolerance = 0.0001
         edge_vertices: List[Vertex] = []
@@ -2731,7 +2830,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def intersect_face_face(merge_topology: 'Topology', face: Face, other_face: Face) -> 'Topology':
+    def intersect_face_face(merge_topology: 'Topology', face: 'Face', other_face: 'Face') -> 'Topology':
         
         # OCCT does not seem to have a robust Face-Face 
         raise RuntimeError("Not yet implemented")
@@ -2876,6 +2975,10 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def divide(self, tool: 'Topology', transfer_dictionary: bool) -> 'Topology':
+
+        from Core.Edge import Edge
+        from Core.Face import Face
+        from Core.Cell import Cell
         
         if tool == None:
             return Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid())
@@ -2954,28 +3057,28 @@ class Topology:
         return len(sub_topologies)
 
 #--------------------------------------------------------------------------------------------------
-    def shells(self, host_topology: 'Topology') -> List[Shell]:
+    def shells(self, host_topology: 'Topology') -> List['Shell']:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def edges(self, host_topology: 'Topology') -> List[Edge]:
+    def edges(self, host_topology: 'Topology') -> List['Edge']:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def faces(self, host_topology: 'Topology') -> List[Face]:
+    def faces(self, host_topology: 'Topology') -> List['Face']:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def vertices(self, host_topology: 'Topology') -> List[Vertex]:
+    def vertices(self, host_topology: 'Topology') -> List['Vertex']:
         """
         Gets all vertices associated with the host topology.
         """
@@ -2984,21 +3087,21 @@ class Topology:
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def wires(self, host_topology: 'Topology') -> List[Wire]:
+    def wires(self, host_topology: 'Topology') -> List['Wire']:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def cells(self, host_topology: 'Topology') -> List[Cell]:
+    def cells(self, host_topology: 'Topology') -> List['Cell']:
         """
         TODO - M3
         """
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def cell_complexes(self, host_topology: 'Topology') -> List[CellComplex]:
+    def cell_complexes(self, host_topology: 'Topology') -> List['CellComplex']:
         """
         TODO - M3
         """
@@ -3021,6 +3124,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def global_cluster_sub_topologies(self, sub_topologies: List['Topology']) -> None:
+
+        from Core.GlobalCluster import GlobalCluster
         
         occt_list_members = TopTools_ListOfShape()
         Topology.sub_topologies(GlobalCluster.get_instance().get_occt_compound(), occt_list_members)
@@ -3163,13 +3268,15 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def deep_copy_explode_shape(self, occt_original_shape: TopoDS_Shape, occt_copy: BRepBuilderAPI_Copy, occt_shape_copy_shape_map: TopTools_DataMapOfShapeShape) -> None:
+
+        from Core.AttributeManager import AttributeManager
         
         occt_shape_copy_shape_map.Bind(occt_original_shape, occt_copy.Shape())
         occt_shape_copy_shape_map.Bind(occt_copy.Shape(), occt_original_shape)
 
         occt_members = TopTools_ListOfShape()
 
-        Topology.Members(occt_original_shape, occt_members)
+        Topology.members(occt_original_shape, occt_members)
 
         occt_member_iterator = TopTools_ListIteratorOfListOfShape(occt_members)
 
@@ -3191,11 +3298,14 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def deep_copy_impl(self, occt_shape: TopoDS_Shape, occt_shape_copy_shape_map: TopTools_DataMapOfShapeShape) -> 'Topology':
+
+        from Core.AttributeManager import AttributeManager
+        from Core.Context import Context
         
         occt_shape_copier = BRepBuilderAPI_Copy(occt_shape)
         occt_shape_copy: TopoDS_Shape = occt_shape_copier.Shape()
 
-        AttributeManager.get_instance().copy_attributes(occt_shape, occt_shape_copy)
+        AttributeManager.get_instance().copy_attributes(occt_shape, occt_shape_copy, False)
         self.deep_copy_explode_shape(occt_shape, occt_shape_copier, occt_shape_copy_shape_map)
 
         # Explode
@@ -3254,6 +3364,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def shallow_copy(self) -> 'Topology':
+
+        from Core.AttributeManager import AttributeManager
         
         occt_shape_copier = BRepBuilderAPI_Copy(self.get_occt_shape())
         AttributeManager.get_instance().deep_copy_attributes(self.get_occt_shape(), occt_shape_copier.Shape())
@@ -3299,6 +3411,12 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def deep_copy_attributes_from(self, origin_topologies: List['Topology']) -> 'Topology':
+
+        from Core.Vertex import Vertex
+        from Core.Cell import Cell
+        from Core.AttributeManager import AttributeManager
+        from Core.Utilities.TopologicUtilities import CellUtility, FaceUtility
+        from Core.TopologicalQuery import TopologicalQuery
         
         # 1. Get all dictionaries stored in rkOcctOriginShape
         # NOTE: this map will map the subshapes to the attributes
@@ -3324,7 +3442,7 @@ class Topology:
             reference_vertex: Vertex = None
 
             # Check if already processed
-            occt_processed_sub_shape_iterator = TopTools_MapIteratorOfMapOfShape(occt_processed_sub_shapes)
+            occt_processed_sub_shape_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_processed_sub_shapes)
 
             while occt_processed_sub_shape_iterator.More():
 
@@ -3384,7 +3502,15 @@ class Topology:
             occt_members = TopTools_MapOfShape()
             occt_members = Topology.static_downward_navigation(occt_shape, occt_shape_enum)
 
-            occt_members_iterator = TopTools_MapIteratorOfMapOfShape(occt_members)
+            it = occt_members.cbegin()
+
+            while it != occt_members.cend():
+
+
+
+                it.next()
+
+            occt_members_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_members)
 
             while occt_members_iterator.More():
 
@@ -3419,6 +3545,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def set_dictionary(self, attributes: Dict[str, Attribute]) -> None:
+
+        from Core.AttributeManager import AttributeManager
         
         occt_shape = self.get_occt_shape()
         attr_manager = AttributeManager.get_instance()
@@ -3433,6 +3561,8 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     def get_dictionary(self) -> Dictionary:
+
+        from Core.AttributeManager import AttributeManager
         
         dict = Dictionary()
 
@@ -3503,6 +3633,9 @@ class Topology:
 
     @staticmethod
     def contents(occt_shape: TopoDS_Shape, contents: List['Topology']):
+
+        from Core.ContentManager import ContentManager
+
         content_manager = ContentManager.get_instance()
 
         # Finds Topology parent classes of entities of selected type. The instances will be added to the list "contents"

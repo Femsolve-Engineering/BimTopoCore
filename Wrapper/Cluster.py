@@ -37,7 +37,7 @@ class Cluster(coreCluster):
         """
         assert isinstance(topologies, list), "Cluster.ByTopologies - Error: Input is not a list"
         topologyList = [x for x in topologies if isinstance(x, coreTopology)]
-        return coreCluster.ByTopologies(topologyList, False)
+        return coreCluster.by_topologies(topologyList, False)
 
     @staticmethod
     def CellComplexes(cluster: coreCluster) -> list:

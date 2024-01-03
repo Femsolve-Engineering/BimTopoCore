@@ -1,5 +1,5 @@
 
-from Topology import Topology
+from Core.Topology import Topology
 
 class Context:
 

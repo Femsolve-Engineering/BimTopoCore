@@ -40,15 +40,6 @@ from OCC.Core.IntTools import IntTools_Context
 from OCC.Core.BOPTools import BOPTools_AlgoTools
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face, FaceGUID
-from Core.Cell import Cell
-from Core.CellComplex import CellComplex
-from Core.Shell import Shell
-from Core.Cluster import Cluster
-
 from Core.Aperture import Aperture
 from Core.Attribute import Attribute
 from Core.AttributeManager import AttributeManager
@@ -148,6 +139,10 @@ class Graph(Topology):
 
 		# For a loop: circle, radius/diameter/circumference = average of the edge lengths
 
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Cluster import Cluster
+
         topologies: List['Topology'] = []
 
         processed_adjacency: Dict[TopoDS_Vertex, TopTools_MapOfShape] = {}
@@ -207,6 +202,8 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     def vertices(self) -> List['Vertex']:
 
+        from Core.Vertex import Vertex
+
         vertices: List['Vertex'] = []
         
         for occt_vertex, map_of_shapes in self.base_graph_dictionary.items():
@@ -219,12 +216,17 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def edges(self, edges: List['Edge'], tolerance: float) -> None:
+
+        from Core.Vertex import Vertex
         
         vertices: List['Vertex'] = []
         self.edges(vertices, tolerance, edges)
 
 #--------------------------------------------------------------------------------------------------
     def edges(self, vertices: list[Vertex], tolerance: float, edges: List['Edge']) -> None:
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         # isEmpty == True
         if not vertices:
@@ -382,6 +384,8 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     def adjacent_vertices(self, vertex: Vertex, adjacent_vertices: List['Vertex']) -> None:
 
+        from Core.Vertex import Vertex
+
         occt_adjacent_vertices = TopTools_MapOfShape()
         self.adjacent_vertices(vertex.get_occt_vertex(), occt_adjacent_vertices)
 
@@ -409,6 +413,9 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def connect(self, vertices_1: List['Vertex'], vertices_2: List['Vertex'], tolerance: float) -> None:
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         if tolerance <= 0.0:
             # raise RuntimeError("The tolerance must have a positive value.")
@@ -489,6 +496,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def degree_sequence(self, degree_sequence: List[int]) -> None:
+
+        from Core.Vertex import Vertex
         
         for occt_vertex, map_of_shape in self.base_graph_dictionary.items():
 
@@ -499,6 +508,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def density(self) -> float:
+
+        from Core.Edge import Edge
         
         num_of_vertices = len(self.base_graph_dictionary.keys())
 
@@ -522,6 +533,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def isolated_vertices(self, isolated_vertices: List[Vertex]) -> None:
+
+        from Core.Vertex import Vertex
         
         for occt_vertex, map_of_shape in self.base_graph_dictionary.items():
 
@@ -559,6 +572,8 @@ class Graph(Topology):
                         use_time_limit: bool,
                         time_limit_in_seconds:
                         int, paths: Wire) -> None:
+
+        from Core.Vertex import Vertex
         
         path: List[Vertex] = []
         starting_time: datetime = datetime.now()
@@ -571,7 +586,10 @@ class Graph(Topology):
                         starting_time: datetime,
                         path: List[Vertex],
                         paths: List[Wire]):
-        
+
+        from Core.Vertex import Vertex
+        from Core.Wire import Wire
+
         if use_time_limit:
 
             current_time = datetime.now()
@@ -649,12 +667,17 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def path(self, start_vertex: Vertex, end_vertex: Vertex) -> 'Wire':
+
+        from Core.Vertex import Vertex
         
         path: List[Vertex] = []
         return self.path(start_vertex, end_vertex, path)
 
 #--------------------------------------------------------------------------------------------------
     def path(self, start_vertex: Vertex, end_vertex: Vertex, path: List[Vertex]) -> 'Wire':
+
+        from Core.Vertex import Vertex
+        from Core.Wire import Wire
         
         path.append(start_vertex)
 
@@ -696,6 +719,8 @@ class Graph(Topology):
     def shortest_path(self, occt_start_vertex: Vertex, occt_end_vertex: Vertex, vertex_key: str, edge_key: str) -> 'Wire':
         
         # Dijkstra's: https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Pseudocode
+
+        from Core.Vertex import Vertex
 
         vertex_list: List[TopoDS_Vertex] = []
         distance_map: Dict[TopoDS_Vertex, float] = {}
@@ -766,6 +791,9 @@ class Graph(Topology):
                              use_time_limit: bool,
                              time_limit: int,
                              paths: List[Wire]) -> None:
+
+        from Core.Vertex import Vertex
+        from Core.Wire import Wire
         
         if time_limit <= 0.0:
             # raise RuntimeError("The time limit must have a positive value.")
@@ -867,6 +895,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def diameter(self) -> int:
+
+        from Core.Vertex import Vertex
         
         vertex_pairs: Dict[Vertex, Vertex] = {}
 
@@ -1019,6 +1049,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def remove_edges(self, edges: List[Edge], tolerance: float) -> None:
+
+        from Core.Vertex import Vertex
         
         if tolerance <= 0.0:
 
@@ -1065,6 +1097,8 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def vertices_at_coordinates(self, var_x: float, var_y: float, var_z: float, tolerance: float, vertices: List[Vertex]) -> None:
+
+        from Core.Vertex import Vertex
         
         if tolerance <= 0.0:
             # raise RuntimeError("The tolerance must have a positive value.")
@@ -1129,6 +1163,9 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def incident_edges(self, vertex: Vertex, tolerance: float, edges: List[Edge]) -> None:
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         occt_query_vertex = self.get_coincident_vertex(vertex.get_occt_vertex(), tolerance)
         if occt_query_vertex.IsNull():
@@ -1189,6 +1226,9 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_vertex(vertex: Vertex, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         aperture_centres_of_mass: List[Vertex] = []
 
@@ -1228,6 +1268,9 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_edge(self, edge: Edge, direct: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         vertices: List[Vertex] = []
         edges: List[Edge] = []
@@ -1269,6 +1312,9 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_wire(wire: Wire, direct: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         vertices: List[Vertex] = []
         edges: List[Edge] = []
@@ -1312,6 +1358,9 @@ class Graph(Topology):
 #--------------------------------------------------------------------------------------------------
     @staticmethod
     def by_face(face: Face, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> float:
+
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
         
         vertices: List[Vertex] = []
         edges: List[Edge] = []
@@ -1366,6 +1415,10 @@ class Graph(Topology):
     @staticmethod
     def by_shell(shell: Shell, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool,use_face_internal_vertex:bool, tolerance: bool) -> 'Graph':
         
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Face import Face
+
         if shell == None:
             return None
 
@@ -1494,6 +1547,10 @@ class Graph(Topology):
     @staticmethod
     def by_cell(cell: Cell, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
 
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Face import Face
+
         vertices: List[Vertex] = []
         edges: List[Edge] = []
 
@@ -1540,6 +1597,11 @@ class Graph(Topology):
     @staticmethod
     def by_cellComplex(cellComplex: CellComplex, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
         
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+        from Core.Face import Face
+        from Core.Cell import Cell
+
         if cellComplex == None:
             return None
 
@@ -1732,6 +1794,9 @@ class Graph(Topology):
     @staticmethod
     def by_cluster(cluster: Cluster, direct: bool, via_shared_topologies: bool, via_shared_apertures: bool, to_exterior_topologies: bool, to_exterior_apertures: bool, use_face_internal_vertex: bool, tolerance: float) -> 'Graph':
         
+        from Core.Vertex import Vertex
+        from Core.Edge import Edge
+
         sub_topologies: List[Topology] = []
         cluster.sub_topologies(sub_topologies)
 
@@ -1761,6 +1826,9 @@ class Graph(Topology):
 
 #--------------------------------------------------------------------------------------------------
     def construct_path(self, path_vertices: List[Vertex], use_time_limit: bool, time_limit_in_seconds: int, starting_time: datetime) -> Wire:
+
+        from Core.Edge import Edge
+        from Core.Wire import Wire
         
         edges: List[Edge] = []
 

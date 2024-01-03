@@ -2,7 +2,6 @@
 
 from typing import Tuple
 from typing import List
-from xmlrpc.client import boolean
 
 # OCC
 from OCC.Core.Standard import Standard_Failure
@@ -20,23 +19,18 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_NotPlanar
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_CurveProjectionFailed
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_ParametersOutOfRange
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepGProp import brepgprop_LinearProperties, SurfaceProperties
+from OCC.Core.BRepGProp import brepgprop, brepgprop_LinearProperties
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeVertex
 from OCC.Core.BRepCheck import BRepCheck_Wire, BRepCheck_Shell, BRepCheck_NoError
 
 # BimTopoCore
-from Core.Vertex import Vertex
-from Core.Edge import Edge
-from Core.Wire import Wire
-from Core.Face import Face
-from Core.Cell import Cell
 
 from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 from Core.Factories.AllFactories import ShellFactory
 
 # Not implemented yet
-# import Core.AttributeManager
+from Core.AttributeManager import AttributeManager
 
 class Shell(Topology):
     
@@ -84,7 +78,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     # def edges(self, host_topology: Topology, edges: List[Edge]) -> List[Edge]:
-    def edges(self) -> List[Edge]:
+    def edges(self) -> List['Edge']:
         """
         Returns the Edge contituents to this Shell
         """
@@ -93,7 +87,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     # def wires(self, host_topology: Topology, wires: List[Wire]) -> List[Wire]:
-    def wires(self) -> List[Wire]:
+    def wires(self) -> List['Wire']:
         """
         Returns the Wire contituents to this Shell
         """
@@ -102,7 +96,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     # def faces(self, host_topology: Topology, faces: List[Face]) -> List[Face]:
-    def faces(self) -> List[Face]:
+    def faces(self) -> List['Face']:
         """
         Returns the Face contituents to this Shell
         """
@@ -119,7 +113,7 @@ class Shell(Topology):
 
 #--------------------------------------------------------------------------------------------------
     # def vertices(self, host_topology: Topology, vertices: List[Vertex]) -> List[Vertex]:
-    def vertices(self) -> List[Vertex]:
+    def vertices(self) -> List['Vertex']:
         """
         Returns the Vertex contituents to this Shell
         """
@@ -127,10 +121,13 @@ class Shell(Topology):
         return self.downward_navigation(shape_type)
 
 #--------------------------------------------------------------------------------------------------
-    def by_faces(self, faces: List[Face], tolerance: float, copy_attributes: boolean) -> 'Shell':
+    @staticmethod
+    def by_faces(faces: List['Face'], tolerance: float, copy_attributes: bool) -> 'Shell':
         """
         Creates a Shell by a set of faces.
         """
+        from Core.Face import Face
+        from Core.Shell import Shell
         
         if not faces:
 
@@ -152,8 +149,8 @@ class Shell(Topology):
                 if copy_attributes:
 
                     # AttributeManager not implemented yet!
-                    # instance = AttributeManager.get_instance()
-                    # instance.deep_copy_attributes(occt_face, occt_shell)
+                    instance = AttributeManager.get_instance()
+                    instance.deep_copy_attributes(occt_face, occt_shell)
 
                     pass
 
@@ -161,30 +158,28 @@ class Shell(Topology):
             # GlobalCluster.get_instance().add_topology(p_shell) # not needed
             return p_shell
 
-        # Topology.occt_sew_faces not implemented yet!
         occt_shape = Topology.occt_sew_faces(occt_shapes, tolerance)
-        try:
-            occt_shell = topods.Shell(occt_shape)
-            p_shell = Shell(occt_shell)
+        # try:
+        occt_shell = topods.Shell(occt_shape)
+        p_shell = Shell(occt_shell)
 
-            faces_as_topologies: List[Topology]
+        faces_as_topologies: List[Topology] = []
 
-            for face in faces:
-                faces_as_topologies.append(face) 
+        for face in faces:
+            faces_as_topologies.append(face) 
 
-            if copy_attributes:
-                # Topology.deep_copy_attributes_from() not implemented yet!
-                p_copy_shell = p_shell.deep_copy_attributes_from(faces_as_topologies)
-                return p_copy_shell
-            else:
-                return p_shell
+        if copy_attributes:
+            p_copy_shell = p_shell.deep_copy_attributes_from(faces_as_topologies)
+            return p_copy_shell
+        else:
+            return p_shell
 
-        except:
-            raise Exception("Error: The set of faces does not create a valid shell.")
-            # return None
+        # except:
+        #     raise Exception("Error: The set of faces does not create a valid shell.")
+
 
 #--------------------------------------------------------------------------------------------------
-    def is_manifold(self, host_topology: Topology) -> boolean:
+    def is_manifold(self, host_topology: Topology) -> bool:
         """
         Returns True, if this Shell is a manifold, otherwise a False.
         """
@@ -246,6 +241,9 @@ class Shell(Topology):
         Returns the Vertex at the center of mass of this OCCT shell.
         """
 
+        from Core.Vertex import Vertex
+        from Core.Shell import Shell
+
         occt_vertex = Shell.make_pnt_at_center_of_mass(self.get_occt_shell())
         vertex = Vertex(occt_vertex)
 
@@ -259,7 +257,7 @@ class Shell(Topology):
         """
         
         occt_shape_properties = GProp_GProps()
-        SurfaceProperties(occt_shell, occt_shape_properties)
+        brepgprop.SurfaceProperties(occt_shell, occt_shape_properties)
 
         center_of_mass_point = occt_shape_properties.CenterOfMass()
         return BRepBuilderAPI_MakeVertex(center_of_mass_point).Vertex()
