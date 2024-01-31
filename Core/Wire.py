@@ -8,7 +8,7 @@ from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Vertex, TopoDS_Edge, TopoDS_Wir
 from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopExp import TopExp_Explorer
-from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
+from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Geom import Geom_BSplineCurve, Geom_Curve, Geom_Geometry
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Edge
@@ -164,10 +164,28 @@ class Wire(Topology):
         else:
             # This only works for manifold wire with a flow
             ret_edges: List[Edge] = []
-            vertices: List[Vertex] = Topology.static_downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
-            if len(vertices) == 0:
+            vertices: List[TopoDS_Vertex] = []
+            vertices_listOfShape: TopTools_ListOfShape = Topology.static_downward_navigation(self.get_occt_shape(), TopAbs_VERTEX)
+
+            size = vertices_listOfShape.Size()
+
+            if size == 0:
                 return []
-            
+
+            it = TopTools_ListIteratorOfListOfShape(vertices_listOfShape)
+
+            while it.More():
+
+                # Get TopoDS_Vertex
+                occt_shape = it.Value()
+
+                # Convert TopoDS_Vertex To Vertex
+                vertex = Topology.by_occt_shape(occt_shape, "")
+
+                vertices.append(vertex)
+
+                it.Next()
+
             is_closed = self.is_closed()
             starting_vertex = None
             if is_closed:

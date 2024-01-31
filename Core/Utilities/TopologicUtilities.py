@@ -255,7 +255,7 @@ class VertexUtility:
         TODO
         """
         core_adjacent_edges: List[Edge] = []
-        core_adjacent_topologies: List[Topology] = vertex.upward_navigation(
+        core_adjacent_topologies: List[Topology] = vertex.upward_navigation_(
             parent_topology.get_occt_shape(), 
             TopologyTypes.EDGE) 
         

@@ -16,6 +16,8 @@ from Core.Context import Context as coreContext
 from Core.Dictionary import Dictionary as coreDictionary
 from Core.Utilities.TopologicUtilities import VertexUtility, EdgeUtility, FaceUtility
 
+from Core.TopologyConstants import TopologyTypes
+
 # Wrapper
 from Wrapper.Vertex import Vertex
 from Wrapper.Vector import Vector
@@ -112,18 +114,19 @@ class Shell(Topology):
         for i in range(len(wireList)-1):
             wire1 = wireList[i]
             wire2 = wireList[i+1]
-            if wire1.Type() < coreEdge.Type() or wire2.Type() < coreEdge.Type():
+
+            if wire1.get_type().value < TopologyTypes.EDGE.value or wire2.get_type().value < TopologyTypes.EDGE.value:
                 return None
-            if wire1.Type() == coreEdge.Type():
+            if wire1.get_type().value == TopologyTypes.EDGE.value:
                 w1_edges = [wire1]
             else:
                 w1_edges = []
-                _ = wire1.Edges(None, w1_edges)
-            if wire2.Type() == coreEdge.Type():
+                w1_edges = wire1.edges()
+            if wire2.get_type().value == TopologyTypes.EDGE.value:
                 w2_edges = [wire2]
             else:
                 w2_edges = []
-                _ = wire2.Edges(None, w2_edges)
+                w2_edges = wire2.edges()
             if len(w1_edges) != len(w2_edges):
                 return None
             if triangulate == True:
@@ -133,17 +136,17 @@ class Shell(Topology):
                     e3 = None
                     e4 = None
                     try:
-                        e3 = Edge.ByVertices([e1.StartVertex(), e2.StartVertex()])
+                        e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
                     except:
-                        e4 = Edge.ByVertices([e1.EndVertex(), e2.EndVertex()])
+                        e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
                         faces.append(Face.ByWire(Wire.ByEdges([e1, e2, e4])))
                     try:
-                        e4 = Edge.ByVertices([e1.EndVertex(), e2.EndVertex()])
+                        e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
                     except:
-                        e3 = Edge.ByVertices([e1.StartVertex(), e2.StartVertex()])
+                        e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
                         faces.append(Face.ByWire(Wire.ByEdges([e1, e2, e3])))
                     if e3 and e4:
-                        e5 = Edge.ByVertices([e1.StartVertex(), e2.EndVertex()])
+                        e5 = Edge.ByVertices([e1.start_vertex(), e2.end_vertex()])
                         faces.append(Face.ByWire(Wire.ByEdges([e1, e5, e4])))
                         faces.append(Face.ByWire(Wire.ByEdges([e2, e5, e3])))
             else:
@@ -153,28 +156,28 @@ class Shell(Topology):
                     e3 = None
                     e4 = None
                     try:
-                        e3 = Edge.ByVertices([e1.StartVertex(), e2.StartVertex()])
+                        e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
                     except:
                         try:
-                            e4 = Edge.ByVertices([e1.EndVertex(), e2.EndVertex()])
+                            e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
                         except:
                             pass
                     try:
-                        e4 = Edge.ByVertices([e1.EndVertex(), e2.EndVertex()])
+                        e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
                     except:
                         try:
-                            e3 = Edge.ByVertices([e1.StartVertex(), e2.StartVertex()])
+                            e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
                         except:
                             pass
                     if e3 and e4:
                         try:
-                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e4, e2, e3])))
+                            faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2, e3])))
                         except:
-                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e3, e2, e4])))
+                            faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2, e4])))
                     elif e3:
-                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e3, e2])))
+                            faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2])))
                     elif e4:
-                            faces.append(Face.ByWire(coreWire.ByEdges([e1, e4, e2])))
+                            faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2])))
         return Shell.ByFaces(faces, tolerance)
 
     @staticmethod

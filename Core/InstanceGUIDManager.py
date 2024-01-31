@@ -10,9 +10,6 @@ class InstanceGUIDManager:
         Singleton constructor.
         """
 
-        if not InstanceGUIDManager._instance != None:
-            raise RuntimeError("Cannot instantiate InstanceGuidManager twice!")
-
         self.occt_shape_to_guid_map: ShapeToGuidDict = {}
 
     @staticmethod

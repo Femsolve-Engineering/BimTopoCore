@@ -407,6 +407,9 @@ class Topology:
         else:
             p_topology_factory = topology_factory_manager.find(instance_guid)
 
+        if p_topology_factory == None:
+            print('stop')
+
         assert p_topology_factory is not None
         p_topology = p_topology_factory.create(occt_shape)
 
@@ -3178,7 +3181,7 @@ class Topology:
         topexp.MapShapesAndUniqueAncestors(
             host_topology,
             self.get_occt_shape().ShapeType(),
-            occt_shape_type,
+            occt_shape_type.value,
             occt_shape_map)
         
         occt_ancestors = TopTools_ListOfShape()
@@ -3206,7 +3209,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_MapOfShape:
+    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_ListOfShape:
         """
         Navigates downward through the sub-shapes of a given shape and retrieves
         the ones of a specified type.
@@ -3218,25 +3221,27 @@ class Topology:
         Returns:
             TopTools_MapOfShape: Map containing the retrieved sub-shapes.
         """
-        # ret_members: List['Topology'] = []
 
-        occt_members = TopTools_MapOfShape()
+        occt_members = TopTools_ListOfShape()
+
+        TopExp_Explorer()
 
         occt_explorer = TopExp_Explorer(occt_shape, shape_enum)
 
+        depth = occt_explorer.Depth()
+        exploredShape = occt_explorer.ExploredShape()
+
         while occt_explorer.More():
 
-            occt_current = occt_explorer.Current()
+            occt_current = occt_explorer.Value()
 
-            if not occt_members.Contains(occt_current):
-                occt_members.Add(occt_current)
+            # if not occt_members.Contains(occt_current):
+            #     occt_members.Add(occt_current)
 
-                # child_topology = Topology.by_occt_shape(occt_current_shape, "")
-                # ret_members.append(child_topology)
+            occt_members.Append(occt_current)
 
             occt_explorer.Next()
 
-        # return ret_members
         return occt_members
 
 #--------------------------------------------------------------------------------------------------
@@ -3289,7 +3294,7 @@ class Topology:
                 occt_shape_copy_shape_map.Bind(occt_member, occt_member_copy)
                 occt_shape_copy_shape_map.Bind(occt_member_copy, occt_member)
 
-                AttributeManager.get_instance().copy_attributes(occt_member, occt_member_copy)
+                AttributeManager.get_instance().copy_attributes(occt_member, occt_member_copy, False)
             
             except:
                 pass
@@ -3309,7 +3314,7 @@ class Topology:
         self.deep_copy_explode_shape(occt_shape, occt_shape_copier, occt_shape_copy_shape_map)
 
         # Explode
-        shape_copy: Topology = Topology.by_occt_shape(occt_shape_copy, Topology.get_instance_guid(occt_shape))
+        shape_copy: Topology = Topology.by_occt_shape(occt_shape_copy, Topology.static_get_instance_guid(occt_shape))
 
         contexts: List[Context] = []
         Topology.contexts(occt_shape, contexts)
@@ -3499,18 +3504,10 @@ class Topology:
         for i in range(occt_shape.ShapeType() + 1, TopAbs_SHAPE):
             
             occt_shape_enum: TopAbs_ShapeEnum = i
-            occt_members = TopTools_MapOfShape()
-            occt_members = Topology.static_downward_navigation(occt_shape, occt_shape_enum)
+            occt_sub_shapes = TopTools_ListOfShape()
+            occt_sub_shapes = Topology.static_downward_navigation(occt_shape, occt_shape_enum)
 
-            it = occt_members.cbegin()
-
-            while it != occt_members.cend():
-
-
-
-                it.next()
-
-            occt_members_iterator = toptools.TopTools_MapIteratorOfMapOfShape(occt_members)
+            occt_members_iterator = TopTools_ListIteratorOfListOfShape(occt_sub_shapes)
 
             while occt_members_iterator.More():
 
@@ -3523,7 +3520,8 @@ class Topology:
         """
         Instance-bound method to call static GUID getter.
         """
-        return Topology.static_get_instance_guid(self.get_occt_shape())
+        base_shape = self.get_occt_shape()
+        return Topology.static_get_instance_guid(base_shape)
 
 #--------------------------------------------------------------------------------------------------
     def set_instance_guid(self, shape: TopoDS_Shape, guid: str) -> None:
