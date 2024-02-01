@@ -54,11 +54,10 @@ class Shell(Topology):
         if not shell:
             result = faceList[0]
             remainder = faceList[1:]
-            cluster = coreCluster.by_Topologies(remainder, False)
-            result = result.Merge(cluster, False)
-            if result.Type() > 16:
-                returnShells = []
-                _ = result.Shells(None, returnShells)
+            cluster = coreCluster.by_topologies(remainder, False)
+            result = result.merge(cluster, False)
+            if result.get_topology_type() > TopologyTypes.SHELL:
+                returnShells = result.shells(None)
                 return returnShells
             else:
                 return None
@@ -83,10 +82,9 @@ class Shell(Topology):
             The created shell.
 
         """
-        if not isinstance(cluster, Cluster):
+        if not isinstance(cluster, coreCluster):
             return None
-        faces = []
-        _ = cluster.Faces(None, faces)
+        faces = cluster.faces()
         return Shell.ByFaces(faces, tolerance=tolerance)
 
     @staticmethod

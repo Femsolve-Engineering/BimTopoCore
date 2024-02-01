@@ -26,20 +26,25 @@ class FaceFactory(TopologyFactory):
 
 class ShellFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("ShellFactory create")
+        from Core.Shell import Shell
+        return Shell(topods.Shell(occt_shape))
     
 class CellFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("CellFactory create")
+        from Core.Cell import Cell
+        return Cell(topods.Solid(occt_shape))
     
 class CellComplexFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("CellComplexFactory create")
+        from CellComplex import CellComplex
+        return CellComplex(topods.CompSolid(occt_shape))
     
 class ClusterFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("ClusterFactory create")
+        from Core.Cluster import Cluster
+        return Cluster(topods.Compound(occt_shape))
     
 class ApertureFactory(TopologyFactory):
     def create(self, occt_shape: TopoDS_Shape):
-        raise NotImplementedError("ApertureFactory create")
+        from Core.Aperture import Aperture
+        raise NotImplementedError("Need to write ApertureFactory in AllFactories.py!")

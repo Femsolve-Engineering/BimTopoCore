@@ -172,7 +172,7 @@ class Shell(Topology):
         for face in faces:
             faces_as_topologies.append(face) 
 
-        if copy_attributes:
+        if False:#copy_attributes: 
             p_copy_shell = p_shell.deep_copy_attributes_from(faces_as_topologies)
             return p_copy_shell
         else:

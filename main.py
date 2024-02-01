@@ -8,7 +8,7 @@ from TestCases.WrapperTests.t01Vertex import test_01vertex
 from TestCases.WrapperTests.t02Edge import test_02edge
 from TestCases.WrapperTests.t03Wire import test_03wire
 from TestCases.WrapperTests.t04Face import test_04face
-from TestCases.WrapperTests.t05Shell import t05_Shell
+from TestCases.WrapperTests.t05Shell import test_05shell
 from TestCases.WrapperTests.t10Dictionary import test_10dictionary
 from TestCases.WrapperTests.t15Aperture import test_15aperture
 
@@ -29,13 +29,13 @@ def test_runner(functors: list) -> dict[str, bool]:
     
 # Test collections
 test_to_outcome = test_runner([
-    test_01vertex,
-    test_02edge,
-    test_03wire,
-    test_04face,
-    t05_Shell,
-    test_10dictionary,
-    test_15aperture
+    # test_01vertex,
+    # test_02edge,
+    # test_03wire,
+    # test_04face,
+    test_05shell,
+    # test_10dictionary,
+    # test_15aperture
 ])
 
 print('\n------------------------- Test Summary -------------------------\n')

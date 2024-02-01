@@ -8,7 +8,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 
 # BimTopoCore
 from Core.Context import Context
-from Topology import Topology
+from Core.Topology import Topology
 from Core.TopologyConstants import TopologyTypes
 
 

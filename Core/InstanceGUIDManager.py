@@ -51,10 +51,12 @@ class InstanceGUIDManager:
         Looks up a shape if it already exists in the collection of all shapes.
 
         Returns:
-            None - if shape was not found, otherwise guid's string
+            "" - if shape was not found, otherwise guid's string
         """
         if occt_shape in self.occt_shape_to_guid_map:
             return self.occt_shape_to_guid_map[occt_shape]
+        
+        return ""
 
     def clear_all(self) -> None:
         """

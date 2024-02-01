@@ -412,9 +412,6 @@ class Topology:
         else:
             p_topology_factory = topology_factory_manager.find(instance_guid)
 
-        if p_topology_factory == None:
-            print('stop')
-
         assert p_topology_factory is not None
         p_topology = p_topology_factory.create(occt_shape)
 
@@ -1238,7 +1235,7 @@ class Topology:
         Returns:
             All topologies that are stored under this topology.
         """
-        self.static_sub_contents(self.get_occt_shape(), sub_contents)
+        Topology.static_sub_contents(self.get_occt_shape(), sub_contents)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
@@ -3305,8 +3302,8 @@ class Topology:
 
                 AttributeManager.get_instance().copy_attributes(occt_member, occt_member_copy, False)
             
-            except:
-                pass
+            except Exception as ex:
+                print(f'Exception occured inside deep_copy_explode_shape! Going to move forward. Exception:{ex}')
 
             occt_member_iterator.Next()
 
@@ -3346,7 +3343,7 @@ class Topology:
 
         sub_contents: List['Topology'] = []
 
-        Topology.sub_contents(occt_shape, sub_contents)
+        Topology.static_sub_contents(occt_shape, sub_contents)
 
         for sub_content in sub_contents:
             occt_shape_copy = TopoDS_Shape()
@@ -3375,6 +3372,7 @@ class Topology:
         
         occt_shape_copy_shape_map = TopTools_DataMapOfShapeShape()
         shape_copy: Topology = self.deep_copy_impl(self.get_occt_shape(), occt_shape_copy_shape_map)
+        return shape_copy
 
 #--------------------------------------------------------------------------------------------------
     def shallow_copy(self) -> 'Topology':

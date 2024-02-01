@@ -7,7 +7,7 @@ from xmlrpc.client import boolean
 # OCC
 from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Solid, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, TopoDS_Vertex, TopoDS_Compound, topods
-from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPOUND
+from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_SHELL, TopAbs_FACE, TopAbs_SOLID, TopAbs_COMPOUND, TopAbs_COMPSOLID, TopAbs_WIRE
 from OCC.Core.BRep import BRep_Tool, BRep_Builder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
 from OCC.Core.TopTools import toptools, TopTools_MapOfShape, TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
@@ -184,37 +184,37 @@ class Cluster(Topology):
 #--------------------------------------------------------------------------------------------------
     def shells(self) -> List['Shell']:
         
-        return self.downward_navigation(TopologyTypes.SHELL)
+        return self.downward_navigation(TopAbs_SHELL)
 
 #--------------------------------------------------------------------------------------------------
     def edges(self) -> List['Edge']:
         
-        return self.downward_navigation(TopologyTypes.EDGE)
+        return self.downward_navigation(TopAbs_EDGE)
 
 #--------------------------------------------------------------------------------------------------
     def faces(self) -> List['Face']:
         
-        return self.downward_navigation(TopologyTypes.FACE)
+        return self.downward_navigation(TopAbs_FACE)
 
 #--------------------------------------------------------------------------------------------------
     def vertices(self) -> List['Vertex']:
         
-        return self.downward_navigation(TopologyTypes.VERTEX)
+        return self.downward_navigation(TopAbs_VERTEX)
 
 #--------------------------------------------------------------------------------------------------
     def wires(self) -> List['Wire']:
         
-        return self.downward_navigation(TopologyTypes.WIRE)
+        return self.downward_navigation(TopAbs_WIRE)
 
 #--------------------------------------------------------------------------------------------------
     def cells(self) -> List['Cell']:
         
-        return self.downward_navigation(TopologyTypes.CELL)
+        return self.downward_navigation(TopAbs_SOLID)
 
 #--------------------------------------------------------------------------------------------------
     def cellComplexes(self) -> List[CellComplex]:
         
-        return self.downward_navigation(TopologyTypes.CELLCOMPLEX)
+        return self.downward_navigation(TopAbs_COMPSOLID)
 
 #--------------------------------------------------------------------------------------------------
     def is_inside(self, topology: Topology) -> boolean:
