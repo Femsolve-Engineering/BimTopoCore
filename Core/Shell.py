@@ -117,8 +117,12 @@ class Shell(Topology):
         """
         Returns the Vertex contituents to this Shell
         """
-        shape_type = TopologyTypes.VERTEX
-        return self.downward_navigation(shape_type)
+        # shape_enum = TopologyTypes.VERTEX
+        shape_enum = TopAbs_VERTEX
+
+        occt_shape = self.get_occt_shape()
+        return Topology.static_downward_navigation(occt_shape, shape_enum)
+        # return self.downward_navigation(shape_type)
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod

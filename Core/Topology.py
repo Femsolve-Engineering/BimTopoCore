@@ -75,8 +75,13 @@ class Topology:
 
     topologic_entity_count: int = 0
 
-    topology_to_subshape: Dict['Topology', 'Topology'] = {} # used to mimic the function 'downcast'
-    subshape_to_topology: Dict['Topology', 'Topology'] = {} # used to mimic the function 'upcast'
+    shape_to_id = {}
+
+    shapeID_to_topology = {}
+    topology_to_shapeID = {}
+
+    topology_to_subshape: Dict['Topology', TopoDS_Shape] = {} # used to mimic the function 'downcast'
+    subshape_to_topology: Dict[TopoDS_Shape, 'Topology'] = {} # used to mimic the function 'upcast'
 
     attribute_manager = AttributeManager()
     counter = 0
@@ -1254,14 +1259,17 @@ class Topology:
 
             # Get members in each level
             occt_type_iteration: TopAbs_ShapeEnum = i
-            occt_members = TopTools_MapOfShape()
-            Topology.static_downward_navigation(occt_shape, occt_type_iteration, occt_members)
+            occt_members = TopTools_ListOfShape()
+            occt_members = Topology.static_downward_navigation(occt_shape, occt_type_iteration)
+
+            size = occt_members.Size()
 
             # For each member, get the contents
-            occt_member_iterator = toptools.TopTools_MapIteratorOfMapOfShape()
+            occt_member_iterator = TopTools_ListIteratorOfListOfShape(occt_members)
 
             while occt_member_iterator.More():
 
+                # print(occt_member_iterator.Value())
                 ContentManager.get_instance().find(occt_member_iterator.Value(), sub_contents)
 
                 occt_member_iterator.Next()
@@ -3242,6 +3250,7 @@ class Topology:
 
             occt_explorer.Next()
 
+        size = occt_members.Size() 
         return occt_members
 
 #--------------------------------------------------------------------------------------------------
@@ -3258,7 +3267,7 @@ class Topology:
         else:
             required_topabs_shapeenum = topabs_shape_enum
 
-        occt_shapes = TopTools_MapOfShape()
+        occt_shapes = TopTools_MapOfShape() # ??? should be TopTools_ListOfShape ???
         occt_explorer = TopExp_Explorer(self.get_occt_shape(), required_topabs_shapeenum)
 
         while occt_explorer.More():
@@ -3427,11 +3436,9 @@ class Topology:
         # NOTE: this map will map the subshapes to the attributes
         
         attribute_map: Dict[str, Attribute] = {}
-        
         origin_attribute_map: Dict[TopoDS_Shape, Dict[str, Attribute]] = {}
 
         type_filters: List[int] = []
-
         for origin_topology in origin_topologies:
 
             AttributeManager.get_instance().get_attributes_in_sub_shapes(origin_topology.get_occt_shape(), origin_attribute_map)

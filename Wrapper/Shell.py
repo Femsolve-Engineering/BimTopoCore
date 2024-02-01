@@ -1,5 +1,7 @@
 import math
 
+from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
+
 # Core
 from Core.Topology import Topology as coreTopology
 from Core.Vertex import Vertex as coreVertex
@@ -52,7 +54,7 @@ class Shell(Topology):
         if not shell:
             result = faceList[0]
             remainder = faceList[1:]
-            cluster = coreCluster.ByTopologies(remainder, False)
+            cluster = coreCluster.by_Topologies(remainder, False)
             result = result.Merge(cluster, False)
             if result.Type() > 16:
                 returnShells = []
@@ -574,7 +576,7 @@ class Shell(Topology):
         returnTopology = Shell.ByFaces(faces)
         if not returnTopology:
             returnTopology = None
-        zeroOrigin = returnTopology.CenterOfMass()
+        zeroOrigin = returnTopology.center_of_mass()
         xOffset = 0
         yOffset = 0
         zOffset = 0
@@ -613,7 +615,7 @@ class Shell(Topology):
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
         returnTopology = Topology.Rotate(returnTopology, zeroOrigin, 0, 1, 0, theta)
         returnTopology = Topology.Rotate(returnTopology, zeroOrigin, 0, 0, 1, phi)
-        returnTopology = Topology.Translate(returnTopology, zeroOrigin.X()+xOffset, zeroOrigin.Y()+yOffset, zeroOrigin.Z()+zOffset)
+        returnTopology = Topology.Translate(returnTopology, zeroOrigin.x()+xOffset, zeroOrigin.y()+yOffset, zeroOrigin.z()+zOffset)
         return returnTopology
     
     @staticmethod
@@ -671,10 +673,10 @@ class Shell(Topology):
                 x4 = math.sin(a2)*r1
                 y4 = math.cos(a2)*r1
                 z4 = A*x4*x4 + B*y4*y4
-                v1 = coreVertex.ByCoordinates(x1,y1,z1)
-                v2 = coreVertex.ByCoordinates(x2,y2,z2)
-                v3 = coreVertex.ByCoordinates(x3,y3,z3)
-                v4 = coreVertex.ByCoordinates(x4,y4,z4)
+                v1 = coreVertex.by_coordinates(x1,y1,z1)
+                v2 = coreVertex.by_coordinates(x2,y2,z2)
+                v3 = coreVertex.by_coordinates(x3,y3,z3)
+                v4 = coreVertex.by_coordinates(x4,y4,z4)
                 f1 = Face.ByVertices([v1,v2,v4])
                 f2 = Face.ByVertices([v4,v2,v3])
                 faces.append(f1)
@@ -693,10 +695,10 @@ class Shell(Topology):
             x4 = math.sin(a2)*r1
             y4 = math.cos(a2)*r1
             z4 = A*x4*x4 + B*y4*y4
-            v1 = coreVertex.ByCoordinates(x1,y1,z1)
-            v2 = coreVertex.ByCoordinates(x2,y2,z2)
-            v3 = coreVertex.ByCoordinates(x3,y3,z3)
-            v4 = coreVertex.ByCoordinates(x4,y4,z4)
+            v1 = coreVertex.by_coordinates(x1,y1,z1)
+            v2 = coreVertex.by_coordinates(x2,y2,z2)
+            v3 = coreVertex.by_coordinates(x3,y3,z3)
+            v4 = coreVertex.by_coordinates(x4,y4,z4)
             f1 = Face.ByVertices([v1,v2,v4])
             f2 = Face.ByVertices([v4,v2,v3])
             faces.append(f1)
@@ -706,7 +708,7 @@ class Shell(Topology):
         x1 = 0
         y1 = 0
         z1 = 0
-        v1 = coreVertex.ByCoordinates(x1,y1,z1)
+        v1 = coreVertex.by_coordinates(x1,y1,z1)
         for j in range(sides-1):
                 a1 = math.radians(uOffset)*j
                 a2 = math.radians(uOffset)*(j+1)
@@ -718,8 +720,8 @@ class Shell(Topology):
                 y3 = math.cos(a2)*r
                 z3 = A*x3*x3 + B*y3*y3
                 #z3 = 0
-                v2 = coreVertex.ByCoordinates(x2,y2,z2)
-                v3 = coreVertex.ByCoordinates(x3,y3,z3)
+                v2 = coreVertex.by_coordinates(x2,y2,z2)
+                v3 = coreVertex.by_coordinates(x3,y3,z3)
                 f1 = Face.ByVertices([v2,v1,v3])
                 faces.append(f1)
         a1 = math.radians(uOffset)*(sides-1)
@@ -730,22 +732,45 @@ class Shell(Topology):
         x3 = math.sin(a2)*r
         y3 = math.cos(a2)*r
         z3 = A*x3*x3 + B*y3*y3
-        v2 = coreVertex.ByCoordinates(x2,y2,z2)
-        v3 = coreVertex.ByCoordinates(x3,y3,z3)
+        v2 = coreVertex.by_coordinates(x2,y2,z2)
+        v3 = coreVertex.by_coordinates(x3,y3,z3)
         f1 = Face.ByVertices([v2,v1,v3])
         faces.append(f1)
-        returnTopology = coreShell.ByFaces(faces)
+        returnTopology = coreShell.by_faces(faces, 1e-03, False)
         if not returnTopology:
-            returnTopology = coreCluster.ByTopologies(faces)
-        vertices = []
-        _ = returnTopology.Vertices(None, vertices)
+            returnTopology = coreCluster.by_topologies(faces)
+
+        
+        # Description: instead of occt_shapes we are expecting a simple list of core.vertex type objects!!!
+        # Problem: TopExp_Explorer in static_downward_navigation returns new instances of occt_shapes.
+        #          These shapes has not been registered and associated to topologies and core.vertex objects cannot be accessed.
+        vertices = returnTopology.vertices() # vertices --> is a TopTools_ListOfShape type object, that contains ooct_shapes.
         xList = []
         yList = []
         zList = []
+
+        # Original version:
+        #------------------
         for aVertex in vertices:
-            xList.append(aVertex.X())
-            yList.append(aVertex.Y())
-            zList.append(aVertex.Z())
+            xList.append(aVertex.x())
+            yList.append(aVertex.y())
+            zList.append(aVertex.z())
+
+        # New approach to iterate over the TopTools_ListOfShapes type object
+        #-------------------------------------------------------------------
+        # iterator = TopTools_ListIteratorOfListOfShape(vertices)
+
+        # while iterator.More():
+
+        #     occt_vertex = iterator.Value()
+        #     aVertex = coreTopology.shapeID_to_topology[occt_vertex.id]
+
+        #     xList.append(aVertex.x())
+        #     yList.append(aVertex.y())
+        #     zList.append(aVertex.z())
+
+        #     iterator.Next()
+
         minX = min(xList)
         maxX = max(xList)
         minY = min(yList)
@@ -783,7 +808,7 @@ class Shell(Topology):
             theta = 0
         else:
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
-        zeroOrigin = coreVertex.ByCoordinates(0,0,0)
+        zeroOrigin = coreVertex.by_coordinates(0,0,0)
         returnTopology = coreTopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 1, 0, theta)
         returnTopology = coreTopologyUtility.Rotate(returnTopology, zeroOrigin, 0, 0, 1, phi)
         returnTopology = coreTopologyUtility.Translate(returnTopology, origin.X()+xOffset, origin.Y()+yOffset, origin.Z()+zOffset)
@@ -1026,12 +1051,12 @@ class Shell(Topology):
                 f = Face.ByWire(w)
                 faces.append(f)
         shell = Shell.ByFaces(faces)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    

@@ -151,7 +151,8 @@ class TopologyUtility:
         #   topology.get_occt_shape(), core_transformed_topology.get_occt_shape())
         
         # Recursive rotation for subcontents
-        sub_contents = topology.sub_contents()
+        sub_contents = []
+        topology.sub_contents(sub_contents)
         for sub_content in sub_contents:
             transformed_subcontent = TopologyUtility.rotate(
                 sub_content, origin_vertex, direction_x, direction_y, direction_z, degree)

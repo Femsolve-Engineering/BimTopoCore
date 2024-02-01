@@ -40,8 +40,16 @@ class Vertex(Topology):
         self.register_factory(self.get_class_guid(), VertexFactory())
 
         # Register the instances
-        Topology.topology_to_subshape[instance_topology] = self
-        Topology.subshape_to_topology[self] = instance_topology
+
+        occt_vertex.__setattr__('id', Topology.topologic_entity_count)
+
+        # Topology.shape_to_id[occt_vertex] = Topology.topologic_entity_count
+
+        Topology.shapeID_to_topology[occt_vertex.id] = instance_topology
+        Topology.topology_to_shapeID[instance_topology] = occt_vertex.id
+
+        # Topology.topology_to_subshape[instance_topology] = occt_vertex.HashCode(10**14)
+        # Topology.subshape_to_topology[occt_vertex.HashCode(10**14)] = instance_topology
 
     @staticmethod
     def by_point(occt_geom_point: Geom_Point) -> 'Vertex':
