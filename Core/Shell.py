@@ -6,7 +6,7 @@ from typing import List
 # OCC
 from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import TopoDS_Shape, TopoDS_Compound, TopoDS_Vertex, TopoDS_Edge, TopoDS_Face, TopoDS_Shell, TopoDS_Builder, topods
-from OCC.Core.TopAbs import TopAbs_VERTEX
+from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_WIRE, TopAbs_FACE
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopTools import TopTools_MapOfShape, TopTools_ListOfShape
 from OCC.Core.gp import gp_Pnt
@@ -82,8 +82,11 @@ class Shell(Topology):
         """
         Returns the Edge contituents to this Shell
         """
-        shape_type = TopologyTypes.EDGE
-        return self.downward_navigation(shape_type)
+        # shape_type = TopologyTypes.EDGE
+        shape_enum = TopAbs_EDGE
+        
+        occt_shape = self.get_occt_shape()
+        return Topology.static_downward_navigation(occt_shape, shape_enum)
 
 #--------------------------------------------------------------------------------------------------
     # def wires(self, host_topology: Topology, wires: List[Wire]) -> List[Wire]:
@@ -92,7 +95,10 @@ class Shell(Topology):
         Returns the Wire contituents to this Shell
         """
         shape_type = TopologyTypes.WIRE
-        return self.downward_navigation(shape_type)
+        shape_enum = TopAbs_WIRE
+        
+        occt_shape = self.get_occt_shape()
+        return Topology.static_downward_navigation(occt_shape, shape_enum)
 
 #--------------------------------------------------------------------------------------------------
     # def faces(self, host_topology: Topology, faces: List[Face]) -> List[Face]:
@@ -100,8 +106,11 @@ class Shell(Topology):
         """
         Returns the Face contituents to this Shell
         """
-        shape_type = TopologyTypes.FACE
-        return self.downward_navigation(shape_type)
+        # shape_type = TopologyTypes.FACE
+        shape_enum = TopAbs_FACE
+
+        occt_shape = self.get_occt_shape()
+        return Topology.static_downward_navigation(occt_shape, shape_enum)
 
 #--------------------------------------------------------------------------------------------------
     def is_closed(self):

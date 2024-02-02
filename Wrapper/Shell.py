@@ -147,37 +147,44 @@ class Shell(Topology):
                         faces.append(Face.ByWire(Wire.ByEdges([e1, e2, e3])))
                     if e3 and e4:
                         e5 = Edge.ByVertices([e1.start_vertex(), e2.end_vertex()])
-                        faces.append(Face.ByWire(Wire.ByEdges([e1, e5, e4])))
+                        faces.append(Face.ByWire(Wire.ByEdges([e1, e5, e4]))) # The resulting wire consists of a single edge. Explanation: the edges making up the wire are coincident!
                         faces.append(Face.ByWire(Wire.ByEdges([e2, e5, e3])))
             else:
-                for j in range (len(w1_edges)):
-                    e1 = w1_edges[j]
-                    e2 = w2_edges[j]
-                    e3 = None
-                    e4 = None
-                    try:
-                        e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
-                    except:
-                        try:
-                            e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
-                        except:
-                            pass
-                    try:
-                        e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
-                    except:
-                        try:
-                            e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
-                        except:
-                            pass
-                    if e3 and e4:
-                        try:
-                            faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2, e3])))
-                        except:
-                            faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2, e4])))
-                    elif e3:
-                            faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2])))
-                    elif e4:
-                            faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2])))
+                e1 = w1_edges[0]
+                e2 = w1_edges[1]
+                e3 = w1_edges[2]
+                e4 = w1_edges[3]
+
+                faces.append(Face.ByWire(Wire.ByEdges([e1, e2, e3, e4])))
+
+                # for j in range (len(w1_edges)):
+                #     e1 = w1_edges[j]
+                #     e2 = w2_edges[j]
+                #     e3 = None
+                #     e4 = None
+                #     try:
+                #         e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
+                #     except:
+                #         try:
+                #             e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
+                #         except:
+                #             pass
+                #     try:
+                #         e4 = Edge.ByVertices([e1.end_vertex(), e2.end_vertex()])
+                #     except:
+                #         try:
+                #             e3 = Edge.ByVertices([e1.start_vertex(), e2.start_vertex()])
+                #         except:
+                #             pass
+                #     if e3 and e4:
+                #         try:
+                #             faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2, e3])))
+                #         except:
+                #             faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2, e4])))
+                #     elif e3:
+                #             faces.append(Face.ByWire(coreWire.by_edges([e1, e3, e2])))
+                #     elif e4:
+                #             faces.append(Face.ByWire(coreWire.by_edges([e1, e4, e2])))
         return Shell.ByFaces(faces, tolerance)
 
     @staticmethod
@@ -360,7 +367,17 @@ class Shell(Topology):
         if not isinstance(shell, coreShell):
             return None
         edges = []
-        _ = shell.Edges(None, edges)
+        list_edges = shell.edges()
+
+        iterator = TopTools_ListIteratorOfListOfShape(list_edges)
+
+        while iterator.More():
+
+            edge = iterator.Value()
+            edges.append(edge)
+
+            iterator.Next()
+
         return edges
 
     @staticmethod
@@ -382,7 +399,7 @@ class Shell(Topology):
         if not isinstance(shell, coreShell):
             return None
         edges = []
-        _ = shell.Edges(None, edges)
+        edges = shell.edges() # edges should be a list of topologies but it is a list of shapes
         obEdges = []
         for anEdge in edges:
             faces = []
@@ -993,7 +1010,7 @@ class Shell(Topology):
             theta = math.degrees(math.acos(dz/dist)) # Rotation around Z-Axis
         shell = Topology.Rotate(shell, origin, 0, 1, 0, theta)
         shell = Topology.Rotate(shell, origin, 0, 0, 1, phi)
-        shell = Topology.Translate(shell, origin.X()+xOffset, origin.Y()+yOffset, origin.Z()+zOffset)
+        shell = Topology.Translate(shell, origin.x()+xOffset, origin.y()+yOffset, origin.z()+zOffset)
         return shell
 
     @staticmethod

@@ -773,7 +773,7 @@ class Cluster(coreCluster):
         if not isinstance(cluster, coreCluster):
             return None
         wires = []
-        _ = cluster.Wires(None, wires)
+        wires = cluster.wires()
         return wires
 
     

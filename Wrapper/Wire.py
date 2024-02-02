@@ -173,7 +173,7 @@ class Wire(coreWire):
                     wire = coreWire.by_edges([anEdge])
                 else:
                     try:
-                        wire = wire.Merge(anEdge)
+                        wire = wire.merge(anEdge, False)
                     except:
                         continue
         if wire.get_shape_type() != coreTopologyTypes.WIRE:

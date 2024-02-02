@@ -1511,6 +1511,8 @@ class Topology:
 
             while not is_simplest_shape_found:
 
+                # occt_current_shape = occt_shapes_iterator.Value()
+
                 # Only do this for wire, shell, cellcomplex, cluster
                 if not Topology.is_container_type(occt_current_shape):
                     break
@@ -1526,7 +1528,8 @@ class Topology:
 
                 else: # if (occtShapes.Size() == 1)
                     # Go deeper
-                    occt_current_shape = occt_shapes_iterator.Next()
+                    occt_current_shape = occt_shapes_iterator.Value()
+                    # occt_shapes_iterator.Next()
 
                 occt_shapes.Clear()
 
@@ -1718,7 +1721,7 @@ class Topology:
 
         while occt_argument_iterator_A.More():
 
-            occt_arguments.append(occt_argument_iterator_A.Value())
+            occt_arguments.Append(occt_argument_iterator_A.Value())
 
             occt_argument_iterator_A.Next()
 
@@ -2112,7 +2115,7 @@ class Topology:
 
         occt_arguments_A = TopTools_ListOfShape()
         occt_arguments_B = TopTools_ListOfShape()
-        self.add_boolean_operands(other_topology, occt_arguments_A, occt_arguments_B)
+        self.add_boolean_operands_(other_topology, occt_arguments_A, occt_arguments_B)
 
         occt_cells_builder = BOPAlgo_CellsBuilder()
         Topology.non_regular_boolean_operation(occt_arguments_A, occt_arguments_B, occt_cells_builder)
@@ -2126,8 +2129,14 @@ class Topology:
 
         while occt_shape_iterator_A.More():
 
-            occt_list_to_take.Clear()
-            occt_list_to_avoid.Clear()
+            if occt_list_to_take.Size() > 0:
+                # occt_list_to_take.Clear()
+                occt_list_to_take = TopTools_ListOfShape()
+
+            if occt_list_to_avoid.Size() > 0:
+                # occt_list_to_avoid.Clear()
+                occt_list_to_avoid = TopTools_ListOfShape()
+
             occt_list_to_take.Append(occt_shape_iterator_A.Value())
             occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
 
@@ -2135,8 +2144,14 @@ class Topology:
 
         while occt_shape_iterator_B.More():
 
-            occt_list_to_take.Clear()
-            occt_list_to_avoid.Clear()
+            if occt_list_to_take.Size() > 0:
+                # occt_list_to_take.Clear()
+                occt_list_to_take = TopTools_ListOfShape()
+
+            if occt_list_to_avoid.Size() > 0:
+                # occt_list_to_avoid.Clear()
+                occt_list_to_avoid = TopTools_ListOfShape()
+
             occt_list_to_take.Append(occt_shape_iterator_B.Value())
             occt_cells_builder.AddToResult(occt_list_to_take, occt_list_to_avoid)
 
@@ -2885,12 +2900,12 @@ class Topology:
         occt_cells_builder.SetArguments(occt_cells_builders_arguments)
 
 #--------------------------------------------------------------------------------------------------
-    def add_boolean_operands(self, other_topology: 'Topology', occt_cells_builders_operands_A: TopTools_ListOfShape, occt_cells_builders_operands_B: TopTools_ListOfShape) -> None:
+    def add_boolean_operands_(self, other_topology: 'Topology', occt_cells_builders_operands_A: TopTools_ListOfShape, occt_cells_builders_operands_B: TopTools_ListOfShape) -> None:
         
         # TopTools_ListOfShape occtOperandsA;
         if self.is_container_type():
             sub_topologies: List[Topology] = []
-            self.sub_topologies(sub_topologies)
+            self.sub_topologies_(sub_topologies)
 
             for topology in sub_topologies:
                 occt_cells_builders_operands_A.Append(topology.get_occt_shape())
@@ -3032,7 +3047,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def sub_topologies(shape: TopoDS_Shape, sub_topologies: TopoDS_Shape) -> None:
+    def sub_topologies(shape: TopoDS_Shape, sub_topologies: TopTools_ListOfShape) -> None:
         
         occt_shape_iterator = TopoDS_Iterator(shape)
 
@@ -3043,7 +3058,7 @@ class Topology:
             occt_shape_iterator.Next()
 
 #--------------------------------------------------------------------------------------------------
-    def sub_topologies(self, sub_topologies: List['Topology']) -> None:
+    def sub_topologies_(self, sub_topologies: List['Topology']) -> None:
         
         occt_list_members = TopTools_ListOfShape()
         Topology.sub_topologies(self.get_occt_shape(), occt_list_members)
@@ -3116,7 +3131,8 @@ class Topology:
         return self.navigate(host_topology)
 
 #--------------------------------------------------------------------------------------------------
-    def is_container_type(self, occt_shape: TopoDS_Shape) -> bool:
+    @staticmethod
+    def is_container_type(occt_shape: TopoDS_Shape) -> bool:
         """
         Virtual method to be overridden by all descendant classes.
         TODO: What is container type?
