@@ -48,7 +48,7 @@ def test_06cell() -> bool:
     f_list = [face0,face1,face2,face3,face4,face5]  # create list
     c_faces = Cluster.ByTopologies(f_list)          # create cluster
     shell_f = Shell.ByFaces(f_list)                 # create shell
-    shell_open = Shell.ByFaces([face0])             # create shell
+    # shell_open = Shell.ByFaces([face0])             # create shell
 
     # Case 1 - Box
 

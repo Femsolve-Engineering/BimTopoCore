@@ -70,8 +70,8 @@ def test_05shell() -> bool:
 
     # test 1
     print("Shell-C3T1: The resulting wire consists of a single edge. Explanation: the edges making up the wire are coincident!")
-    # shell_w = Shell.ByWires(w_list)                                     # without optional inputs
-    # assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
+    shell_w = Shell.ByWires(w_list)                                     # without optional inputs
+    assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
 
     # test 2
     print("Shell-C3T2: Error message: The input wire is open!")

@@ -579,7 +579,7 @@ class Topology:
 
         ContentManager.get_instance().add(self.get_occt_shape(), topology)
         ContextManager.get_instance().add(topology.get_occt_shape(), \
-                                          Context.by_topology_parameters(topology.by_occt_shape(self.get_occt_shape()), \
+                                          Context.topology_by_parameters(topology.by_occt_shape(self.get_occt_shape()), \
                                                                          default_parameter, \
                                                                          default_parameter, \
                                                                          default_parameter) \
@@ -641,7 +641,7 @@ class Topology:
 
                         for cell_content in cell_contents:
                             
-                            if cell_content.IsSame(content_topology):
+                            if cell_content.is_same(content_topology):
 
                                 has_content = True
                                 break
@@ -697,7 +697,7 @@ class Topology:
                 default_parameter = 0.0 # TODO: calculate the parameters
 
                 ContextManager.get_instance().add(copy_content_topology.get_occt_shape(), \
-                                    Context.by_topology_parameters(selected_sub_topology, \
+                                    Context.topology_by_parameters(selected_sub_topology, \
                                                                     default_parameter, \
                                                                     default_parameter, \
                                                                     default_parameter) \
@@ -756,7 +756,7 @@ class Topology:
 
             for removed_content in topologies:
 
-                if content.IsSame(removed_content):
+                if content.is_same(removed_content):
 
                     is_removed = True
                     break
@@ -784,6 +784,7 @@ class Topology:
         ContextManager.get_instance().add(self.get_occt_shape(), context)
 
         # 2. Register to ContentManager
+        context: Context = context
         ContentManager.get_instance().add(context.topology().get_occt_shape(), Topology.by_occt_shape(self.get_occt_shape(), self.get_instance_guid()))
 
 #--------------------------------------------------------------------------------------------------
@@ -797,6 +798,7 @@ class Topology:
         copy_topology: Topology = TopologicalQuery.dynamic_pointer_cast(self.deep_copy())
 
         content_instance_guid: str
+        contexts: List[Context] = contexts
 
         for context in contexts:
 
@@ -815,7 +817,7 @@ class Topology:
             default_parameter = 0.0 # TODO: calculate the parameters
 
             ContextManager.get_instance().add(copy_topology.get_occt_shape(), \
-                                              Context.by_topology_parameters(copy_context_topology, \
+                                              Context.topology_by_parameters(copy_context_topology, \
                                                                              default_parameter, \
                                                                              default_parameter, \
                                                                              default_parameter) \
@@ -829,8 +831,10 @@ class Topology:
 
         from Core.ContentManager import ContentManager
         from Core.ContextManager import ContextManager
-        
+        from Core.Context import Context
+
         # 1. Remove from ContextManager
+        context: Context = context
         ContextManager.get_instance().remove(self.get_occt_shape(), context.topology().get_occt_shape())
 
         # 2. Remove from ContentManager
@@ -844,10 +848,12 @@ class Topology:
         copy_topology = self.shallow_copy()
 
         for context in contexts:
+            context: Context = context
             is_removed = False
 
             for removed_context in contexts:
-                if context.topology().IsSame(removed_context.topology()):
+                removed_context: Context = removed_context
+                if context.topology().is_same(removed_context.topology()):
                     is_removed = True
                     break
 
@@ -1530,7 +1536,7 @@ class Topology:
                     # Go deeper
                     print("The occt_shapes_iterator's Value accessor crashes the app --> returning original shape in Topology.simplify.")
                     return occt_current_shape
-                    # occt_current_shape = occt_shapes_iterator.Value()
+                    occt_current_shape = occt_shapes_iterator.Value()
                     # occt_shapes_iterator.Next()
 
                 occt_shapes.Clear()
@@ -2759,7 +2765,7 @@ class Topology:
         if len(contexts) == 1:
 
             # Go farther
-            return contexts[0].topology.track_context_ancestor()
+            return contexts[0].topology().track_context_ancestor()
 
         # if empty or > 2
         return self
@@ -3578,7 +3584,7 @@ class Topology:
 
         for string in keys:
 
-            attr_manager.Add(occt_shape, string, attributes[string])
+            attr_manager.add(occt_shape, string, attributes[string])
 
 #--------------------------------------------------------------------------------------------------
     def get_dictionary(self) -> Dictionary:
@@ -3615,7 +3621,7 @@ class Topology:
             return self.downward_navigation()
         elif not is_current_type_higher_order:
             if not host_topology.is_null_shape():
-                return self.upward_navigation()
+                return self.upward_navigation_()
             else:
                 raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
         else:

@@ -1367,10 +1367,10 @@ class Cell(Topology):
         elif placement.lower() == "lowerleft":
             xOffset = width*0.5
             yOffset = length*0.5
-        vb1 = Vertex.ByCoordinates(origin.X()-width*0.5+xOffset,origin.Y()-length*0.5+yOffset,origin.Z()+zOffset)
-        vb2 = Vertex.ByCoordinates(origin.X()+width*0.5+xOffset,origin.Y()-length*0.5+yOffset,origin.Z()+zOffset)
-        vb3 = Vertex.ByCoordinates(origin.X()+width*0.5+xOffset,origin.Y()+length*0.5+yOffset,origin.Z()+zOffset)
-        vb4 = Vertex.ByCoordinates(origin.X()-width*0.5+xOffset,origin.Y()+length*0.5+yOffset,origin.Z()+zOffset)
+        vb1 = Vertex.ByCoordinates(origin.x()-width*0.5+xOffset,origin.y()-length*0.5+yOffset,origin.z()+zOffset)
+        vb2 = Vertex.ByCoordinates(origin.x()+width*0.5+xOffset,origin.y()-length*0.5+yOffset,origin.z()+zOffset)
+        vb3 = Vertex.ByCoordinates(origin.x()+width*0.5+xOffset,origin.y()+length*0.5+yOffset,origin.z()+zOffset)
+        vb4 = Vertex.ByCoordinates(origin.x()-width*0.5+xOffset,origin.y()+length*0.5+yOffset,origin.z()+zOffset)
 
         baseWire = Wire.ByVertices([vb1, vb2, vb3, vb4], close=True)
         baseFace = Face.ByWire(baseWire)
@@ -1379,12 +1379,12 @@ class Cell(Topology):
 
         if uSides > 1 or vSides > 1 or wSides > 1:
             prism = sliceCell(prism, width, length, height, uSides, vSides, wSides)
-        x1 = origin.X()
-        y1 = origin.Y()
-        z1 = origin.Z()
-        x2 = origin.X() + direction[0]
-        y2 = origin.Y() + direction[1]
-        z2 = origin.Z() + direction[2]
+        x1 = origin.x()
+        y1 = origin.y()
+        z1 = origin.z()
+        x2 = origin.x() + direction[0]
+        y2 = origin.y() + direction[1]
+        z2 = origin.z() + direction[2]
         dx = x2 - x1
         dy = y2 - y1
         dz = z2 - z1    
