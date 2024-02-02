@@ -1,4 +1,5 @@
 import math
+from typing import List
 
 from OCC.Core.TopTools import TopTools_ListOfShape, TopTools_ListIteratorOfListOfShape
 
@@ -366,19 +367,16 @@ class Shell(Topology):
         """ 
         if not isinstance(shell, coreShell):
             return None
-        edges = []
+
         list_edges = shell.edges()
+        # edges = []
+        # iterator = TopTools_ListIteratorOfListOfShape(list_edges)
+        # while iterator.More():
+        #     edge = iterator.Value()
+        #     edges.append(edge)
+        #     iterator.Next()
 
-        iterator = TopTools_ListIteratorOfListOfShape(list_edges)
-
-        while iterator.More():
-
-            edge = iterator.Value()
-            edges.append(edge)
-
-            iterator.Next()
-
-        return edges
+        return list_edges
 
     @staticmethod
     def ExternalBoundary(shell: coreShell) -> coreWire:
@@ -399,19 +397,18 @@ class Shell(Topology):
         if not isinstance(shell, coreShell):
             return None
         edges = []
-        edges = shell.edges() # edges should be a list of topologies but it is a list of shapes
+        edges: List[coreEdge] = shell.edges() # edges should be a list of topologies but it is a list of shapes
         obEdges = []
         for anEdge in edges:
-            faces = []
-            _ = anEdge.Faces(shell, faces)
+            faces = anEdge.faces(shell)
             if len(faces) == 1:
                 obEdges.append(anEdge)
         returnTopology = None
         try:
-            returnTopology = coreWire.ByEdges(obEdges)
+            returnTopology = coreWire.by_edges(obEdges)
         except:
-            returnTopology = coreCluster.ByTopologies(obEdges)
-            returnTopology = returnTopology.SelfMerge()
+            returnTopology: coreCluster = coreCluster.by_topologies(obEdges)
+            returnTopology = returnTopology.self_merge()
         return returnTopology
 
     @staticmethod

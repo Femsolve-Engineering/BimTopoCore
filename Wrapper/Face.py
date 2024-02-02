@@ -472,7 +472,7 @@ class Face(coreFace):
         from Wrapper.Dictionary import Dictionary
         import random
 
-        print('REMINDER!!!: ToDo: We are using workaround method to construct faces to avoid the usage of the Cluster and Topology classes -> to be done in Phase 3')
+        print('REMINDER!!!: ToDo: We are using workaround method to construct faces from the original method.')
         edges = wire.edges()
         return coreFace.by_edges(edges)
 

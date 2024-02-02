@@ -5,7 +5,7 @@ from typing import List
 # OCC
 from OCC.Core.Standard import Standard_Failure
 from OCC.Core.TopoDS import topods, TopoDS_Shape, TopoDS_Vertex, TopoDS_Edge
-from OCC.Core.TopAbs import TopAbs_VERTEX
+from OCC.Core.TopAbs import TopAbs_VERTEX, TopAbs_FACE
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopTools import TopTools_MapOfShape
 from OCC.Core.gp import gp_Pnt
@@ -122,7 +122,7 @@ class Edge(Topology):
         Returns the Wires incident to the edge.
         """
         if not host_topology.is_null_shape():
-            return self.upward_navigation(host_topology.get_occt_shape())
+            return self.upward_navigation_(host_topology.get_occt_shape())
         else:
             raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
 
@@ -131,7 +131,7 @@ class Edge(Topology):
         Returns the Faces incident to the edge.
         """
         if not host_topology.is_null_shape():
-            return self.upward_navigation(host_topology.get_occt_shape())
+            return self.upward_navigation_(host_topology.get_occt_shape(), TopAbs_FACE)
         else:
             raise RuntimeError("Host Topology cannot be NULL when searching for ancestors.")
         

@@ -1528,7 +1528,9 @@ class Topology:
 
                 else: # if (occtShapes.Size() == 1)
                     # Go deeper
-                    occt_current_shape = occt_shapes_iterator.Value()
+                    print("The occt_shapes_iterator's Value accessor crashes the app --> returning original shape in Topology.simplify.")
+                    return occt_current_shape
+                    # occt_current_shape = occt_shapes_iterator.Value()
                     # occt_shapes_iterator.Next()
 
                 occt_shapes.Clear()
@@ -1647,7 +1649,7 @@ class Topology:
                 occt_sub_topology_B = occt_sub_topology_iterator_B.Value()
 
                 if occt_sub_topology_A.IsSame(occt_sub_topology_B):
-                    continue
+                    occt_sub_topology_iterator_B.Next()
 
                 # Does B contain A?
                 occt_sub_topologies_B = TopTools_MapOfShape()
