@@ -3230,7 +3230,7 @@ class Topology:
 
 #--------------------------------------------------------------------------------------------------
     @staticmethod
-    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> TopTools_ListOfShape:
+    def static_downward_navigation(occt_shape: TopoDS_Shape, shape_enum: TopAbs_ShapeEnum) -> List['Topology']:
         """
         Navigates downward through the sub-shapes of a given shape and retrieves
         the ones of a specified type.
@@ -3243,10 +3243,7 @@ class Topology:
             TopTools_MapOfShape: Map containing the retrieved sub-shapes.
         """
 
-        occt_members = TopTools_ListOfShape()
-
-        TopExp_Explorer()
-
+        ret_members: List['Topology'] = []
         occt_explorer = TopExp_Explorer(occt_shape, shape_enum)
 
         depth = occt_explorer.Depth()
@@ -3254,17 +3251,16 @@ class Topology:
 
         while occt_explorer.More():
 
-            occt_current = occt_explorer.Value()
+            occt_current_shape = occt_explorer.Value()
 
-            # if not occt_members.Contains(occt_current):
-            #     occt_members.Add(occt_current)
+            # !!! Convert shape to topology !!!
+            child_topology = Topology.by_occt_shape(occt_current_shape, "")
 
-            occt_members.Append(occt_current)
+            ret_members.append(child_topology)
 
             occt_explorer.Next()
 
-        size = occt_members.Size() 
-        return occt_members
+        return ret_members
 
 #--------------------------------------------------------------------------------------------------
     # downward_navigation from Toplogy.h
