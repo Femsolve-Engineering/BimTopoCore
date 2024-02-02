@@ -82,11 +82,8 @@ class Shell(Topology):
         """
         Returns the Edge contituents to this Shell
         """
-        # shape_type = TopologyTypes.EDGE
         shape_enum = TopAbs_EDGE
-        
-        occt_shape = self.get_occt_shape()
-        return Topology.static_downward_navigation(occt_shape, shape_enum)
+        return self.downward_navigation(shape_enum)
 
 #--------------------------------------------------------------------------------------------------
     # def wires(self, host_topology: Topology, wires: List[Wire]) -> List[Wire]:

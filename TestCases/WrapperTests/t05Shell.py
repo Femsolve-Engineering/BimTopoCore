@@ -19,14 +19,6 @@ from Core.Cell import Cell as coreCell
 from Core.CellComplex import CellComplex as coreCellComplex
 from Core.Cluster import Cluster as coreCluster
 
-# from topologicpy.Vertex import Vertex
-# from topologicpy.Edge import Edge
-# from topologicpy.Cluster import Cluster
-# from topologicpy.Wire import Wire
-# from topologicpy.Face import Face
-# from topologicpy.Shell import Shell
-# from topologicpy.Topology import Topology
-
 from Wrapper.Vertex import Vertex
 from Wrapper.Edge import Edge
 from Wrapper.Cluster import Cluster
@@ -76,29 +68,29 @@ def test_05shell() -> bool:
 
     # Case 3 - ByWires
 
-    # # test 1
-    # # Remark: # The resulting wire consists of a single edge. Explanation: the edges making up the wire are coincident!
-    # shell_w = Shell.ByWires(w_list)                                     # without optional inputs
-    # assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
+    # test 1
+    print("Shell-C3T1: The resulting wire consists of a single edge. Explanation: the edges making up the wire are coincident!")
+    shell_w = Shell.ByWires(w_list)                                     # without optional inputs
+    assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
 
-    # # test 2
-    # # Remark: Error message: The input wire is open!
+    # test 2
+    print("Shell-C3T2: Error message: The input wire is open!")
     # shell_w = Shell.ByWires(w_list, triangulate=True, tolerance=0.001)  # with optional inputs
     # assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
 
-    # # test 3
-    # # Remark: Topology.simplify() fails
+    # test 3
+    print("Shell-C3T3: Error message: The input wire is open!")
     # shell_w = Shell.ByWires(w_list, triangulate=False, tolerance=0.001)  # with optional inputs
     # assert isinstance(shell_w, coreShell), "Shell.ByFaces. Should be coreShell"
 
     # Case 4 - ByWiresCluster
 
-    # # test 1
-    # # Remark: Topology.simplify() fails
+    # test 1
+    # Remark: Topology.simplify() fails
     # shell_wc = Shell.ByWiresCluster(w_cluster)               # without optional inputs
     # assert isinstance(shell_wc, coreShell), "Shell.ByFaces. Should be coreShell"
 
-    # # test 2
+    # test 2
     # Remark: Topology.simplify() fails
     # shell_wc = Shell.ByWiresCluster(w_cluster, triangulate=True, tolerance=0.001)   # with optional inputs
     # assert isinstance(shell_wc, coreShell), "Shell.ByFaces. Should be coreShell"
@@ -268,7 +260,7 @@ def test_05shell() -> bool:
     # # Remark: shell_c has not been created
     # w_shell2 = Shell.Wires(shell_c)
     # assert isinstance(w_shell2, list), "Shell.Wires. Should be list"
-    #     return True
+    return True
 
     # except Exception as ex:
     #     print(f'Failure Occured: {ex}')
